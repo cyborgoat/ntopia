@@ -10,10 +10,11 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
-import { Textarea } from "@/components/ui/textarea";
 import { Markdown } from "@/components/markdown";
+import { MarkdownEditor, type MarkdownEditorHandle } from "@/components/markdown-editor";
+import { uploadImage } from "@/components/image-upload";
 import { RequireAuth } from "@/components/require-auth";
-import { errorMessage, orbit } from "@/lib/orbit";
+import { assetUrl, errorMessage, orbit } from "@/lib/orbit";
 
 export const Route = createFileRoute("/_app/discussions/$postId")({
   component: () => (
@@ -66,7 +67,8 @@ function Thread() {
   const [text, setText] = useState("");
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [error, setError] = useState("");
-  const composerRef = useRef<HTMLTextAreaElement>(null);
+  const composerRef = useRef<MarkdownEditorHandle>(null);
+  const composerBox = useRef<HTMLDivElement>(null);
   const refresh = () => qc.invalidateQueries({ queryKey: key });
 
   const { data: post } = useQuery({
@@ -75,6 +77,7 @@ function Thread() {
   });
 
   async function send() {
+    if (!text.trim()) return;
     setError("");
     const { error } = await orbit.POST("/forum-posts/{id}/comments", {
       params: { path: { id } },
@@ -90,7 +93,7 @@ function Thread() {
     setReplyTo(commentId);
     requestAnimationFrame(() => {
       composerRef.current?.focus();
-      composerRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      composerBox.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     });
   }
 
@@ -168,15 +171,20 @@ function Thread() {
             Replying to a comment · <button className="underline" onClick={() => setReplyTo(null)}>cancel</button>
           </p>
         )}
-        <Textarea
-          ref={composerRef}
-          rows={3}
-          placeholder="Write a comment (Markdown)…"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-        />
+        <div ref={composerBox}>
+          <MarkdownEditor
+            ref={composerRef}
+            variant="compact"
+            placeholder="Write a comment… (⌘↵ to send)"
+            value={text}
+            onChange={setText}
+            onSubmit={() => void send()}
+            imageUploadHandler={uploadImage}
+            imagePreviewHandler={async (src) => assetUrl(src) ?? src}
+          />
+        </div>
         {error && <p className="text-sm text-destructive">{error}</p>}
-        <Button size="sm" disabled={!text.trim()} onClick={send}>Comment</Button>
+        <Button size="sm" disabled={!text.trim()} onClick={() => void send()}>Comment</Button>
       </div>
     </>
   );

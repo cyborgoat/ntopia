@@ -28,7 +28,7 @@ You can use Home and Gadgets immediately without signing in. To unlock Team Orbi
 
 ### Email (`/gadgets/email`)
 
-One-shot composer — pick a template or edit Markdown (live HTML preview via mdmailer's `preview` server), then export HTML / EML / PNG / Markdown or open `.eml` in the mail client. Branding dialog for org, color, logo, and theme. Paste images into the editor to save them under the scratch `work/assets/pasted/` folder (relative Markdown paths). No draft library; the scratch working file is used only while the tool is open.
+One-shot composer — pick a template, set subject/type/theme/hosts/agenda in the collapsible Details bar (no raw YAML needed, though "Edit as YAML" is there), and write the body as Markdown source with a formatting toolbar (live HTML preview via mdmailer's `preview` server), then export HTML / EML / PNG / Markdown or open `.eml` in the mail client. Branding dialog for org, color, logo, and theme. Import, paste or drop images into the editor to save them under the scratch `work/assets/pasted/` folder (relative Markdown paths). No draft library; the scratch working file is used only while the tool is open.
 
 mdmailer needs native modules (sharp) and Puppeteer, so it can't be compiled into a single binary. `pnpm sidecar` (`sidecar/mdmailer/build.mjs`) downloads a portable Node runtime into `src-tauri/binaries/` (Tauri `externalBin`) and copies mdmailer + `node_modules` into `src-tauri/resources/mdmailer/`. The app runs `node …/cli.js preview` for live preview and generate for export/PNG against a scratch file in app-data. Puppeteer downloads Chrome on first PNG render if none is found. Run `pnpm sidecar` before `pnpm tauri build`.
 

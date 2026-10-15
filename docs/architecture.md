@@ -11,6 +11,7 @@ NTOPIA is a **Tauri v2 desktop client**. Auth and team data live in a separate *
 | Routing / data | TanStack Router (hash history), TanStack Query |
 | Backend | `@goatcheese/team-orbit-client` → team-orbit HTTP + Socket.io |
 | Sidecar | Portable Node + `@goatcheese/mdmailer` for the email gadget |
+| Markdown | `@mdxeditor/editor` (WYSIWYG for posts/comments), CodeMirror (email source), `react-markdown` + `remark-gfm` (rendering) |
 
 Boot sequence (`src/main.tsx`): `initStorage` → `QueryClientProvider` → `AuthProvider` → `RouterProvider`.
 
@@ -93,7 +94,7 @@ File routes under `src/routes/`; generated tree in `src/routeTree.gen.ts`.
 | Public | `/login`, `/register` | Outside the shell; login can “Continue without signing in” |
 | Shell | `/_app` → `AppShell` | Pathless layout; URLs stay `/`, `/gadgets`, … |
 | Local | `/`, `/gadgets`, `/gadgets/email`, `/gadgets/todo`, `/settings` | No Orbit API required |
-| Orbit | `/announcements`, `/events`, `/news`, `/blog`, `/discussions/*`, `/notifications` | Behind `RequireAuth` |
+| Orbit | `/announcements`, `/events`, `/news`, `/news/new`, `/blog`, `/blog/new`, `/discussions/*`, `/notifications` | Behind `RequireAuth`; `*/new` composers are full-bleed (`FULL_BLEED` in `app-shell.tsx`) |
 
 ## Key libraries (`src/lib/`)
 
@@ -104,6 +105,12 @@ File routes under `src/routes/`; generated tree in `src/routeTree.gen.ts`.
 | `storage.ts` | Sync in-memory cache over plugin-store / localStorage |
 | `realtime.ts` | Socket.io notifications → toast, query invalidation, native alert when unfocused |
 
+## Markdown editing
+
+- `src/components/markdown-editor.tsx` — the one Markdown editor: MDXEditor (WYSIWYG, markdown shortcuts, rich-text/source toggle). `variant="full"` for posts and email, `"compact"` for comments (Mod+Enter submits). Pass `imageUploadHandler` to enable paste/drop/toolbar images and `imagePreviewHandler` to map stored `src`s to displayable URLs. It's uncontrolled internally; `value` changes from outside (resets, template loads) are pushed in with `setMarkdown`.
+- `src/components/post-composer.tsx` — full-page composer (title, tags, cover, editor) behind `/news/new`, `/blog/new` and `/discussions/new`. Images upload to Orbit `/uploads`. Posts can't be edited after publishing (the API has no update endpoint).
+- `.prose-ntopia` in `src/index.css` is shared by `<Markdown>` and the editor so drafts look like the published post. `.md-editor-root` maps MDXEditor's `--base*` variables to the app's theme tokens.
+
 ## Gadgets
 
 Gadgets are small local tools. Register one in `src/gadgets/registry.ts` and add `src/routes/_app/gadgets.<id>.tsx`.
@@ -111,6 +118,9 @@ Gadgets are small local tools. Register one in `src/gadgets/registry.ts` and add
 ### Email composer (`/gadgets/email`)
 
 - Implementation: `src/gadgets/email/mdmailer.ts` + route UI.
+- The document is held as `meta` (frontmatter) + `body`, joined with `joinDoc` (`frontmatter.ts`) for preview/export. The body is edited as raw Markdown in `source-editor.tsx` (CodeMirror, with a formatting toolbar, ⌘B/⌘I/⌘K, and image import via button, paste or drop) — not the shared WYSIWYG `MarkdownEditor`. Frontmatter is edited in `details-bar.tsx`: a one-line summary that expands into a form whose fields come from `fields.ts` (per `type`, including hosts and agenda), plus "Edit as YAML". Keys the form doesn't know about are kept and shown under "Other fields".
+- `stringifyMeta` writes YAML 1.1-safe text, because mdmailer parses with gray-matter/js-yaml (YAML 1.1), where an unquoted `15:00` would become the number 900.
+- Images in the editor (pasted ones, template host photos) are relative to `work/` and shown through `mm.workAssetUrl` (blob URLs).
 - Scratch workspace under app data: `email/work/`, `email/out/`, branding JSON, pasted images in `work/assets/pasted/`.
 - Sidecar: `pnpm sidecar` downloads portable Node into `src-tauri/binaries/` and copies mdmailer into `src-tauri/resources/mdmailer/`. The app shells out to `node …/cli.js` for live `preview` and generate (HTML / EML / PNG).
 

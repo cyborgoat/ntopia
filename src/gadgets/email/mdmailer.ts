@@ -134,6 +134,36 @@ export async function savePastedImage(bytes: Uint8Array, mimeOrExt = "image/png"
   return `assets/pasted/${name}`;
 }
 
+const MIME_BY_EXT: Record<string, string> = { png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", gif: "image/gif", webp: "image/webp", svg: "image/svg+xml" };
+const assetUrlCache = new Map<string, Promise<string>>();
+
+/**
+ * Displayable URL for an image src in the working document. Relative paths (pasted images,
+ * template host photos) resolve against the work dir and are served as blob URLs.
+ */
+export function workAssetUrl(src: string): Promise<string> {
+  if (/^(https?:|data:|blob:)/.test(src)) return Promise.resolve(src);
+  let url = assetUrlCache.get(src);
+  if (!url) {
+    url = (async () => {
+      const rel = src.replace(/^\.\//, "");
+      const bytes = await readFile(await join(await workDir(), ...rel.split("/")));
+      const ext = rel.split(".").pop()?.toLowerCase() ?? "";
+      return URL.createObjectURL(new Blob([bytes], { type: MIME_BY_EXT[ext] ?? "application/octet-stream" }));
+    })();
+    url.catch(() => assetUrlCache.delete(src));
+    assetUrlCache.set(src, url);
+  }
+  return url;
+}
+
+/** Save a picked file (e.g. a host photo) into the workspace and return its relative path. */
+export async function importWorkAsset(sourcePath: string): Promise<string> {
+  const bytes = await readFile(sourcePath);
+  const ext = sourcePath.split(".").pop()?.toLowerCase() ?? "png";
+  return savePastedImage(bytes, ext);
+}
+
 /** Clear paste scratch images (called when starting a fresh compose session). */
 export async function clearPastedImages() {
   await ensureWorkspace();
@@ -217,11 +247,70 @@ export async function stopPreview() {
   previewChild = null;
   if (child) {
     try {
-      await child.kill();
+      // Never let a stuck kill block the next start.
+      await withTimeout(child.kill(), 2_000, "kill");
     } catch {
-      /* already exited */
+      /* already exited or unresponsive */
     }
   }
+}
+
+function withTimeout<T>(p: Promise<T>, ms: number, what: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error(`mdmailer preview: ${what} timed out`)), ms);
+    p.then(
+      (v) => { clearTimeout(t); resolve(v); },
+      (e) => { clearTimeout(t); reject(e); },
+    );
+  });
+}
+
+// One shared preview session per app. React StrictMode and Fast Refresh mount/unmount the composer
+// in quick succession; reference-counting keeps them on the same server instead of racing two starts.
+let session: Promise<{ url: string }> | null = null;
+let sessionUsers = 0;
+let stopTimer: ReturnType<typeof setTimeout> | undefined;
+
+/**
+ * Start (or join) the live preview session. A fresh session resets the working file to `initialDoc`.
+ * Rejects within ~25s instead of hanging. Pair every call with `releasePreview()`.
+ */
+export function acquirePreview(initialDoc: string): Promise<{ url: string }> {
+  sessionUsers++;
+  clearTimeout(stopTimer);
+  if (!session) {
+    const s = withTimeout(
+      (async () => {
+        await clearPastedImages();
+        await writeWorking(initialDoc);
+        return startPreview();
+      })(),
+      25_000,
+      "start",
+    );
+    session = s;
+    s.catch(() => {
+      if (session === s) session = null;
+    });
+  }
+  return session;
+}
+
+export function releasePreview() {
+  sessionUsers = Math.max(0, sessionUsers - 1);
+  if (sessionUsers > 0) return;
+  clearTimeout(stopTimer);
+  stopTimer = setTimeout(() => {
+    if (sessionUsers > 0) return;
+    session = null;
+    void stopPreview();
+  }, 500);
+}
+
+/** Drop the current session (e.g. after an error) so the next acquire starts a new server. */
+export async function resetPreview() {
+  session = null;
+  await stopPreview();
 }
 
 /**

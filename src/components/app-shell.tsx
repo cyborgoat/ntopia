@@ -41,7 +41,7 @@ const orbitNav = [
   { to: "/discussions", label: "Discussions", icon: MessagesSquare },
 ] as const;
 
-const FULL_BLEED = ["/gadgets/email"];
+const FULL_BLEED = ["/gadgets/email", "/blog/new", "/news/new", "/discussions/new"];
 const MARK = "text-[1.65rem] font-semibold tracking-[-0.06em]";
 
 function NavItems({
@@ -93,7 +93,7 @@ function BrandToggle() {
 
 function InsetHeader({ fullBleed }: { fullBleed: boolean }) {
   const { title } = usePageChrome();
-  const label = fullBleed ? "Email composer" : title;
+  const label = title ?? (fullBleed ? "Email composer" : null);
 
   return (
     <header className="flex shrink-0 flex-col gap-2 p-2">

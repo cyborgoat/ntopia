@@ -1,8 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import CodeMirror from "@uiw/react-codemirror";
-import { markdown } from "@codemirror/lang-markdown";
-import { EditorView } from "@codemirror/view";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
 import { join } from "@tauri-apps/api/path";
@@ -23,13 +20,16 @@ import {
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { Field } from "@/components/form-dialog";
 import { isTauri } from "@/lib/storage";
-import { splitDoc } from "@/gadgets/email/frontmatter";
+import { DetailsBar } from "@/gadgets/email/details-bar";
+import { SourceEditor } from "@/gadgets/email/source-editor";
+import { THEME_PRESETS as THEMES } from "@/gadgets/email/fields";
+import { joinDoc, splitDoc, type Frontmatter } from "@/gadgets/email/frontmatter";
 import * as mm from "@/gadgets/email/mdmailer";
 
 export const Route = createFileRoute("/_app/gadgets/email")({ component: EmailGadget });
 
-const THEMES = ["classic", "navy-gold", "forest-cream"] as const;
-const BLANK = "---\ntitle: \"Untitled\"\ntype: news\nlang: en\n---\n\n## Hello\n\nWrite your message…\n";
+const BLANK_META: Frontmatter = { title: "Untitled", type: "news", lang: "en" };
+const BLANK_BODY = "## Hello\n\nWrite your message…\n";
 const LAYOUT_KEY = "ntopia.email-composer.layout";
 const DEFAULT_LAYOUT = { editor: 50, preview: 50 };
 
@@ -45,8 +45,8 @@ function loadLayout(): Record<string, number> {
   return DEFAULT_LAYOUT;
 }
 
-function exportBasename(doc: string) {
-  const title = splitDoc(doc).data.title;
+function exportBasename(meta: Frontmatter) {
+  const title = meta.title;
   const raw = String(title ?? "email").trim() || "email";
   return raw.replace(/[^\w\- ]+/g, "").replace(/\s+/g, "-").slice(0, 64) || "email";
 }
@@ -59,7 +59,9 @@ function EmailGadget() {
 }
 
 function Composer() {
-  const [doc, setDoc] = useState(BLANK);
+  const [meta, setMeta] = useState<Frontmatter>(BLANK_META);
+  const [body, setBody] = useState(BLANK_BODY);
+  const doc = useMemo(() => joinDoc(meta, body), [meta, body]);
   const [ready, setReady] = useState(false);
   const [html, setHtml] = useState("");
   const [pngUrl, setPngUrl] = useState<string>();
@@ -78,71 +80,39 @@ function Composer() {
     setPngUrl(undefined);
   }, []);
 
+  const [attempt, setAttempt] = useState(0);
+
   useEffect(() => {
     let cancelled = false;
-    (async () => {
-      try {
-        await mm.clearPastedImages();
-        await mm.writeWorking(BLANK);
-        const { url } = await mm.startPreview();
+    setError("");
+    mm.acquirePreview(joinDoc(BLANK_META, BLANK_BODY))
+      .then(({ url }) => {
         if (cancelled) return;
         setPreviewUrl(url);
         setReady(true);
-        setError("");
-      } catch (e) {
+      })
+      .catch((e) => {
         if (!cancelled) setError(e instanceof Error ? e.message : String(e));
-      }
-    })();
-    mm.listTemplates().then(setTemplates).catch(() => {});
+      });
     return () => {
       cancelled = true;
-      void mm.stopPreview();
+      mm.releasePreview();
+    };
+  }, [attempt]);
+
+  useEffect(() => {
+    mm.listTemplates().then(setTemplates).catch(() => {});
+    return () => {
       if (pngUrlRef.current) URL.revokeObjectURL(pngUrlRef.current);
     };
   }, []);
 
-  const pasteImages = useMemo(
-    () =>
-      EditorView.domEventHandlers({
-        paste(event: ClipboardEvent, view: EditorView) {
-          const dt = event.clipboardData;
-          if (!dt) return false;
-          const files: File[] = [];
-          for (const item of dt.items) {
-            if (item.kind === "file" && item.type.startsWith("image/")) {
-              const f = item.getAsFile();
-              if (f) files.push(f);
-            }
-          }
-          for (const f of Array.from(dt.files)) {
-            if (f.type.startsWith("image/") && !files.includes(f)) files.push(f);
-          }
-          if (files.length === 0) return false;
-          event.preventDefault();
-          const pos = view.state.selection.main.head;
-          void (async () => {
-            try {
-              const chunks: string[] = [];
-              for (const file of files) {
-                const bytes = new Uint8Array(await file.arrayBuffer());
-                const rel = await mm.savePastedImage(bytes, file.type || "image/png");
-                const alt = file.name.replace(/\.[^.]+$/, "") || "image";
-                chunks.push(`![${alt}](${rel})`);
-              }
-              const insert = `${chunks.join("\n")}\n`;
-              view.dispatch({
-                changes: { from: pos, to: pos, insert },
-                selection: { anchor: pos + insert.length },
-              });
-            } catch (e) {
-              toast.error(e instanceof Error ? e.message : String(e));
-            }
-          })();
-          return true;
-        },
-      }),
-    [],
-  );
+  async function retryPreview() {
+    setReady(false);
+    setPreviewUrl(null);
+    await mm.resetPreview();
+    setAttempt((n) => n + 1);
+  }
 
   useEffect(() => {
     if (!previewUrl) return;
@@ -209,7 +179,9 @@ function Composer() {
   async function loadTemplate(t: string) {
     try {
       const text = await mm.readTemplate(t);
-      setDoc(text);
+      const { data, body: templateBody } = splitDoc(text);
+      setMeta(data);
+      setBody(templateBody.replace(/^\n+/, ""));
       clearPng();
       setHtml("");
       await mm.writeWorking(text);
@@ -221,7 +193,7 @@ function Composer() {
     }
   }
 
-  const base = exportBasename(doc);
+  const base = exportBasename(meta);
 
   async function exportMd() {
     try {
@@ -325,19 +297,15 @@ function Composer() {
         }}
       >
         <ResizablePanel id="editor" defaultSize={`${layout.editor}%`} minSize="25%" className="min-w-0">
-          <ContextMenu>
-            <ContextMenuTrigger className="block h-full min-h-0 overflow-auto text-sm">
-              <CodeMirror
-                value={doc}
-                extensions={[markdown(), pasteImages]}
-                basicSetup={{ lineNumbers: false, foldGutter: false }}
-                onChange={setDoc}
-                height="100%"
-                style={{ height: "100%" }}
-              />
-            </ContextMenuTrigger>
-            <ContextMenuContent>{exportMenuItems}</ContextMenuContent>
-          </ContextMenu>
+          <div className="flex h-full min-h-0 flex-col">
+            <DetailsBar meta={meta} onChange={setMeta} />
+            <ContextMenu>
+              <ContextMenuTrigger className="flex min-h-0 flex-1 flex-col">
+                <SourceEditor value={body} onChange={setBody} />
+              </ContextMenuTrigger>
+              <ContextMenuContent>{exportMenuItems}</ContextMenuContent>
+            </ContextMenu>
+          </div>
         </ResizablePanel>
         <ResizableHandle withHandle />
         <ResizablePanel id="preview" defaultSize={`${layout.preview}%`} minSize="25%" className="min-w-0">
@@ -351,11 +319,16 @@ function Composer() {
                   {busy && <span className="text-xs text-muted-foreground">Rendering…</span>}
                 </div>
                 <div className="relative min-h-0 flex-1 overflow-auto bg-muted/40">
-                  {error && <pre className="m-3 whitespace-pre-wrap rounded-md border border-destructive/30 bg-background p-3 text-xs text-destructive">{error}</pre>}
+                  {error && (
+                    <div className="m-3 space-y-2 rounded-md border border-destructive/30 bg-background p-3">
+                      <pre className="whitespace-pre-wrap text-xs text-destructive">{error}</pre>
+                      {!previewUrl && <Button size="sm" variant="outline" onClick={() => void retryPreview()}>Restart preview</Button>}
+                    </div>
+                  )}
                   {tab === "html" && html && <iframe title="Email preview" sandbox="" srcDoc={html} className="h-full w-full bg-white" />}
                   {tab === "png" && !error && pngUrl && <img src={pngUrl} alt="PNG card" className="mx-auto max-w-full p-4" />}
                   {tab === "html" && !html && !busy && !error && (
-                    <p className="p-6 text-sm text-muted-foreground">Waiting for live preview…</p>
+                    <p className="p-6 text-sm text-muted-foreground">{previewUrl ? "Rendering preview…" : "Starting live preview…"}</p>
                   )}
                 </div>
               </section>

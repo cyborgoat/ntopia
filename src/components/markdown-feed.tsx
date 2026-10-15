@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Copy, Trash2 } from "lucide-react";
+import { Copy, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,12 +11,9 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Field, FormDialog } from "@/components/form-dialog";
-import { ImageUploadButton } from "@/components/image-upload";
 import { Markdown } from "@/components/markdown";
 import { Empty, PageHeader } from "@/components/page-header";
+import { PostComposer } from "@/components/post-composer";
 import { useAuth } from "@/lib/auth";
 import { assetUrl, errorMessage, orbit } from "@/lib/orbit";
 
@@ -27,8 +24,7 @@ export function MarkdownFeed({ kind, title, description }: { kind: Kind; title: 
   const { isAdmin } = useAuth();
   const qc = useQueryClient();
   const key = [kind];
-  const [f, setF] = useState({ title: "", content: "", tags: "", coverImageUrl: "" });
-
+  
   const { data } = useQuery({
     queryKey: key,
     queryFn: async () =>
@@ -52,30 +48,9 @@ export function MarkdownFeed({ kind, title, description }: { kind: Kind; title: 
         description={description}
         actions={
           isAdmin && (
-            <FormDialog
-              title={`New ${title.toLowerCase()} post`}
-              triggerLabel="New"
-              onSubmit={async () => {
-                const body = {
-                  title: f.title,
-                  content: f.content,
-                  tags: f.tags.split(",").map((t) => t.trim()).filter(Boolean),
-                  coverImageUrl: f.coverImageUrl || undefined,
-                };
-                const { error } = kind === "/news" ? await orbit.POST("/news", { body }) : await orbit.POST("/blog-posts", { body });
-                if (error) throw new Error(errorMessage(error));
-                setF({ title: "", content: "", tags: "", coverImageUrl: "" });
-                qc.invalidateQueries({ queryKey: key });
-              }}
-            >
-              <Field label="Title"><Input required value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} /></Field>
-              <Field label="Content (Markdown)"><Textarea required rows={9} className="font-mono text-xs" value={f.content} onChange={(e) => setF({ ...f, content: e.target.value })} /></Field>
-              <Field label="Tags (comma separated)"><Input value={f.tags} onChange={(e) => setF({ ...f, tags: e.target.value })} /></Field>
-              <div className="flex items-center gap-2">
-                <ImageUploadButton label="Cover image" onUploaded={(u) => setF((p) => ({ ...p, coverImageUrl: u }))} />
-                <ImageUploadButton label="Insert image" onUploaded={(u) => setF((p) => ({ ...p, content: `${p.content}\n\n![](${u})\n` }))} />
-              </div>
-            </FormDialog>
+            <Button size="sm" render={<Link to={kind === "/news" ? "/news/new" : "/blog/new"} />}>
+              <Plus /> New
+            </Button>
           )
         }
       />
@@ -118,5 +93,23 @@ export function MarkdownFeed({ kind, title, description }: { kind: Kind; title: 
         ))}
       </div>
     </>
+  );
+}
+
+/** Full-page composer for a new news or blog post (admins only). */
+export function NewFeedPost({ kind, title }: { kind: Kind; title: string }) {
+  const { isAdmin } = useAuth();
+  const qc = useQueryClient();
+  if (!isAdmin) return <Empty>Only admins can publish {title.toLowerCase()} posts.</Empty>;
+  return (
+    <PostComposer
+      pageTitle={`New ${title.toLowerCase()} post`}
+      backTo={kind === "/news" ? "/news" : "/blog"}
+      onPublish={async (body) => {
+        const { error } = kind === "/news" ? await orbit.POST("/news", { body }) : await orbit.POST("/blog-posts", { body });
+        if (error) throw new Error(errorMessage(error));
+        await qc.invalidateQueries({ queryKey: [kind] });
+      }}
+    />
   );
 }

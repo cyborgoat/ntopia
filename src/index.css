@@ -128,3 +128,72 @@
     @apply font-sans;
     }
 }
+/* Shared Markdown typography: published content (<Markdown>) and the WYSIWYG editor. */
+.prose-ntopia {
+  @apply text-sm leading-relaxed text-foreground;
+  & > * + * { margin-top: 0.75rem; }
+  & h1 { @apply text-xl font-semibold tracking-tight; }
+  & h2 { @apply text-lg font-semibold tracking-tight; }
+  & h3 { @apply text-base font-semibold; }
+  & h4, & h5, & h6 { @apply text-sm font-semibold; }
+  & a { @apply underline underline-offset-2; }
+  & strong { @apply font-semibold; }
+  & ul { @apply list-disc pl-5; }
+  & ol { @apply list-decimal pl-5; }
+  & li + li { margin-top: 0.25rem; }
+  & li > ul, & li > ol { margin-top: 0.25rem; }
+  & blockquote { @apply border-l-2 pl-3 text-muted-foreground italic; }
+  & code { @apply rounded bg-muted px-1 py-0.5 font-mono text-[0.85em]; }
+  & pre { @apply overflow-auto rounded-md bg-muted p-3; }
+  & pre code { @apply bg-transparent p-0; }
+  & hr { @apply border-border; }
+  & img { @apply max-w-full rounded-md; }
+  & table { @apply w-full border-collapse text-left; }
+  & th, & td { @apply border px-2 py-1; }
+  & th { @apply bg-muted font-medium; }
+}
+
+/* MDXEditor themed with the app's tokens (also applies to its popups, which copy the root class). */
+.md-editor-root {
+  --basePageBg: var(--background);
+  --baseBase: var(--background);
+  --baseBg: var(--background);
+  --baseBgSubtle: var(--muted);
+  --baseBgHover: var(--accent);
+  --baseBgActive: var(--accent);
+  --baseLine: var(--border);
+  --baseBorder: var(--border);
+  --baseBorderHover: var(--ring);
+  --baseSolid: var(--muted-foreground);
+  --baseSolidHover: var(--foreground);
+  --baseText: var(--muted-foreground);
+  --baseTextContrast: var(--foreground);
+  font-family: inherit;
+  color: var(--foreground);
+}
+.md-editor .md-editor-toolbar {
+  @apply gap-0.5 rounded-none border-b bg-muted/40 px-2 py-1;
+}
+.md-editor .md-editor-content {
+  min-height: 14rem;
+  padding: 0.75rem 1rem;
+  outline: none;
+}
+.md-editor-compact .md-editor-content { min-height: 5rem; padding: 0.5rem 0.75rem; }
+.md-editor .mdxeditor-root-contenteditable [class*="_placeholder_"] {
+  @apply pointer-events-none text-muted-foreground select-none;
+  padding: 0.75rem 1rem;
+}
+.md-editor-compact .mdxeditor-root-contenteditable [class*="_placeholder_"] { padding: 0.5rem 0.75rem; }
+.md-editor .mdxeditor-source-editor { min-height: 14rem; }
+.md-editor .mdxeditor-source-editor .cm-scroller { @apply font-mono text-[13px] leading-relaxed; }
+.md-editor table[class*="tableEditor"] { height: auto !important; }
+
+/* fillHeight: the editor flexes to its parent and scrolls internally. */
+.md-editor-fill .md-editor-root { display: flex; flex-direction: column; flex: 1; min-height: 0; height: 100%; }
+.md-editor-fill .mdxeditor-diff-source-wrapper { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
+.md-editor-fill .mdxeditor-rich-text-editor[style*="display: block"],
+.md-editor-fill .mdxeditor-rich-text-editor[style*="display:block"] { display: flex !important; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
+.md-editor-fill .mdxeditor-root-contenteditable { flex: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; }
+.md-editor-fill .md-editor-content { min-height: 100%; }
+.md-editor-fill .mdxeditor-source-editor { flex: 1; min-height: 0; overflow: auto; }

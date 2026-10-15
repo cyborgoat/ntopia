@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowBigUp, Copy, ExternalLink, MessageSquare } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { ArrowBigUp, Copy, ExternalLink, MessageSquare, Plus } from "lucide-react";
 import { toast } from "sonner";
 import {
   ContextMenu,
@@ -11,12 +11,10 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Field, FormDialog } from "@/components/form-dialog";
-import { ImageUploadButton } from "@/components/image-upload";
+import { Button } from "@/components/ui/button";
 import { Empty, PageHeader } from "@/components/page-header";
 import { RequireAuth } from "@/components/require-auth";
-import { errorMessage, orbit } from "@/lib/orbit";
+import { orbit } from "@/lib/orbit";
 
 export const Route = createFileRoute("/_app/discussions/")({
   component: () => (
@@ -31,10 +29,8 @@ function threadUrl(id: string) {
 }
 
 function Discussions() {
-  const qc = useQueryClient();
   const navigate = useNavigate();
   const [q, setQ] = useState("");
-  const [f, setF] = useState({ title: "", content: "" });
   const { data } = useQuery({
     queryKey: ["forum-posts", q],
     queryFn: async () => (await orbit.GET("/forum-posts", { params: { query: { limit: 50, q: q || undefined } } })).data,
@@ -46,20 +42,9 @@ function Discussions() {
         title="Discussions"
         description="Talk things through with the team."
         actions={
-          <FormDialog
-            title="Start a discussion"
-            triggerLabel="New thread"
-            onSubmit={async () => {
-              const { error } = await orbit.POST("/forum-posts", { body: f });
-              if (error) throw new Error(errorMessage(error));
-              setF({ title: "", content: "" });
-              qc.invalidateQueries({ queryKey: ["forum-posts"] });
-            }}
-          >
-            <Field label="Title"><Input required value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} /></Field>
-            <Field label="Message (Markdown)"><Textarea required rows={7} value={f.content} onChange={(e) => setF({ ...f, content: e.target.value })} /></Field>
-            <ImageUploadButton onUploaded={(u) => setF((p) => ({ ...p, content: `${p.content}\n\n![](${u})\n` }))} />
-          </FormDialog>
+          <Button size="sm" render={<Link to="/discussions/new" />}>
+            <Plus /> New thread
+          </Button>
         }
       />
       <Input placeholder="Search threads…" value={q} onChange={(e) => setQ(e.target.value)} className="mb-4" />

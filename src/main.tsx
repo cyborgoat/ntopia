@@ -7,6 +7,7 @@ import { AuthProvider } from "@/lib/auth";
 import { TODO_STORAGE_KEY } from "@/gadgets/todo/store";
 import { STORAGE_KEYS } from "@/lib/orbit";
 import { initStorage } from "@/lib/storage";
+import "@mdxeditor/editor/style.css";
 import "./index.css";
 
 const queryClient = new QueryClient({

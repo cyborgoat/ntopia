@@ -14,9 +14,18 @@ export function splitDoc(doc: string): { data: Frontmatter; body: string } {
   }
 }
 
-export function joinDoc(data: Frontmatter, body: string): string {
+/**
+ * Serialize frontmatter as YAML 1.1-safe text. mdmailer parses with gray-matter (js-yaml, YAML 1.1),
+ * where unquoted `15:00` is the integer 900 and `yes` is `true`, so ambiguous strings must be quoted.
+ */
+export function stringifyMeta(data: Frontmatter): string {
   const clean = Object.fromEntries(Object.entries(data).filter(([, v]) => v !== "" && v != null));
-  return `---\n${YAML.stringify(clean).trimEnd()}\n---\n${body.startsWith("\n") ? "" : "\n"}${body}`;
+  if (Object.keys(clean).length === 0) return "";
+  return YAML.stringify(clean, { version: "1.1", lineWidth: 0 }).trimEnd();
+}
+
+export function joinDoc(data: Frontmatter, body: string): string {
+  return `---\n${stringifyMeta(data)}\n---\n${body.startsWith("\n") ? "" : "\n"}${body}`;
 }
 
 /** Update frontmatter keys in a document, leaving the body untouched. */
