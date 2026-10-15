@@ -21,9 +21,9 @@ Sign in at the server URL shown on the login screen (default `http://localhost:3
 
 ## Email gadget
 
-`/gadgets/email`: drafts list, CodeMirror Markdown editor with a frontmatter form, live HTML preview and PNG card, export of HTML / EML / PNG (or all), open `.eml` in the mail client, and a branding dialog (org, color, logo, theme).
+`/gadgets/email`: drafts list, import a `.md` file or write one in the CodeMirror editor (with a frontmatter form), live HTML preview via mdmailer's `preview` server, PNG card, export of HTML / EML / PNG (or all), open `.eml` in the mail client, and a branding dialog (org, color, logo, theme).
 
-mdmailer needs native modules (sharp) and Puppeteer, so it can't be compiled into a single binary. `pnpm sidecar` (`sidecar/mdmailer/build.mjs`) downloads a portable Node runtime into `src-tauri/binaries/` (Tauri `externalBin`) and copies mdmailer + `node_modules` into `src-tauri/resources/mdmailer/`. The app runs `node cli.js` against drafts in its app-data folder. Puppeteer downloads Chrome on first PNG render if none is found. Run `pnpm sidecar` before `pnpm tauri build`.
+mdmailer needs native modules (sharp) and Puppeteer, so it can't be compiled into a single binary. `pnpm sidecar` (`sidecar/mdmailer/build.mjs`) downloads a portable Node runtime into `src-tauri/binaries/` (Tauri `externalBin`) and copies mdmailer + `node_modules` into `src-tauri/resources/mdmailer/`. The app runs `node …/cli.js preview` for live preview and `node …/cli.js` generate for export/PNG against drafts in its app-data folder. Puppeteer downloads Chrome on first PNG render if none is found. Run `pnpm sidecar` before `pnpm tauri build`.
 
 ## Layout
 

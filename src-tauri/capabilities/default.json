@@ -16,6 +16,11 @@
       "identifier": "shell:allow-execute",
       "allow": [{ "name": "binaries/node", "sidecar": true, "args": true }]
     },
+    {
+      "identifier": "shell:allow-spawn",
+      "allow": [{ "name": "binaries/node", "sidecar": true, "args": true }]
+    },
+    "shell:allow-kill",
     "fs:allow-mkdir",
     "fs:allow-exists",
     "fs:allow-read-dir",
@@ -28,7 +33,16 @@
     "fs:allow-copy-file",
     {
       "identifier": "fs:scope",
-      "allow": [{ "path": "$APPDATA" }, { "path": "$APPDATA/**" }, { "path": "$RESOURCE" }, { "path": "$RESOURCE/**" }]
+      "allow": [
+        { "path": "$APPDATA" },
+        { "path": "$APPDATA/**" },
+        { "path": "$RESOURCE" },
+        { "path": "$RESOURCE/**" },
+        { "path": "$HOME/**" },
+        { "path": "$DOCUMENT/**" },
+        { "path": "$DESKTOP/**" },
+        { "path": "$DOWNLOAD/**" }
+      ]
     },
     {
       "identifier": "opener:allow-open-path",

@@ -2,7 +2,8 @@ import { appDataDir, join, resolveResource } from "@tauri-apps/api/path";
 import {
   copyFile, exists, mkdir, readDir, readFile, readTextFile, remove, rename, writeFile, writeTextFile,
 } from "@tauri-apps/plugin-fs";
-import { Command } from "@tauri-apps/plugin-shell";
+import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
+import { Child, Command } from "@tauri-apps/plugin-shell";
 
 export type Format = "html" | "eml" | "png";
 
@@ -29,7 +30,9 @@ const PLACEHOLDER_LOGO = `<svg xmlns="http://www.w3.org/2000/svg" width="160" he
 
 const root = async () => join(await appDataDir(), "email");
 export const draftsDir = async () => join(await root(), "drafts");
-const outDir = async () => join(await root(), ".out");
+// Use `out` (not `.out`): tauri-plugin-fs forbids leading-dot paths on Unix by default
+// (`require_literal_leading_dot`), which made create/import fail with "forbidden path …/.out".
+const outDir = async () => join(await root(), "out");
 const brandingPath = async () => join(await root(), "branding.json");
 const configPath = async () => join(await root(), "mdmailer.config.json");
 
@@ -40,8 +43,16 @@ export async function ensureWorkspace() {
   const logo = await join(await root(), "logo.svg");
   if (!(await exists(logo))) await writeTextFile(logo, PLACEHOLDER_LOGO);
   // Bundled templates reference sample images (assets/images/…) relative to the drafts folder.
+  // Asset copy must not block creating/editing drafts if the sidecar resources are missing.
   const assets = await join(await draftsDir(), "assets");
-  if (!(await exists(assets))) await copyDir(await join(await mdmailerDir(), "assets"), assets);
+  if (!(await exists(assets))) {
+    try {
+      const bundled = await join(await mdmailerDir(), "assets");
+      if (await exists(bundled)) await copyDir(bundled, assets);
+    } catch {
+      /* templates without images still work */
+    }
+  }
 }
 
 async function copyDir(from: string, to: string) {
@@ -100,9 +111,18 @@ export async function listDrafts(): Promise<string[]> {
 }
 
 const draftPath = async (name: string) => join(await draftsDir(), `${name}.md`);
-export const readDraft = async (name: string) => readTextFile(await draftPath(name));
-export const writeDraft = async (name: string, text: string) => writeTextFile(await draftPath(name), text);
-export const deleteDraft = async (name: string) => remove(await draftPath(name));
+export const readDraft = async (name: string) => {
+  await ensureWorkspace();
+  return readTextFile(await draftPath(name));
+};
+export const writeDraft = async (name: string, text: string) => {
+  await ensureWorkspace();
+  await writeTextFile(await draftPath(name), text);
+};
+export const deleteDraft = async (name: string) => {
+  await ensureWorkspace();
+  await remove(await draftPath(name));
+};
 export async function renameDraft(from: string, to: string) {
   await rename(await draftPath(from), await draftPath(to));
 }
@@ -121,17 +141,25 @@ export async function readTemplate(name: string) {
 
 export type Rendered = { html?: string; pngUrl?: string; paths: Partial<Record<Format, string>> };
 
+async function ensureConfig() {
+  const cfg = await configPath();
+  if (!(await exists(cfg))) await saveBranding(await loadBranding());
+  return cfg;
+}
+
+async function cliPath() {
+  return join(await mdmailerDir(), "dist", "cli.js");
+}
+
 /** Run mdmailer on a saved draft; outputs land in a scratch folder named after the draft. */
 export async function render(name: string, formats: Format[]): Promise<Rendered> {
   await ensureWorkspace();
-  const cfg = await configPath();
-  if (!(await exists(cfg))) await saveBranding(await loadBranding());
+  const cfg = await ensureConfig();
 
   const out = await outDir();
-  const cli = await join(await mdmailerDir(), "dist", "cli.js");
   const cmd = Command.sidecar(
     "binaries/node",
-    [cli, await draftPath(name), "--output", out, "--config", cfg, "--format", formats.join(",")],
+    [await cliPath(), await draftPath(name), "--output", out, "--config", cfg, "--format", formats.join(",")],
     { cwd: await draftsDir() },
   );
   const res = await cmd.execute();
@@ -151,4 +179,123 @@ export async function render(name: string, formats: Format[]): Promise<Rendered>
 /** Copy generated files to user-chosen locations. */
 export async function exportTo(source: string, target: string) {
   await writeFile(target, await readFile(source));
+}
+
+// ---- live preview ---------------------------------------------------------
+
+let previewChild: Child | null = null;
+let previewGeneration = 0;
+
+const PREVIEW_URL_RE = /https?:\/\/127\.0\.0\.1:\d+/;
+
+export type PreviewState = {
+  file: string;
+  version: number;
+  updating: boolean;
+  error: string;
+  html?: string;
+};
+
+/** Stop the running mdmailer preview server, if any. */
+export async function stopPreview() {
+  previewGeneration++;
+  const child = previewChild;
+  previewChild = null;
+  if (child) {
+    try {
+      await child.kill();
+    } catch {
+      /* already exited */
+    }
+  }
+}
+
+/**
+ * Start `mdmailer preview` for a draft on a free port.
+ * Restarts if a previous preview is still running.
+ */
+export async function startPreview(name: string): Promise<{ url: string }> {
+  await ensureWorkspace();
+  await ensureConfig();
+  await stopPreview();
+
+  const generation = previewGeneration;
+  const cfg = await configPath();
+  const draft = await draftPath(name);
+  const cmd = Command.sidecar(
+    "binaries/node",
+    [await cliPath(), "preview", draft, "--config", cfg, "--port", "0"],
+    { cwd: await draftsDir() },
+  );
+
+  let settled = false;
+  let buf = "";
+  const spawned = { child: null as Child | null };
+
+  try {
+    const url = await new Promise<string>((resolve, reject) => {
+      const finish = (fn: () => void) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeout);
+        fn();
+      };
+      const timeout = setTimeout(() => {
+        finish(() => reject(new Error("mdmailer preview did not start (timed out waiting for URL)")));
+      }, 15_000);
+
+      const onChunk = (chunk: string) => {
+        buf += chunk;
+        const m = buf.match(PREVIEW_URL_RE);
+        if (m) finish(() => resolve(m[0]));
+      };
+
+      cmd.stdout.on("data", onChunk);
+      cmd.stderr.on("data", onChunk);
+      cmd.on("error", (e) => finish(() => reject(new Error(e))));
+      cmd.on("close", ({ code }) => {
+        finish(() => reject(new Error(`mdmailer preview exited early (code ${code ?? "?"})`)));
+      });
+
+      void cmd
+        .spawn()
+        .then((child) => {
+          spawned.child = child;
+          if (generation === previewGeneration) previewChild = child;
+          else void child.kill().catch(() => {});
+        })
+        .catch((e) => {
+          finish(() => reject(e instanceof Error ? e : new Error(String(e))));
+        });
+    });
+
+    if (generation !== previewGeneration) {
+      if (spawned.child) void spawned.child.kill().catch(() => {});
+      throw new Error("Preview superseded");
+    }
+
+    return { url };
+  } catch (e) {
+    if (generation === previewGeneration) {
+      previewChild = null;
+      if (spawned.child) {
+        try {
+          await spawned.child.kill();
+        } catch {
+          /* already exited */
+        }
+      }
+    }
+    throw e;
+  }
+}
+
+/** Poll the preview server `/state` endpoint (bypasses webview CORS via Tauri HTTP). */
+export async function fetchPreviewState(url: string, version: number): Promise<PreviewState> {
+  const res = await tauriFetch(`${url}/state?version=${version}`, {
+    method: "GET",
+    headers: { Accept: "application/json" },
+  });
+  if (!res.ok) throw new Error(`Preview server returned ${res.status}`);
+  return (await res.json()) as PreviewState;
 }
