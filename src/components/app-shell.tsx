@@ -176,18 +176,20 @@ export function AppShell() {
                   <span>Settings</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-              {token && user ? (
-                <SidebarMenuItem>
-                  <SidebarMenuButton size="lg" className="pointer-events-none" tooltip={user.fullName}>
-                    <Avatar className="size-8">
-                      <AvatarFallback className="text-xs">{user.fullName.slice(0, 1)}</AvatarFallback>
-                    </Avatar>
-                    <div className="grid min-w-0 flex-1 text-left text-xs leading-tight">
-                      <span className="truncate font-medium">{user.fullName}</span>
-                      <span className="truncate text-muted-foreground">{user.role.toLowerCase()}</span>
-                    </div>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+              {token ? (
+                user && (
+                  <SidebarMenuItem>
+                    <SidebarMenuButton size="lg" className="pointer-events-none" tooltip={user.fullName}>
+                      <Avatar className="size-8">
+                        <AvatarFallback className="text-xs">{user.fullName.slice(0, 1)}</AvatarFallback>
+                      </Avatar>
+                      <div className="grid min-w-0 flex-1 text-left text-xs leading-tight">
+                        <span className="truncate font-medium">{user.fullName}</span>
+                        <span className="truncate text-muted-foreground">{user.role.toLowerCase()}</span>
+                      </div>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )
               ) : (
                 <SidebarMenuItem>
                   <SidebarMenuButton render={<Link to="/login" />} tooltip="Sign in">

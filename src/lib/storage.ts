@@ -23,13 +23,17 @@ export function getItem<T>(key: string): T | undefined {
   return cache.get(key) as T | undefined;
 }
 
-export function setItem(key: string, value: unknown) {
+/** Write through the in-memory cache and persist. Await when durability matters (e.g. auth token). */
+export async function setItem(key: string, value: unknown): Promise<void> {
   if (value == null) cache.delete(key);
   else cache.set(key, value);
   if (isTauri()) {
-    void (value == null ? store.delete(key) : store.set(key, value)).then(() => store.save());
+    if (value == null) await store.delete(key);
+    else await store.set(key, value);
+    await store.save();
+  } else if (value == null) {
+    localStorage.removeItem(key);
   } else {
-    if (value == null) localStorage.removeItem(key);
-    else localStorage.setItem(key, JSON.stringify(value));
+    localStorage.setItem(key, JSON.stringify(value));
   }
 }

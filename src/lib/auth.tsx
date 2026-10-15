@@ -23,22 +23,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(!!getToken());
 
   const logout = useCallback(() => {
-    setToken(null);
+    void setToken(null);
     setTokenState(null);
     setUser(null);
   }, []);
 
   useEffect(() => setUnauthorizedHandler(logout), [logout]);
 
+  // Restore the session from the persisted token. Only clear it on a real 401;
+  // network / server errors must keep the token so reopen still looks signed-in.
   useEffect(() => {
-    if (!token) return setLoading(false);
-    orbit.GET("/auth/me").then(({ data }) => {
-      if (data) setUser(data);
-      else logout();
+    if (!token) {
       setLoading(false);
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data, response } = await orbit.GET("/auth/me");
+        if (cancelled) return;
+        if (data) setUser(data);
+        else if (response.status === 401) logout();
+      } catch {
+        /* offline / unreachable — keep token for the next successful check */
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [token, logout]);
 
   const value = useMemo<AuthValue>(
     () => ({
@@ -51,7 +66,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       async login(email, password) {
         const { data, error } = await orbit.POST("/auth/login", { body: { email, password } });
         if (!data) throw new Error(errorMessage(error));
-        setToken(data.accessToken);
+        await setToken(data.accessToken);
         setTokenState(data.accessToken);
         setUser(data.user);
       },

@@ -20,7 +20,7 @@ function Register() {
     e.preventDefault();
     setError("");
     try {
-      setServerUrl(getServerUrl());
+      await setServerUrl(getServerUrl());
       resetOrbit();
       await register(f);
       setDone(true);

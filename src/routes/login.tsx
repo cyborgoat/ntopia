@@ -38,7 +38,7 @@ function Login() {
     setBusy(true);
     setError("");
     try {
-      setServerUrl(server);
+      await setServerUrl(server);
       resetOrbit();
       await login(email, password);
       navigate({ to: "/" });
