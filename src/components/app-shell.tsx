@@ -1,9 +1,27 @@
-import { Link, Outlet } from "@tanstack/react-router";
+import { Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Bell, BookOpen, CalendarDays, Home, Megaphone, MessagesSquare, Newspaper, Settings, Sparkles,
+  Bell, BookOpen, CalendarDays, Home, Megaphone, MessagesSquare, Newspaper, Settings, Toolbox,
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarHeader,
+  SidebarInset,
+  SidebarMenu,
+  SidebarMenuBadge,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarRail,
+  SidebarSeparator,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/lib/auth";
 import { orbit } from "@/lib/orbit";
 import { useNotificationsSocket } from "@/lib/realtime";
@@ -15,61 +33,124 @@ const nav = [
   { to: "/news", label: "News", icon: Newspaper },
   { to: "/blog", label: "Blog", icon: BookOpen },
   { to: "/discussions", label: "Discussions", icon: MessagesSquare },
-  { to: "/gadgets", label: "Gadgets", icon: Sparkles },
+  { to: "/gadgets", label: "Gadgets", icon: Toolbox },
 ] as const;
+
+const FULL_BLEED = ["/gadgets/email"];
 
 export function AppShell() {
   const { user } = useAuth();
   useNotificationsSocket();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const fullBleed = FULL_BLEED.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+
   const { data } = useQuery({
     queryKey: ["notifications", "unread"],
     queryFn: async () => (await orbit.GET("/notifications", { params: { query: { limit: 100 } } })).data,
   });
   const unread = data?.items.filter((n) => !n.read).length ?? 0;
 
-  const item = "flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground";
-  const active = { className: "bg-accent font-medium text-foreground" };
-
   return (
-    <div className="flex h-screen bg-background text-foreground">
-      <aside className="flex w-56 shrink-0 flex-col border-r bg-muted/30 p-3">
-        <div className="px-2.5 py-2 text-sm font-semibold tracking-tight">NTOPIA</div>
-        <nav className="mt-2 flex flex-1 flex-col gap-0.5">
-          {nav.map(({ to, label, icon: Icon }) => (
-            <Link key={to} to={to} className={item} activeProps={active} activeOptions={{ exact: to === "/" }}>
-              <Icon className="size-4" />
-              {label}
-            </Link>
-          ))}
-        </nav>
-        <div className="flex flex-col gap-0.5 border-t pt-2">
-          <Link to="/notifications" className={item} activeProps={active}>
-            <Bell className="size-4" />
-            Notifications
-            {unread > 0 && (
-              <span className="ml-auto rounded-full bg-foreground px-1.5 text-xs text-background">{unread}</span>
+    <TooltipProvider>
+      <SidebarProvider>
+        <Sidebar collapsible="icon">
+          <SidebarHeader>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton size="lg" render={<Link to="/" />} tooltip="NTOPIA">
+                  <span className="flex size-8 items-center justify-center rounded-md bg-sidebar-primary text-xs font-semibold text-sidebar-primary-foreground">
+                    N
+                  </span>
+                  <span className="font-semibold tracking-tight">NTOPIA</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarHeader>
+
+          <SidebarContent>
+            <SidebarGroup>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {nav.map(({ to, label, icon: Icon }) => {
+                    const active = to === "/" ? pathname === "/" : pathname === to || pathname.startsWith(`${to}/`);
+                    return (
+                      <SidebarMenuItem key={to}>
+                        <SidebarMenuButton
+                          render={<Link to={to} />}
+                          isActive={active}
+                          tooltip={label}
+                        >
+                          <Icon />
+                          <span>{label}</span>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </SidebarContent>
+
+          <SidebarFooter>
+            <SidebarSeparator />
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  render={<Link to="/notifications" />}
+                  isActive={pathname.startsWith("/notifications")}
+                  tooltip="Notifications"
+                >
+                  <Bell />
+                  <span>Notifications</span>
+                </SidebarMenuButton>
+                {unread > 0 && <SidebarMenuBadge>{unread}</SidebarMenuBadge>}
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  render={<Link to="/settings" />}
+                  isActive={pathname.startsWith("/settings")}
+                  tooltip="Settings"
+                >
+                  <Settings />
+                  <span>Settings</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton size="lg" className="pointer-events-none" tooltip={user?.fullName}>
+                  <Avatar className="size-8">
+                    <AvatarFallback className="text-xs">{user?.fullName.slice(0, 1)}</AvatarFallback>
+                  </Avatar>
+                  <div className="grid min-w-0 flex-1 text-left text-xs leading-tight">
+                    <span className="truncate font-medium">{user?.fullName}</span>
+                    <span className="truncate text-muted-foreground">{user?.role.toLowerCase()}</span>
+                  </div>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarFooter>
+          <SidebarRail />
+        </Sidebar>
+
+        <SidebarInset className="min-h-svh overflow-hidden">
+          <header className="flex h-12 shrink-0 items-center gap-2 border-b px-3">
+            <SidebarTrigger />
+            {fullBleed && (
+              <span className="text-sm text-muted-foreground">Email composer</span>
             )}
-          </Link>
-          <Link to="/settings" className={item} activeProps={active}>
-            <Settings className="size-4" />
-            Settings
-          </Link>
-          <div className="mt-2 flex items-center gap-2 px-2.5 py-1.5">
-            <Avatar className="size-6">
-              <AvatarFallback className="text-xs">{user?.fullName.slice(0, 1)}</AvatarFallback>
-            </Avatar>
-            <div className="min-w-0 text-xs">
-              <div className="truncate font-medium">{user?.fullName}</div>
-              <div className="text-muted-foreground">{user?.role.toLowerCase()}</div>
+          </header>
+          <div
+            className={
+              fullBleed
+                ? "flex min-h-0 flex-1 flex-col overflow-hidden"
+                : "flex-1 overflow-auto"
+            }
+          >
+            <div className={fullBleed ? "h-full min-h-0" : "mx-auto max-w-4xl p-8"}>
+              <Outlet />
             </div>
           </div>
-        </div>
-      </aside>
-      <main className="flex-1 overflow-auto">
-        <div className="mx-auto max-w-4xl p-8">
-          <Outlet />
-        </div>
-      </main>
-    </div>
+        </SidebarInset>
+      </SidebarProvider>
+    </TooltipProvider>
   );
 }

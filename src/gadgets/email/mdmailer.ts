@@ -1,6 +1,6 @@
 import { appDataDir, join, resolveResource } from "@tauri-apps/api/path";
 import {
-  copyFile, exists, mkdir, readDir, readFile, readTextFile, remove, rename, writeFile, writeTextFile,
+  copyFile, exists, mkdir, readDir, readFile, readTextFile, writeFile, writeTextFile,
 } from "@tauri-apps/plugin-fs";
 import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
 import { Child, Command } from "@tauri-apps/plugin-shell";
@@ -26,25 +26,27 @@ export const DEFAULT_BRANDING: Branding = {
   logo: "logo.svg",
 };
 
+/** Scratch Markdown file used for live preview / export (not a user-facing draft library). */
+const WORK_NAME = "compose";
+
 const PLACEHOLDER_LOGO = `<svg xmlns="http://www.w3.org/2000/svg" width="160" height="48" viewBox="0 0 160 48"><rect width="160" height="48" rx="10" fill="#111827"/><text x="80" y="31" font-family="Helvetica, Arial, sans-serif" font-size="18" font-weight="600" fill="#fff" text-anchor="middle">NTOPIA</text></svg>`;
 
 const root = async () => join(await appDataDir(), "email");
-export const draftsDir = async () => join(await root(), "drafts");
-// Use `out` (not `.out`): tauri-plugin-fs forbids leading-dot paths on Unix by default
-// (`require_literal_leading_dot`), which made create/import fail with "forbidden path …/.out".
+const workDir = async () => join(await root(), "work");
+// Use `out` (not `.out`): tauri-plugin-fs forbids leading-dot paths on Unix by default.
 const outDir = async () => join(await root(), "out");
 const brandingPath = async () => join(await root(), "branding.json");
 const configPath = async () => join(await root(), "mdmailer.config.json");
+const workPath = async () => join(await workDir(), `${WORK_NAME}.md`);
 
 export async function ensureWorkspace() {
-  for (const d of [await root(), await draftsDir(), await outDir()]) {
+  for (const d of [await root(), await workDir(), await outDir()]) {
     if (!(await exists(d))) await mkdir(d, { recursive: true });
   }
   const logo = await join(await root(), "logo.svg");
   if (!(await exists(logo))) await writeTextFile(logo, PLACEHOLDER_LOGO);
-  // Bundled templates reference sample images (assets/images/…) relative to the drafts folder.
-  // Asset copy must not block creating/editing drafts if the sidecar resources are missing.
-  const assets = await join(await draftsDir(), "assets");
+  // Bundled templates reference sample images (assets/images/…) relative to the work folder.
+  const assets = await join(await workDir(), "assets");
   if (!(await exists(assets))) {
     try {
       const bundled = await join(await mdmailerDir(), "assets");
@@ -102,29 +104,11 @@ export async function setLogo(sourcePath: string): Promise<string> {
   return name;
 }
 
-// ---- drafts ---------------------------------------------------------------
+// ---- working document -----------------------------------------------------
 
-export async function listDrafts(): Promise<string[]> {
+export async function writeWorking(text: string) {
   await ensureWorkspace();
-  const entries = await readDir(await draftsDir());
-  return entries.filter((e) => e.isFile && e.name.endsWith(".md")).map((e) => e.name.slice(0, -3)).sort();
-}
-
-const draftPath = async (name: string) => join(await draftsDir(), `${name}.md`);
-export const readDraft = async (name: string) => {
-  await ensureWorkspace();
-  return readTextFile(await draftPath(name));
-};
-export const writeDraft = async (name: string, text: string) => {
-  await ensureWorkspace();
-  await writeTextFile(await draftPath(name), text);
-};
-export const deleteDraft = async (name: string) => {
-  await ensureWorkspace();
-  await remove(await draftPath(name));
-};
-export async function renameDraft(from: string, to: string) {
-  await rename(await draftPath(from), await draftPath(to));
+  await writeTextFile(await workPath(), text);
 }
 
 export async function listTemplates(): Promise<string[]> {
@@ -151,22 +135,22 @@ async function cliPath() {
   return join(await mdmailerDir(), "dist", "cli.js");
 }
 
-/** Run mdmailer on a saved draft; outputs land in a scratch folder named after the draft. */
-export async function render(name: string, formats: Format[]): Promise<Rendered> {
+/** Run mdmailer on the working file; outputs land in the scratch out folder. */
+export async function render(formats: Format[]): Promise<Rendered> {
   await ensureWorkspace();
   const cfg = await ensureConfig();
 
   const out = await outDir();
   const cmd = Command.sidecar(
     "binaries/node",
-    [await cliPath(), await draftPath(name), "--output", out, "--config", cfg, "--format", formats.join(",")],
-    { cwd: await draftsDir() },
+    [await cliPath(), await workPath(), "--output", out, "--config", cfg, "--format", formats.join(",")],
+    { cwd: await workDir() },
   );
   const res = await cmd.execute();
   if (res.code !== 0) throw new Error((res.stderr || res.stdout || "mdmailer failed").trim());
 
   const paths: Rendered["paths"] = {};
-  for (const f of formats) paths[f] = await join(out, `${name}.${f}`);
+  for (const f of formats) paths[f] = await join(out, `${WORK_NAME}.${f}`);
   const result: Rendered = { paths };
   if (paths.html) result.html = await readTextFile(paths.html);
   if (paths.png) {
@@ -211,21 +195,20 @@ export async function stopPreview() {
 }
 
 /**
- * Start `mdmailer preview` for a draft on a free port.
+ * Start `mdmailer preview` for the working file on a free port.
  * Restarts if a previous preview is still running.
  */
-export async function startPreview(name: string): Promise<{ url: string }> {
+export async function startPreview(): Promise<{ url: string }> {
   await ensureWorkspace();
   await ensureConfig();
   await stopPreview();
 
   const generation = previewGeneration;
   const cfg = await configPath();
-  const draft = await draftPath(name);
   const cmd = Command.sidecar(
     "binaries/node",
-    [await cliPath(), "preview", draft, "--config", cfg, "--port", "0"],
-    { cwd: await draftsDir() },
+    [await cliPath(), "preview", await workPath(), "--config", cfg, "--port", "0"],
+    { cwd: await workDir() },
   );
 
   let settled = false;
