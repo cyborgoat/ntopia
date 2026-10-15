@@ -1,3 +1,5 @@
+import { usePageTitle } from "@/components/page-chrome";
+
 export function PageHeader({
   title,
   description,
@@ -7,11 +9,14 @@ export function PageHeader({
   description?: string;
   actions?: React.ReactNode;
 }) {
+  usePageTitle(title);
+
+  if (!description && !actions) return null;
+
   return (
     <div className="mb-6 flex items-start justify-between gap-4">
       <div>
-        <h1 className="text-xl font-semibold tracking-tight">{title}</h1>
-        {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
+        {description && <p className="text-sm text-muted-foreground">{description}</p>}
       </div>
       {actions}
     </div>

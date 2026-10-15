@@ -20,9 +20,10 @@ import {
   SidebarProvider,
   SidebarRail,
   SidebarSeparator,
-  SidebarTrigger,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { PageChromeProvider, usePageChrome } from "@/components/page-chrome";
 import { useAuth } from "@/lib/auth";
 import { orbit } from "@/lib/orbit";
 import { useNotificationsSocket } from "@/lib/realtime";
@@ -41,6 +42,7 @@ const orbitNav = [
 ] as const;
 
 const FULL_BLEED = ["/gadgets/email"];
+const MARK = "text-[1.65rem] font-semibold tracking-[-0.06em]";
 
 function NavItems({
   items,
@@ -70,6 +72,41 @@ function NavItems({
   );
 }
 
+function BrandToggle() {
+  const { toggleSidebar, state } = useSidebar();
+  return (
+    <SidebarMenuButton
+      size="lg"
+      onClick={toggleSidebar}
+      tooltip={state === "collapsed" ? "Expand sidebar" : "Collapse sidebar"}
+      className="text-sidebar-foreground hover:text-sidebar-foreground"
+    >
+      <span className="hidden size-8 items-center justify-center text-lg font-semibold tracking-tight group-data-[collapsible=icon]:flex">
+        N
+      </span>
+      <span className={`${MARK} group-data-[collapsible=icon]:hidden`}>
+        NTOPIA
+      </span>
+    </SidebarMenuButton>
+  );
+}
+
+function InsetHeader({ fullBleed }: { fullBleed: boolean }) {
+  const { title } = usePageChrome();
+  const label = fullBleed ? "Email composer" : title;
+
+  return (
+    <header className="flex shrink-0 flex-col gap-2 p-2">
+      <div className="flex h-12 items-center px-2">
+        {label && (
+          <h1 className={`min-w-0 truncate ${MARK}`}>{label}</h1>
+        )}
+      </div>
+      <div className="h-px w-full bg-border" />
+    </header>
+  );
+}
+
 export function AppShell() {
   const { user, token } = useAuth();
   useNotificationsSocket();
@@ -87,17 +124,13 @@ export function AppShell() {
     <TooltipProvider>
       <SidebarProvider>
         <Sidebar collapsible="icon">
-          <SidebarHeader>
+          <SidebarHeader className="gap-2">
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton size="lg" render={<Link to="/" />} tooltip="NTOPIA">
-                  <span className="flex size-8 items-center justify-center rounded-md bg-sidebar-primary text-xs font-semibold text-sidebar-primary-foreground">
-                    N
-                  </span>
-                  <span className="font-semibold tracking-tight">NTOPIA</span>
-                </SidebarMenuButton>
+                <BrandToggle />
               </SidebarMenuItem>
             </SidebarMenu>
+            <SidebarSeparator className="mx-0 group-data-[collapsible=icon]:hidden" />
           </SidebarHeader>
 
           <SidebarContent>
@@ -168,25 +201,22 @@ export function AppShell() {
           <SidebarRail />
         </Sidebar>
 
-        <SidebarInset className="min-h-svh overflow-hidden">
-          <header className="flex h-12 shrink-0 items-center gap-2 border-b px-3">
-            <SidebarTrigger />
-            {fullBleed && (
-              <span className="text-sm text-muted-foreground">Email composer</span>
-            )}
-          </header>
-          <div
-            className={
-              fullBleed
-                ? "flex min-h-0 flex-1 flex-col overflow-hidden"
-                : "flex-1 overflow-auto"
-            }
-          >
-            <div className={fullBleed ? "h-full min-h-0" : "mx-auto max-w-4xl p-8"}>
-              <Outlet />
+        <PageChromeProvider>
+          <SidebarInset className="min-h-svh overflow-hidden">
+            <InsetHeader fullBleed={fullBleed} />
+            <div
+              className={
+                fullBleed
+                  ? "flex min-h-0 flex-1 flex-col overflow-hidden"
+                  : "flex-1 overflow-auto"
+              }
+            >
+              <div className={fullBleed ? "h-full min-h-0" : "mx-auto max-w-4xl px-8 pt-4 pb-8"}>
+                <Outlet />
+              </div>
             </div>
-          </div>
-        </SidebarInset>
+          </SidebarInset>
+        </PageChromeProvider>
       </SidebarProvider>
     </TooltipProvider>
   );
