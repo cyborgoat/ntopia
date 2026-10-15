@@ -7,9 +7,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Field, FormDialog } from "@/components/form-dialog";
 import { ImageUploadButton } from "@/components/image-upload";
 import { Empty, PageHeader } from "@/components/page-header";
+import { RequireAuth } from "@/components/require-auth";
 import { errorMessage, orbit } from "@/lib/orbit";
 
-export const Route = createFileRoute("/_app/discussions/")({ component: Discussions });
+export const Route = createFileRoute("/_app/discussions/")({
+  component: () => (
+    <RequireAuth>
+      <Discussions />
+    </RequireAuth>
+  ),
+});
 
 function Discussions() {
   const qc = useQueryClient();

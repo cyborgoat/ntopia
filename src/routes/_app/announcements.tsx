@@ -7,10 +7,17 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Field, FormDialog } from "@/components/form-dialog";
 import { Empty, PageHeader } from "@/components/page-header";
+import { RequireAuth } from "@/components/require-auth";
 import { useAuth } from "@/lib/auth";
 import { errorMessage, orbit } from "@/lib/orbit";
 
-export const Route = createFileRoute("/_app/announcements")({ component: Announcements });
+export const Route = createFileRoute("/_app/announcements")({
+  component: () => (
+    <RequireAuth>
+      <Announcements />
+    </RequireAuth>
+  ),
+});
 
 function Announcements() {
   const { isAdmin } = useAuth();

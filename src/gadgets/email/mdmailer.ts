@@ -1,6 +1,6 @@
 import { appDataDir, join, resolveResource } from "@tauri-apps/api/path";
 import {
-  copyFile, exists, mkdir, readDir, readFile, readTextFile, writeFile, writeTextFile,
+  copyFile, exists, mkdir, readDir, readFile, readTextFile, remove, writeFile, writeTextFile,
 } from "@tauri-apps/plugin-fs";
 import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
 import { Child, Command } from "@tauri-apps/plugin-shell";
@@ -109,6 +109,36 @@ export async function setLogo(sourcePath: string): Promise<string> {
 export async function writeWorking(text: string) {
   await ensureWorkspace();
   await writeTextFile(await workPath(), text);
+}
+
+/** Relative to the work dir (mdmailer cwd), e.g. `assets/pasted/img-….png`. */
+const pastedDir = async () => join(await workDir(), "assets", "pasted");
+
+const EXT_BY_MIME: Record<string, string> = {
+  "image/png": "png",
+  "image/jpeg": "jpg",
+  "image/jpg": "jpg",
+  "image/gif": "gif",
+  "image/webp": "webp",
+  "image/svg+xml": "svg",
+};
+
+/** Persist a pasted/dropped image and return a Markdown-relative path under `assets/pasted/`. */
+export async function savePastedImage(bytes: Uint8Array, mimeOrExt = "image/png"): Promise<string> {
+  await ensureWorkspace();
+  const dir = await pastedDir();
+  if (!(await exists(dir))) await mkdir(dir, { recursive: true });
+  const ext = (EXT_BY_MIME[mimeOrExt] ?? (mimeOrExt.replace(/^\./, "") || "png")).toLowerCase();
+  const name = `img-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  await writeFile(await join(dir, name), bytes);
+  return `assets/pasted/${name}`;
+}
+
+/** Clear paste scratch images (called when starting a fresh compose session). */
+export async function clearPastedImages() {
+  await ensureWorkspace();
+  const dir = await pastedDir();
+  if (await exists(dir)) await remove(dir, { recursive: true });
 }
 
 export async function listTemplates(): Promise<string[]> {

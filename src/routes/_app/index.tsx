@@ -1,6 +1,8 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
+import { gadgets } from "@/gadgets/registry";
 import { useAuth } from "@/lib/auth";
 import { orbit } from "@/lib/orbit";
 
@@ -18,7 +20,32 @@ function Section({ title, to, children }: { title: string; to: string; children:
   );
 }
 
-function Home() {
+function GuestHome() {
+  return (
+    <>
+      <PageHeader
+        title="Welcome to NTOPIA"
+        description="Local tools work offline. Sign in when you want Team Orbit."
+        actions={
+          <Button render={<Link to="/login" />} size="sm">
+            Sign in to Team Orbit
+          </Button>
+        }
+      />
+      <div className="grid gap-4 sm:grid-cols-2">
+        {gadgets.map((g) => (
+          <Link key={g.id} to={g.to} className="rounded-lg border p-5 transition-colors hover:bg-muted/50">
+            <g.icon className="mb-3 size-5" />
+            <div className="font-medium">{g.name}</div>
+            <p className="mt-1 text-sm text-muted-foreground">{g.description}</p>
+          </Link>
+        ))}
+      </div>
+    </>
+  );
+}
+
+function SignedInHome() {
   const { user } = useAuth();
   const ann = useQuery({ queryKey: ["announcements", "home"], queryFn: async () => (await orbit.GET("/announcements", { params: { query: { limit: 3 } } })).data });
   const ev = useQuery({ queryKey: ["events", "home"], queryFn: async () => (await orbit.GET("/events", { params: { query: { limit: 3 } } })).data });
@@ -47,4 +74,9 @@ function Home() {
       </div>
     </>
   );
+}
+
+function Home() {
+  const { token } = useAuth();
+  return token ? <SignedInHome /> : <GuestHome />;
 }

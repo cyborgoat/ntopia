@@ -23,6 +23,7 @@ import { Route as AppDiscussionsIndexRouteImport } from './routes/_app/discussio
 import { Route as AppDiscussionsPostIdRouteImport } from './routes/_app/discussions.$postId'
 import { Route as AppGadgetsIndexRouteImport } from './routes/_app/gadgets.index'
 import { Route as AppGadgetsEmailRouteImport } from './routes/_app/gadgets.email'
+import { Route as AppGadgetsTodoRouteImport } from './routes/_app/gadgets.todo'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
@@ -93,6 +94,11 @@ const AppGadgetsEmailRoute = AppGadgetsEmailRouteImport.update({
   path: '/gadgets/email',
   getParentRoute: () => AppRoute,
 } as any)
+const AppGadgetsTodoRoute = AppGadgetsTodoRouteImport.update({
+  id: '/gadgets/todo',
+  path: '/gadgets/todo',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
@@ -106,6 +112,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AppSettingsRoute
   '/discussions/$postId': typeof AppDiscussionsPostIdRoute
   '/gadgets/email': typeof AppGadgetsEmailRoute
+  '/gadgets/todo': typeof AppGadgetsTodoRoute
   '/discussions/': typeof AppDiscussionsIndexRoute
   '/gadgets/': typeof AppGadgetsIndexRoute
 }
@@ -121,6 +128,7 @@ export interface FileRoutesByTo {
   '/': typeof AppIndexRoute
   '/discussions/$postId': typeof AppDiscussionsPostIdRoute
   '/gadgets/email': typeof AppGadgetsEmailRoute
+  '/gadgets/todo': typeof AppGadgetsTodoRoute
   '/discussions': typeof AppDiscussionsIndexRoute
   '/gadgets': typeof AppGadgetsIndexRoute
 }
@@ -138,6 +146,7 @@ export interface FileRoutesById {
   '/_app/': typeof AppIndexRoute
   '/_app/discussions/$postId': typeof AppDiscussionsPostIdRoute
   '/_app/gadgets/email': typeof AppGadgetsEmailRoute
+  '/_app/gadgets/todo': typeof AppGadgetsTodoRoute
   '/_app/discussions/': typeof AppDiscussionsIndexRoute
   '/_app/gadgets/': typeof AppGadgetsIndexRoute
 }
@@ -155,6 +164,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/discussions/$postId'
     | '/gadgets/email'
+    | '/gadgets/todo'
     | '/discussions/'
     | '/gadgets/'
   fileRoutesByTo: FileRoutesByTo
@@ -170,6 +180,7 @@ export interface FileRouteTypes {
     | '/'
     | '/discussions/$postId'
     | '/gadgets/email'
+    | '/gadgets/todo'
     | '/discussions'
     | '/gadgets'
   id:
@@ -186,6 +197,7 @@ export interface FileRouteTypes {
     | '/_app/'
     | '/_app/discussions/$postId'
     | '/_app/gadgets/email'
+    | '/_app/gadgets/todo'
     | '/_app/discussions/'
     | '/_app/gadgets/'
   fileRoutesById: FileRoutesById
@@ -296,6 +308,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppGadgetsEmailRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/gadgets/todo': {
+      id: '/_app/gadgets/todo'
+      path: '/gadgets/todo'
+      fullPath: '/gadgets/todo'
+      preLoaderRoute: typeof AppGadgetsTodoRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
@@ -309,6 +328,7 @@ interface AppRouteChildren {
   AppIndexRoute: typeof AppIndexRoute
   AppDiscussionsPostIdRoute: typeof AppDiscussionsPostIdRoute
   AppGadgetsEmailRoute: typeof AppGadgetsEmailRoute
+  AppGadgetsTodoRoute: typeof AppGadgetsTodoRoute
   AppDiscussionsIndexRoute: typeof AppDiscussionsIndexRoute
   AppGadgetsIndexRoute: typeof AppGadgetsIndexRoute
 }
@@ -323,6 +343,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppIndexRoute: AppIndexRoute,
   AppDiscussionsPostIdRoute: AppDiscussionsPostIdRoute,
   AppGadgetsEmailRoute: AppGadgetsEmailRoute,
+  AppGadgetsTodoRoute: AppGadgetsTodoRoute,
   AppDiscussionsIndexRoute: AppDiscussionsIndexRoute,
   AppGadgetsIndexRoute: AppGadgetsIndexRoute,
 }

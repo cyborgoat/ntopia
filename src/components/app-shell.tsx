@@ -1,7 +1,7 @@
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Bell, BookOpen, CalendarDays, Home, Megaphone, MessagesSquare, Newspaper, Settings, Toolbox,
+  Bell, BookOpen, CalendarDays, Home, LogIn, Megaphone, MessagesSquare, Newspaper, Settings, Toolbox,
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -10,6 +10,7 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarHeader,
   SidebarInset,
   SidebarMenu,
@@ -26,20 +27,51 @@ import { useAuth } from "@/lib/auth";
 import { orbit } from "@/lib/orbit";
 import { useNotificationsSocket } from "@/lib/realtime";
 
-const nav = [
+const localNav = [
   { to: "/", label: "Home", icon: Home },
+  { to: "/gadgets", label: "Gadgets", icon: Toolbox },
+] as const;
+
+const orbitNav = [
   { to: "/announcements", label: "Announcements", icon: Megaphone },
   { to: "/events", label: "Events", icon: CalendarDays },
   { to: "/news", label: "News", icon: Newspaper },
   { to: "/blog", label: "Blog", icon: BookOpen },
   { to: "/discussions", label: "Discussions", icon: MessagesSquare },
-  { to: "/gadgets", label: "Gadgets", icon: Toolbox },
 ] as const;
 
 const FULL_BLEED = ["/gadgets/email"];
 
+function NavItems({
+  items,
+  pathname,
+}: {
+  items: readonly { to: string; label: string; icon: typeof Home }[];
+  pathname: string;
+}) {
+  return (
+    <SidebarMenu>
+      {items.map(({ to, label, icon: Icon }) => {
+        const active = to === "/" ? pathname === "/" : pathname === to || pathname.startsWith(`${to}/`);
+        return (
+          <SidebarMenuItem key={to}>
+            <SidebarMenuButton
+              render={<Link to={to} />}
+              isActive={active}
+              tooltip={label}
+            >
+              <Icon />
+              <span>{label}</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        );
+      })}
+    </SidebarMenu>
+  );
+}
+
 export function AppShell() {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   useNotificationsSocket();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const fullBleed = FULL_BLEED.some((p) => pathname === p || pathname.startsWith(`${p}/`));
@@ -47,6 +79,7 @@ export function AppShell() {
   const { data } = useQuery({
     queryKey: ["notifications", "unread"],
     queryFn: async () => (await orbit.GET("/notifications", { params: { query: { limit: 100 } } })).data,
+    enabled: !!token,
   });
   const unread = data?.items.filter((n) => !n.read).length ?? 0;
 
@@ -70,41 +103,36 @@ export function AppShell() {
           <SidebarContent>
             <SidebarGroup>
               <SidebarGroupContent>
-                <SidebarMenu>
-                  {nav.map(({ to, label, icon: Icon }) => {
-                    const active = to === "/" ? pathname === "/" : pathname === to || pathname.startsWith(`${to}/`);
-                    return (
-                      <SidebarMenuItem key={to}>
-                        <SidebarMenuButton
-                          render={<Link to={to} />}
-                          isActive={active}
-                          tooltip={label}
-                        >
-                          <Icon />
-                          <span>{label}</span>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    );
-                  })}
-                </SidebarMenu>
+                <NavItems items={localNav} pathname={pathname} />
               </SidebarGroupContent>
             </SidebarGroup>
+
+            {token && (
+              <SidebarGroup>
+                <SidebarGroupLabel>Team Orbit</SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <NavItems items={orbitNav} pathname={pathname} />
+                </SidebarGroupContent>
+              </SidebarGroup>
+            )}
           </SidebarContent>
 
           <SidebarFooter>
             <SidebarSeparator />
             <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  render={<Link to="/notifications" />}
-                  isActive={pathname.startsWith("/notifications")}
-                  tooltip="Notifications"
-                >
-                  <Bell />
-                  <span>Notifications</span>
-                </SidebarMenuButton>
-                {unread > 0 && <SidebarMenuBadge>{unread}</SidebarMenuBadge>}
-              </SidebarMenuItem>
+              {token && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    render={<Link to="/notifications" />}
+                    isActive={pathname.startsWith("/notifications")}
+                    tooltip="Notifications"
+                  >
+                    <Bell />
+                    <span>Notifications</span>
+                  </SidebarMenuButton>
+                  {unread > 0 && <SidebarMenuBadge>{unread}</SidebarMenuBadge>}
+                </SidebarMenuItem>
+              )}
               <SidebarMenuItem>
                 <SidebarMenuButton
                   render={<Link to="/settings" />}
@@ -115,17 +143,26 @@ export function AppShell() {
                   <span>Settings</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton size="lg" className="pointer-events-none" tooltip={user?.fullName}>
-                  <Avatar className="size-8">
-                    <AvatarFallback className="text-xs">{user?.fullName.slice(0, 1)}</AvatarFallback>
-                  </Avatar>
-                  <div className="grid min-w-0 flex-1 text-left text-xs leading-tight">
-                    <span className="truncate font-medium">{user?.fullName}</span>
-                    <span className="truncate text-muted-foreground">{user?.role.toLowerCase()}</span>
-                  </div>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              {token && user ? (
+                <SidebarMenuItem>
+                  <SidebarMenuButton size="lg" className="pointer-events-none" tooltip={user.fullName}>
+                    <Avatar className="size-8">
+                      <AvatarFallback className="text-xs">{user.fullName.slice(0, 1)}</AvatarFallback>
+                    </Avatar>
+                    <div className="grid min-w-0 flex-1 text-left text-xs leading-tight">
+                      <span className="truncate font-medium">{user.fullName}</span>
+                      <span className="truncate text-muted-foreground">{user.role.toLowerCase()}</span>
+                    </div>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ) : (
+                <SidebarMenuItem>
+                  <SidebarMenuButton render={<Link to="/login" />} tooltip="Sign in">
+                    <LogIn />
+                    <span>Sign in</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
             </SidebarMenu>
           </SidebarFooter>
           <SidebarRail />

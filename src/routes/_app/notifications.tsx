@@ -1,9 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Empty, PageHeader } from "@/components/page-header";
+import { RequireAuth } from "@/components/require-auth";
 import { orbit } from "@/lib/orbit";
 
-export const Route = createFileRoute("/_app/notifications")({ component: Notifications });
+export const Route = createFileRoute("/_app/notifications")({
+  component: () => (
+    <RequireAuth>
+      <Notifications />
+    </RequireAuth>
+  ),
+});
 
 function Notifications() {
   const qc = useQueryClient();

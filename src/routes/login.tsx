@@ -69,6 +69,9 @@ function Login() {
         <p className="text-center text-sm text-muted-foreground">
           No account? <Link to="/register" className="underline">Register</Link>
         </p>
+        <p className="text-center text-sm text-muted-foreground">
+          <Link to="/" className="underline">Continue without signing in</Link>
+        </p>
       </form>
     </AuthCard>
   );

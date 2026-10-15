@@ -8,10 +8,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { Field, FormDialog } from "@/components/form-dialog";
 import { ImageUploadButton } from "@/components/image-upload";
 import { Empty, PageHeader } from "@/components/page-header";
+import { RequireAuth } from "@/components/require-auth";
 import { useAuth } from "@/lib/auth";
 import { assetUrl, errorMessage, orbit } from "@/lib/orbit";
 
-export const Route = createFileRoute("/_app/events")({ component: Events });
+export const Route = createFileRoute("/_app/events")({
+  component: () => (
+    <RequireAuth>
+      <Events />
+    </RequireAuth>
+  ),
+});
 
 const blank = { title: "", description: "", startAt: "", endAt: "", location: "", coverImageUrl: "" };
 

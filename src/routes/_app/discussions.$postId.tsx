@@ -5,9 +5,16 @@ import { ArrowBigDown, ArrowBigUp, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Markdown } from "@/components/markdown";
+import { RequireAuth } from "@/components/require-auth";
 import { errorMessage, orbit } from "@/lib/orbit";
 
-export const Route = createFileRoute("/_app/discussions/$postId")({ component: Thread });
+export const Route = createFileRoute("/_app/discussions/$postId")({
+  component: () => (
+    <RequireAuth>
+      <Thread />
+    </RequireAuth>
+  ),
+});
 
 type Vote = 1 | -1 | 0;
 

@@ -2,11 +2,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import CodeMirror from "@uiw/react-codemirror";
 import { markdown } from "@codemirror/lang-markdown";
+import { EditorView } from "@codemirror/view";
 import { open, save } from "@tauri-apps/plugin-dialog";
-import { readTextFile } from "@tauri-apps/plugin-fs";
+import { writeTextFile } from "@tauri-apps/plugin-fs";
 import { join } from "@tauri-apps/api/path";
 import { openPath } from "@tauri-apps/plugin-opener";
-import { Copy, Download, FilePlus, FolderOpen, Mail, Palette } from "lucide-react";
+import { Copy, Download, FileText, FolderOpen, Mail, Palette } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,14 +20,12 @@ import {
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { Field } from "@/components/form-dialog";
 import { isTauri } from "@/lib/storage";
-import { patchDoc, splitDoc } from "@/gadgets/email/frontmatter";
+import { splitDoc } from "@/gadgets/email/frontmatter";
 import * as mm from "@/gadgets/email/mdmailer";
 
 export const Route = createFileRoute("/_app/gadgets/email")({ component: EmailGadget });
 
-const TYPES = ["news", "notification", "meeting", "event", "invitation", "webinar"];
-const THEMES = ["classic", "navy-gold", "forest-cream"];
-const EVENT_TYPES = ["meeting", "event", "invitation", "webinar"];
+const THEMES = ["classic", "navy-gold", "forest-cream"] as const;
 const BLANK = "---\ntitle: \"Untitled\"\ntype: news\nlang: en\n---\n\n## Hello\n\nWrite your message…\n";
 const LAYOUT_KEY = "ntopia.email-composer.layout";
 const DEFAULT_LAYOUT = { editor: 50, preview: 50 };
@@ -43,7 +42,8 @@ function loadLayout(): Record<string, number> {
   return DEFAULT_LAYOUT;
 }
 
-function exportBasename(title: unknown) {
+function exportBasename(doc: string) {
+  const title = splitDoc(doc).data.title;
   const raw = String(title ?? "email").trim() || "email";
   return raw.replace(/[^\w\- ]+/g, "").replace(/\s+/g, "-").slice(0, 64) || "email";
 }
@@ -75,11 +75,11 @@ function Composer() {
     setPngUrl(undefined);
   }, []);
 
-  // Bootstrap: write blank working file, start preview, load templates.
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
+        await mm.clearPastedImages();
         await mm.writeWorking(BLANK);
         const { url } = await mm.startPreview();
         if (cancelled) return;
@@ -98,7 +98,49 @@ function Composer() {
     };
   }, []);
 
-  // Poll preview /state.
+  const pasteImages = useMemo(
+    () =>
+      EditorView.domEventHandlers({
+        paste(event: ClipboardEvent, view: EditorView) {
+          const dt = event.clipboardData;
+          if (!dt) return false;
+          const files: File[] = [];
+          for (const item of dt.items) {
+            if (item.kind === "file" && item.type.startsWith("image/")) {
+              const f = item.getAsFile();
+              if (f) files.push(f);
+            }
+          }
+          for (const f of Array.from(dt.files)) {
+            if (f.type.startsWith("image/") && !files.includes(f)) files.push(f);
+          }
+          if (files.length === 0) return false;
+          event.preventDefault();
+          const pos = view.state.selection.main.head;
+          void (async () => {
+            try {
+              const chunks: string[] = [];
+              for (const file of files) {
+                const bytes = new Uint8Array(await file.arrayBuffer());
+                const rel = await mm.savePastedImage(bytes, file.type || "image/png");
+                const alt = file.name.replace(/\.[^.]+$/, "") || "image";
+                chunks.push(`![${alt}](${rel})`);
+              }
+              const insert = `${chunks.join("\n")}\n`;
+              view.dispatch({
+                changes: { from: pos, to: pos, insert },
+                selection: { anchor: pos + insert.length },
+              });
+            } catch (e) {
+              toast.error(e instanceof Error ? e.message : String(e));
+            }
+          })();
+          return true;
+        },
+      }),
+    [],
+  );
+
   useEffect(() => {
     if (!previewUrl) return;
     let stopped = false;
@@ -128,7 +170,6 @@ function Composer() {
     };
   }, [previewUrl, clearPng]);
 
-  // Debounced write to the single working file (preview watches it).
   useEffect(() => {
     if (!ready) return;
     const t = setTimeout(() => {
@@ -137,7 +178,6 @@ function Composer() {
     return () => clearTimeout(t);
   }, [doc, ready]);
 
-  // PNG only when its tab is shown.
   useEffect(() => {
     if (tab !== "png" || !ready || pngUrl || error) return;
     let cancelled = false;
@@ -163,11 +203,12 @@ function Composer() {
     };
   }, [tab, ready, pngUrl, error, html]);
 
-  async function loadText(text: string) {
-    setDoc(text);
-    clearPng();
-    setHtml("");
+  async function loadTemplate(t: string) {
     try {
+      const text = await mm.readTemplate(t);
+      setDoc(text);
+      clearPng();
+      setHtml("");
       await mm.writeWorking(text);
       setError("");
     } catch (e) {
@@ -177,32 +218,17 @@ function Composer() {
     }
   }
 
-  async function importMd() {
-    try {
-      const f = await open({ filters: [{ name: "Markdown", extensions: ["md"] }] });
-      if (!f || Array.isArray(f)) return;
-      await loadText(await readTextFile(f));
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      setError(msg);
-      toast.error(msg);
-    }
-  }
+  const base = exportBasename(doc);
 
-  async function loadTemplate(t: string) {
+  async function exportMd() {
     try {
-      await loadText(await mm.readTemplate(t));
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      setError(msg);
-      toast.error(msg);
-    }
+      const target = await save({ defaultPath: `${base}.md`, filters: [{ name: "Markdown", extensions: ["md"] }] });
+      if (target) {
+        await writeTextFile(target, doc);
+        toast.success("Saved Markdown");
+      }
+    } catch (e) { toast.error(e instanceof Error ? e.message : String(e)); }
   }
-
-  const fm = splitDoc(doc).data;
-  const set = (k: string) => (v: string) => { setDoc(patchDoc(doc, { [k]: v })); };
-  const isEvent = EVENT_TYPES.includes(String(fm.type));
-  const base = exportBasename(fm.title);
 
   async function exportOne(format: mm.Format) {
     try {
@@ -219,11 +245,12 @@ function Composer() {
     try {
       const dir = await open({ directory: true, title: "Export to folder" });
       if (!dir || Array.isArray(dir)) return;
+      await writeTextFile(await join(dir, `${base}.md`), doc);
       const r = await mm.render(["html", "eml", "png"]);
       for (const f of ["html", "eml", "png"] as const) {
         await mm.exportTo(r.paths[f]!, await join(dir, `${base}.${f}`));
       }
-      toast.success("Exported HTML, EML and PNG");
+      toast.success("Exported Markdown, HTML, EML and PNG");
     } catch (e) { toast.error(e instanceof Error ? e.message : String(e)); }
   }
 
@@ -238,15 +265,9 @@ function Composer() {
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex flex-wrap items-center gap-2 border-b px-3 py-2">
         <Branding />
-        <Button type="button" variant="outline" size="sm" onClick={() => void loadText(BLANK)}>
-          <FilePlus /> New
-        </Button>
-        <Button type="button" variant="outline" size="sm" onClick={() => void importMd()}>
-          Import .md
-        </Button>
         {templates.length > 0 && (
           <Select onValueChange={(t) => { if (typeof t === "string") void loadTemplate(t); }}>
-            <SelectTrigger className="w-44"><SelectValue placeholder="Template…" /></SelectTrigger>
+            <SelectTrigger className="w-48"><SelectValue placeholder="Template…" /></SelectTrigger>
             <SelectContent>{templates.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
           </Select>
         )}
@@ -257,6 +278,7 @@ function Composer() {
               <Download /> Export
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => void exportMd()}><FileText /> Save Markdown</DropdownMenuItem>
               <DropdownMenuItem onClick={() => void exportOne("html")}><Download /> Save HTML</DropdownMenuItem>
               <DropdownMenuItem onClick={() => void exportOne("eml")}><Download /> Save EML</DropdownMenuItem>
               <DropdownMenuItem onClick={() => void exportOne("png")}><Download /> Save PNG</DropdownMenuItem>
@@ -284,37 +306,16 @@ function Composer() {
         }}
       >
         <ResizablePanel id="editor" defaultSize={`${layout.editor}%`} minSize="25%" className="min-w-0">
-          <section className="flex h-full min-h-0 flex-col">
-            <div className="grid grid-cols-3 gap-2 border-b p-3">
-              <Select value={String(fm.type ?? "")} onValueChange={(v) => v && set("type")(v)}>
-                <SelectTrigger><SelectValue placeholder="Type" /></SelectTrigger>
-                <SelectContent>{TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
-              </Select>
-              <Select value={String(fm.lang ?? "en")} onValueChange={(v) => v && set("lang")(v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent><SelectItem value="en">English</SelectItem><SelectItem value="zh">中文</SelectItem></SelectContent>
-              </Select>
-              <Select value={String(fm.theme ?? "")} onValueChange={(v) => v && set("theme")(v)}>
-                <SelectTrigger><SelectValue placeholder="Theme" /></SelectTrigger>
-                <SelectContent>{THEMES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
-              </Select>
-              <Input className="col-span-3" placeholder="Title / subject" value={String(fm.title ?? "")} onChange={(e) => set("title")(e.target.value)} />
-              {isEvent && (
-                <>
-                  <Input placeholder="Event name" value={String(fm.eventName ?? "")} onChange={(e) => set("eventName")(e.target.value)} />
-                  <Input placeholder="Date (2026-10-15)" value={String(fm.startsAt ?? "")} onChange={(e) => set("startsAt")(e.target.value)} />
-                  <Input placeholder="Time" value={String(fm.time ?? "")} onChange={(e) => set("time")(e.target.value)} />
-                  <Input placeholder="Location" value={String(fm.location ?? "")} onChange={(e) => set("location")(e.target.value)} />
-                  <Input placeholder="Join URL" value={String(fm.joinUrl ?? "")} onChange={(e) => set("joinUrl")(e.target.value)} />
-                  <Input placeholder="RSVP URL" value={String(fm.rsvpUrl ?? "")} onChange={(e) => set("rsvpUrl")(e.target.value)} />
-                </>
-              )}
-            </div>
-            <div className="min-h-0 flex-1 overflow-auto text-sm">
-              <CodeMirror value={doc} extensions={[markdown()]} basicSetup={{ lineNumbers: false, foldGutter: false }}
-                onChange={setDoc} height="100%" style={{ height: "100%" }} />
-            </div>
-          </section>
+          <div className="h-full min-h-0 overflow-auto text-sm">
+            <CodeMirror
+              value={doc}
+              extensions={[markdown(), pasteImages]}
+              basicSetup={{ lineNumbers: false, foldGutter: false }}
+              onChange={setDoc}
+              height="100%"
+              style={{ height: "100%" }}
+            />
+          </div>
         </ResizablePanel>
         <ResizableHandle withHandle />
         <ResizablePanel id="preview" defaultSize={`${layout.preview}%`} minSize="25%" className="min-w-0">
