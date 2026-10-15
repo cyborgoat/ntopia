@@ -1,0 +1,7 @@
+{
+  "name": "ntopia-mdmailer-sidecar",
+  "private": true,
+  "type": "module",
+  "scripts": { "build": "node build.mjs" },
+  "dependencies": { "@goatcheese/mdmailer": "^0.1.9" }
+}
