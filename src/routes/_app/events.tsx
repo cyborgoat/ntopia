@@ -1,8 +1,16 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { MapPin, Trash2 } from "lucide-react";
+import { Copy, MapPin, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Field, FormDialog } from "@/components/form-dialog";
@@ -79,20 +87,37 @@ function Events() {
       <div className="space-y-3">
         {data?.items.length === 0 && <Empty>No events scheduled.</Empty>}
         {data?.items.map((ev) => (
-          <article key={ev.id} className="overflow-hidden rounded-lg border">
-            {ev.coverImageUrl && <img src={assetUrl(ev.coverImageUrl)} alt="" className="h-36 w-full object-cover" />}
-            <div className="p-4">
-              <div className="flex items-start justify-between gap-2">
-                <h2 className="font-medium">{ev.title}</h2>
-                {isAdmin && (
-                  <Button variant="ghost" size="icon-sm" onClick={() => del.mutate(ev.id)} aria-label="Delete"><Trash2 /></Button>
-                )}
-              </div>
-              <p className="mt-1 text-sm text-muted-foreground">{fmt(ev.startAt)} → {fmt(ev.endAt)}</p>
-              <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground"><MapPin className="size-3.5" />{ev.location}</p>
-              <p className="mt-3 whitespace-pre-wrap text-sm">{ev.description}</p>
-            </div>
-          </article>
+          <ContextMenu key={ev.id}>
+            <ContextMenuTrigger className="block">
+              <article className="overflow-hidden rounded-lg border">
+                {ev.coverImageUrl && <img src={assetUrl(ev.coverImageUrl)} alt="" className="h-36 w-full object-cover" />}
+                <div className="p-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <h2 className="font-medium">{ev.title}</h2>
+                    {isAdmin && (
+                      <Button variant="ghost" size="icon-sm" onClick={() => del.mutate(ev.id)} aria-label="Delete"><Trash2 /></Button>
+                    )}
+                  </div>
+                  <p className="mt-1 text-sm text-muted-foreground">{fmt(ev.startAt)} → {fmt(ev.endAt)}</p>
+                  <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground"><MapPin className="size-3.5" />{ev.location}</p>
+                  <p className="mt-3 whitespace-pre-wrap text-sm">{ev.description}</p>
+                </div>
+              </article>
+            </ContextMenuTrigger>
+            <ContextMenuContent>
+              <ContextMenuItem onClick={() => void navigator.clipboard.writeText(ev.title).then(() => toast.success("Title copied"))}>
+                <Copy /> Copy title
+              </ContextMenuItem>
+              {isAdmin && (
+                <>
+                  <ContextMenuSeparator />
+                  <ContextMenuItem variant="destructive" onClick={() => del.mutate(ev.id)}>
+                    <Trash2 /> Delete
+                  </ContextMenuItem>
+                </>
+              )}
+            </ContextMenuContent>
+          </ContextMenu>
         ))}
       </div>
     </>

@@ -1,8 +1,16 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Trash2 } from "lucide-react";
+import { Copy, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Field, FormDialog } from "@/components/form-dialog";
@@ -58,18 +66,35 @@ function Announcements() {
       <div className="space-y-3">
         {data?.items.length === 0 && <Empty>No announcements yet.</Empty>}
         {data?.items.map((a) => (
-          <article key={a.id} className="rounded-lg border p-4">
-            <div className="flex items-start justify-between gap-2">
-              <h2 className="font-medium">{a.title}</h2>
+          <ContextMenu key={a.id}>
+            <ContextMenuTrigger className="block">
+              <article className="rounded-lg border p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <h2 className="font-medium">{a.title}</h2>
+                  {isAdmin && (
+                    <Button variant="ghost" size="icon-sm" onClick={() => del.mutate(a.id)} aria-label="Delete">
+                      <Trash2 />
+                    </Button>
+                  )}
+                </div>
+                <p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground">{a.description}</p>
+                <p className="mt-3 text-xs text-muted-foreground">{a.author.fullName} · {new Date(a.createdAt).toLocaleString()}</p>
+              </article>
+            </ContextMenuTrigger>
+            <ContextMenuContent>
+              <ContextMenuItem onClick={() => void navigator.clipboard.writeText(a.title).then(() => toast.success("Title copied"))}>
+                <Copy /> Copy title
+              </ContextMenuItem>
               {isAdmin && (
-                <Button variant="ghost" size="icon-sm" onClick={() => del.mutate(a.id)} aria-label="Delete">
-                  <Trash2 />
-                </Button>
+                <>
+                  <ContextMenuSeparator />
+                  <ContextMenuItem variant="destructive" onClick={() => del.mutate(a.id)}>
+                    <Trash2 /> Delete
+                  </ContextMenuItem>
+                </>
               )}
-            </div>
-            <p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground">{a.description}</p>
-            <p className="mt-3 text-xs text-muted-foreground">{a.author.fullName} · {new Date(a.createdAt).toLocaleString()}</p>
-          </article>
+            </ContextMenuContent>
+          </ContextMenu>
         ))}
       </div>
     </>

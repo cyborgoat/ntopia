@@ -1,8 +1,16 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Trash2 } from "lucide-react";
+import { Copy, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Field, FormDialog } from "@/components/form-dialog";
@@ -74,22 +82,39 @@ export function MarkdownFeed({ kind, title, description }: { kind: Kind; title: 
       <div className="space-y-4">
         {data?.items.length === 0 && <Empty>Nothing here yet.</Empty>}
         {data?.items.map((p) => (
-          <article key={p.id} className="overflow-hidden rounded-lg border">
-            {p.coverImageUrl && <img src={assetUrl(p.coverImageUrl)} alt="" className="h-40 w-full object-cover" />}
-            <div className="space-y-3 p-5">
-              <div className="flex items-start justify-between gap-2">
-                <h2 className="text-lg font-semibold tracking-tight">{p.title}</h2>
-                {isAdmin && (
-                  <Button variant="ghost" size="icon-sm" onClick={() => del.mutate(p.id)} aria-label="Delete"><Trash2 /></Button>
-                )}
-              </div>
-              <p className="text-xs text-muted-foreground">{p.author.fullName} · {new Date(p.createdAt).toLocaleDateString()}</p>
-              <Markdown>{p.content}</Markdown>
-              {p.tags.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">{p.tags.map((t) => <Badge key={t} variant="secondary">{t}</Badge>)}</div>
+          <ContextMenu key={p.id}>
+            <ContextMenuTrigger className="block">
+              <article className="overflow-hidden rounded-lg border">
+                {p.coverImageUrl && <img src={assetUrl(p.coverImageUrl)} alt="" className="h-40 w-full object-cover" />}
+                <div className="space-y-3 p-5">
+                  <div className="flex items-start justify-between gap-2">
+                    <h2 className="text-lg font-semibold tracking-tight">{p.title}</h2>
+                    {isAdmin && (
+                      <Button variant="ghost" size="icon-sm" onClick={() => del.mutate(p.id)} aria-label="Delete"><Trash2 /></Button>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">{p.author.fullName} · {new Date(p.createdAt).toLocaleDateString()}</p>
+                  <Markdown>{p.content}</Markdown>
+                  {p.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">{p.tags.map((t) => <Badge key={t} variant="secondary">{t}</Badge>)}</div>
+                  )}
+                </div>
+              </article>
+            </ContextMenuTrigger>
+            <ContextMenuContent>
+              <ContextMenuItem onClick={() => void navigator.clipboard.writeText(p.title).then(() => toast.success("Title copied"))}>
+                <Copy /> Copy title
+              </ContextMenuItem>
+              {isAdmin && (
+                <>
+                  <ContextMenuSeparator />
+                  <ContextMenuItem variant="destructive" onClick={() => del.mutate(p.id)}>
+                    <Trash2 /> Delete
+                  </ContextMenuItem>
+                </>
               )}
-            </div>
-          </article>
+            </ContextMenuContent>
+          </ContextMenu>
         ))}
       </div>
     </>

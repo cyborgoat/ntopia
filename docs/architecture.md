@@ -119,6 +119,21 @@ Gadgets are small local tools. Register one in `src/gadgets/registry.ts` and add
 - Implementation: `src/gadgets/todo/store.ts` + route UI.
 - Persists `{ id, title, done, createdAt }[]` under the `todos` storage key (loaded at boot with `serverUrl` / `token`).
 
+## Context menus
+
+Desktop right-click menus use shadcn [`context-menu`](https://ui.shadcn.com/docs/components/base/context-menu) (`src/components/ui/context-menu.tsx`). They mirror actions already on the page (no new APIs):
+
+| Surface | Actions |
+|---------|---------|
+| Todo rows / list | Toggle, delete; focus add / clear completed |
+| Email editor & preview | Open in Mail, export formats, copy HTML |
+| Notifications | Mark as read |
+| Announcements / events / news / blog | Copy title; Delete if `isAdmin` |
+| Discussion threads | Open, copy link |
+| Discussion post / comments | Vote, reply |
+
+When adding a new list surface, wrap rows with `ContextMenu` / `ContextMenuTrigger` and keep admin items behind `isAdmin`.
+
 ## Tauri surface
 
 - Capabilities in `src-tauri/capabilities/default.json` scope FS (`$APPDATA`, resources, common user folders), shell (sidecar Node), HTTP, dialog, notifications, store.

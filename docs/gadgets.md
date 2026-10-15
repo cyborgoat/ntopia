@@ -37,3 +37,7 @@ If the UI needs the full content pane (like the email composer), add its path to
 | Files, images, sidecar I/O | Tauri FS under `appDataDir()` (see `src/gadgets/email/mdmailer.ts`) |
 
 Gadgets must not call the Orbit client unless the feature is intentionally Orbit-backed and gated with `RequireAuth` / `useAuth().token`.
+
+## Context menus
+
+For list-style gadgets, add a right-click menu with [`ContextMenu`](../src/components/ui/context-menu.tsx) that reuses the same handlers as visible buttons (see Todo and Email). Prefer additive menus over replacing the toolbar.

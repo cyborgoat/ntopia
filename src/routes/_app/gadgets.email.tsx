@@ -15,6 +15,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import {
+  ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger,
+} from "@/components/ui/context-menu";
+import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
@@ -261,6 +264,22 @@ function Composer() {
     } catch (e) { toast.error(e instanceof Error ? e.message : String(e)); }
   }
 
+  const copyHtml = () => void navigator.clipboard.writeText(html).then(() => toast.success("HTML copied"));
+
+  const exportMenuItems = (
+    <>
+      <ContextMenuItem onClick={() => void openInMail()}><Mail /> Open in Mail</ContextMenuItem>
+      <ContextMenuSeparator />
+      <ContextMenuItem onClick={() => void exportMd()}><FileText /> Save Markdown</ContextMenuItem>
+      <ContextMenuItem onClick={() => void exportOne("html")}><Download /> Save HTML</ContextMenuItem>
+      <ContextMenuItem onClick={() => void exportOne("eml")}><Download /> Save EML</ContextMenuItem>
+      <ContextMenuItem onClick={() => void exportOne("png")}><Download /> Save PNG</ContextMenuItem>
+      <ContextMenuSeparator />
+      <ContextMenuItem disabled={!html} onClick={copyHtml}><Copy /> Copy HTML</ContextMenuItem>
+      <ContextMenuItem onClick={() => void exportAll()}><FolderOpen /> Export all…</ContextMenuItem>
+    </>
+  );
+
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex flex-wrap items-center gap-2 border-b px-3 py-2">
@@ -283,7 +302,7 @@ function Composer() {
               <DropdownMenuItem onClick={() => void exportOne("eml")}><Download /> Save EML</DropdownMenuItem>
               <DropdownMenuItem onClick={() => void exportOne("png")}><Download /> Save PNG</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem disabled={!html} onClick={() => void navigator.clipboard.writeText(html).then(() => toast.success("HTML copied"))}>
+              <DropdownMenuItem disabled={!html} onClick={copyHtml}>
                 <Copy /> Copy HTML
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => void exportAll()}><FolderOpen /> Export all…</DropdownMenuItem>
@@ -306,35 +325,43 @@ function Composer() {
         }}
       >
         <ResizablePanel id="editor" defaultSize={`${layout.editor}%`} minSize="25%" className="min-w-0">
-          <div className="h-full min-h-0 overflow-auto text-sm">
-            <CodeMirror
-              value={doc}
-              extensions={[markdown(), pasteImages]}
-              basicSetup={{ lineNumbers: false, foldGutter: false }}
-              onChange={setDoc}
-              height="100%"
-              style={{ height: "100%" }}
-            />
-          </div>
+          <ContextMenu>
+            <ContextMenuTrigger className="block h-full min-h-0 overflow-auto text-sm">
+              <CodeMirror
+                value={doc}
+                extensions={[markdown(), pasteImages]}
+                basicSetup={{ lineNumbers: false, foldGutter: false }}
+                onChange={setDoc}
+                height="100%"
+                style={{ height: "100%" }}
+              />
+            </ContextMenuTrigger>
+            <ContextMenuContent>{exportMenuItems}</ContextMenuContent>
+          </ContextMenu>
         </ResizablePanel>
         <ResizableHandle withHandle />
         <ResizablePanel id="preview" defaultSize={`${layout.preview}%`} minSize="25%" className="min-w-0">
-          <section className="flex h-full min-h-0 flex-col">
-            <div className="flex items-center justify-between gap-2 border-b p-3">
-              <Tabs value={tab} onValueChange={(v) => setTab(v as "html" | "png")}>
-                <TabsList><TabsTrigger value="html">Email</TabsTrigger><TabsTrigger value="png">PNG card</TabsTrigger></TabsList>
-              </Tabs>
-              {busy && <span className="text-xs text-muted-foreground">Rendering…</span>}
-            </div>
-            <div className="relative min-h-0 flex-1 overflow-auto bg-muted/40">
-              {error && <pre className="m-3 whitespace-pre-wrap rounded-md border border-destructive/30 bg-background p-3 text-xs text-destructive">{error}</pre>}
-              {tab === "html" && html && <iframe title="Email preview" sandbox="" srcDoc={html} className="h-full w-full bg-white" />}
-              {tab === "png" && !error && pngUrl && <img src={pngUrl} alt="PNG card" className="mx-auto max-w-full p-4" />}
-              {tab === "html" && !html && !busy && !error && (
-                <p className="p-6 text-sm text-muted-foreground">Waiting for live preview…</p>
-              )}
-            </div>
-          </section>
+          <ContextMenu>
+            <ContextMenuTrigger className="flex h-full min-h-0 flex-col">
+              <section className="flex h-full min-h-0 flex-col">
+                <div className="flex items-center justify-between gap-2 border-b p-3">
+                  <Tabs value={tab} onValueChange={(v) => setTab(v as "html" | "png")}>
+                    <TabsList><TabsTrigger value="html">Email</TabsTrigger><TabsTrigger value="png">PNG card</TabsTrigger></TabsList>
+                  </Tabs>
+                  {busy && <span className="text-xs text-muted-foreground">Rendering…</span>}
+                </div>
+                <div className="relative min-h-0 flex-1 overflow-auto bg-muted/40">
+                  {error && <pre className="m-3 whitespace-pre-wrap rounded-md border border-destructive/30 bg-background p-3 text-xs text-destructive">{error}</pre>}
+                  {tab === "html" && html && <iframe title="Email preview" sandbox="" srcDoc={html} className="h-full w-full bg-white" />}
+                  {tab === "png" && !error && pngUrl && <img src={pngUrl} alt="PNG card" className="mx-auto max-w-full p-4" />}
+                  {tab === "html" && !html && !busy && !error && (
+                    <p className="p-6 text-sm text-muted-foreground">Waiting for live preview…</p>
+                  )}
+                </div>
+              </section>
+            </ContextMenuTrigger>
+            <ContextMenuContent>{exportMenuItems}</ContextMenuContent>
+          </ContextMenu>
         </ResizablePanel>
       </ResizablePanelGroup>
     </div>
