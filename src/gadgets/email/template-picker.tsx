@@ -11,9 +11,14 @@ type Entry = { file: string; name: string; description: string; lang: string };
 
 function describe(file: string): Entry {
   const { base, lang } = parseTemplate(file);
-  const info = TEMPLATE_INFO[base];
+  const info = TEMPLATE_INFO[base]?.[lang === "zh" ? "zh" : "en"];
   const fallback = base.replace(/[-_]+/g, " ").replace(/^\w/, (c) => c.toUpperCase());
-  return { file, lang, name: info?.name ?? fallback, description: info?.description ?? "Custom template." };
+  return {
+    file,
+    lang,
+    name: info?.name ?? fallback,
+    description: info?.description ?? (lang === "zh" ? "自定义模板。" : "Custom template."),
+  };
 }
 
 /** Toolbar button + dialog gallery for starting a draft from one of the bundled templates. */
@@ -44,7 +49,7 @@ export function TemplatePicker({
       <DialogTrigger render={<Button variant="outline" size="sm" />}>
         <LayoutTemplate /> Templates
       </DialogTrigger>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="sm:max-w-4xl">
         <DialogHeader>
           <DialogTitle>Start from a template</DialogTitle>
           <DialogDescription>Pick a ready-made layout. You can change every detail afterwards.</DialogDescription>
@@ -69,7 +74,7 @@ export function TemplatePicker({
         {shown.length === 0 ? (
           <p className="py-8 text-center text-sm text-muted-foreground">No templates available.</p>
         ) : (
-          <div className="grid max-h-[60vh] gap-3 overflow-auto sm:grid-cols-2">
+          <div className="grid max-h-[60vh] gap-3 overflow-auto sm:grid-cols-2 lg:grid-cols-3">
             {shown.map((e) => (
               <button
                 key={e.file}

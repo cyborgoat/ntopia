@@ -21,14 +21,34 @@ export const THEME_LABELS: Record<(typeof THEME_PRESETS)[number], string> = {
 export const themeLabel = (t: string) => THEME_LABELS[t as keyof typeof THEME_LABELS] ?? t;
 export const typeLabel = (t: string) => EMAIL_TYPES.find((x) => x.value === t)?.label ?? t;
 
-/** Display info for the bundled mdmailer templates, keyed by base file name (without `.zh`). */
-export const TEMPLATE_INFO: Record<string, { name: string; description: string }> = {
-  news: { name: "News update", description: "A newsletter-style update showing every supported Markdown element." },
-  notification: { name: "Notification", description: "A short announcement with a banner, headline and explanation." },
-  event: { name: "Event invitation", description: "An event with date, location, hosts, agenda and a join link." },
-  meeting: { name: "Meeting invite", description: "A meeting with a time, room and call link, plus a host." },
-  webinar: { name: "Webinar invite", description: "An online session with speakers, agenda and a registration link." },
-  invitation: { name: "Formal invitation", description: "A formal invitation with hosts and an RSVP link." },
+type TemplateText = { name: string; description: string };
+
+/** Display text for the bundled mdmailer templates, keyed by base file name (without `.zh`), then language. */
+export const TEMPLATE_INFO: Record<string, Record<"en" | "zh", TemplateText>> = {
+  news: {
+    en: { name: "News update", description: "A newsletter-style update showing every supported Markdown element." },
+    zh: { name: "新闻动态", description: "通讯稿风格的更新，展示所有支持的 Markdown 元素。" },
+  },
+  notification: {
+    en: { name: "Notification", description: "A short announcement with a banner, headline and explanation." },
+    zh: { name: "通知公告", description: "简短的公告，包含横幅、标题和说明。" },
+  },
+  event: {
+    en: { name: "Event invitation", description: "An event with date, location, hosts, agenda and a join link." },
+    zh: { name: "活动邀请", description: "包含日期、地点、主持人、议程和参加链接的活动邀请。" },
+  },
+  meeting: {
+    en: { name: "Meeting invite", description: "A meeting with a time, room and call link, plus a host." },
+    zh: { name: "会议邀请", description: "包含时间、会议室、线上链接和主持人的会议邀请。" },
+  },
+  webinar: {
+    en: { name: "Webinar invite", description: "An online session with speakers, agenda and a registration link." },
+    zh: { name: "网络研讨会邀请", description: "包含主讲人、议程和报名链接的线上研讨会邀请。" },
+  },
+  invitation: {
+    en: { name: "Formal invitation", description: "A formal invitation with hosts and an RSVP link." },
+    zh: { name: "正式邀请函", description: "包含主办人和回执链接的正式邀请函。" },
+  },
 };
 
 /** Split a template file name such as `invitation.zh` into its base name and language. */
