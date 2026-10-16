@@ -51,7 +51,6 @@ function Events() {
       <PageHeader
         title="Events"
         crumbs={[{ label: "Home", to: "/" }, { label: "Events" }]}
-        description="What's coming up."
         actions={
           isAdmin && (
             <FormDialog

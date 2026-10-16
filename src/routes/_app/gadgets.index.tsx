@@ -7,7 +7,7 @@ export const Route = createFileRoute("/_app/gadgets/")({ component: Gadgets });
 function Gadgets() {
   return (
     <>
-      <PageHeader title="Gadgets" description="Small tools for getting things done." />
+      <PageHeader title="Gadgets" />
       <GadgetGrid />
     </>
   );

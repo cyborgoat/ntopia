@@ -57,7 +57,6 @@ function TodoGadget() {
     <>
       <PageHeader
         title="Todo"
-        description="A simple local checklist. Stored on this device."
         actions={
           doneCount > 0 ? (
             <Button size="sm" variant="outline" onClick={() => setItems(clearCompleted())}>

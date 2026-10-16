@@ -44,7 +44,7 @@ const FEED = {
 } as const;
 
 /** News and blog posts share one shape, so they share one page. */
-export function MarkdownFeed({ kind, title, description }: { kind: Kind; title: string; description: string }) {
+export function MarkdownFeed({ kind, title }: { kind: Kind; title: string }) {
   const { isAdmin } = useAuth();
   const qc = useQueryClient();
   const navigate = useNavigate();
@@ -61,7 +61,6 @@ export function MarkdownFeed({ kind, title, description }: { kind: Kind; title: 
     <>
       <PageHeader
         title={title}
-        description={description}
         crumbs={[{ label: "Home", to: "/" }, { label: title }]}
         actions={
           isAdmin && (

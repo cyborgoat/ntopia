@@ -46,7 +46,6 @@ function Announcements() {
       <PageHeader
         title="Announcements"
         crumbs={[{ label: "Home", to: "/" }, { label: "Announcements" }]}
-        description="Short notices for the whole team."
         actions={
           isAdmin && (
             <FormDialog

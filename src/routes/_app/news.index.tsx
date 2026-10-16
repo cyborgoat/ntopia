@@ -5,7 +5,7 @@ import { RequireAuth } from "@/components/require-auth";
 export const Route = createFileRoute("/_app/news/")({
   component: () => (
     <RequireAuth>
-      <MarkdownFeed kind="/news" title="News" description="Updates from around the team." />
+      <MarkdownFeed kind="/news" title="News" />
     </RequireAuth>
   ),
 });

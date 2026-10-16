@@ -41,7 +41,6 @@ function Discussions() {
       <PageHeader
         title="Discussions"
         crumbs={[{ label: "Home", to: "/" }, { label: "Discussions" }]}
-        description="Talk things through with the team."
         actions={
           <Button size="sm" render={<Link to="/discussions/new" />}>
             <Plus /> New thread

@@ -1,7 +1,7 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
+import { SignInNotice } from "@/components/sign-in-notice";
 import { GadgetGrid } from "@/components/gadget-grid";
 import { useAuth } from "@/lib/auth";
 import { orbit } from "@/lib/orbit";
@@ -23,22 +23,14 @@ function Section({ title, to, children }: { title: string; to: string; children:
 function GuestHome() {
   return (
     <>
-      <PageHeader
-        title="Home"
-        description="Local tools work offline. Sign in when you want Team Orbit."
-        actions={
-          <Button render={<Link to="/login" />} size="sm">
-            Sign in to Team Orbit
-          </Button>
-        }
-      />
+      <PageHeader title="Home" />
+      <SignInNotice>Local tools work offline. Sign in to use Team Orbit: announcements, events, news and discussions.</SignInNotice>
       <GadgetGrid />
     </>
   );
 }
 
 function SignedInHome() {
-  const { user } = useAuth();
   const ann = useQuery({ queryKey: ["announcements", "home"], queryFn: async () => (await orbit.GET("/announcements", { params: { query: { limit: 3 } } })).data });
   const ev = useQuery({ queryKey: ["events", "home"], queryFn: async () => (await orbit.GET("/events", { params: { query: { limit: 3 } } })).data });
   const news = useQuery({ queryKey: ["news", "home"], queryFn: async () => (await orbit.GET("/news", { params: { query: { limit: 3 } } })).data });
@@ -47,7 +39,7 @@ function SignedInHome() {
 
   return (
     <>
-      <PageHeader title="Home" description={`Hello, ${user?.fullName.split(" ")[0]}. Here's what's happening.`} />
+      <PageHeader title="Home" />
       <div className="grid gap-4 md:grid-cols-2">
         <Section title="Announcements" to="/announcements">
           {ann.data?.items.length ? ann.data.items.map((a) => <div key={a.id} className="truncate">{a.title}</div>) : muted}

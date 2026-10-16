@@ -7,7 +7,7 @@ type PageChrome = {
   setTitle: (title: string | null) => void;
   crumbs: Crumb[] | null;
   setCrumbs: (crumbs: Crumb[] | null) => void;
-  /** Element in the shell header where a page's description and actions are portaled. */
+  /** Element in the shell header where a page's actions are portaled. */
   slot: HTMLElement | null;
   setSlot: (el: HTMLElement | null) => void;
 };

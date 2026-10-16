@@ -136,12 +136,12 @@ function InsetHeader({ fullBleed }: { fullBleed: boolean }) {
           </BreadcrumbList>
         </Breadcrumb>
       )}
-      <div className="flex h-12 items-center px-4">
+      <div className="flex h-12 items-center gap-3 px-4">
         {label && (
           <h1 className={`min-w-0 truncate ${MARK}`}>{label}</h1>
         )}
+        <div ref={setSlot} className="ml-auto flex shrink-0 items-center gap-2" />
       </div>
-      <div ref={setSlot} className="px-4 empty:hidden" />
       <div className="h-px w-full bg-border" />
     </header>
   );

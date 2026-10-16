@@ -1,31 +1,21 @@
 import { createPortal } from "react-dom";
 import { usePageChrome, usePageCrumbs, usePageTitle, type Crumb } from "@/components/page-chrome";
 
-/** Registers the page title/crumbs and portals the description and actions into the shell header. */
+/** Registers the page title/crumbs and portals the actions into the right of the shell header's title row. */
 export function PageHeader({
   title,
-  description,
   actions,
   crumbs,
 }: {
   title: string;
   crumbs?: Crumb[];
-  description?: string;
   actions?: React.ReactNode;
 }) {
   usePageTitle(title);
   usePageCrumbs(crumbs);
   const { slot } = usePageChrome();
 
-  if (!slot || (!description && !actions)) return null;
-
-  return createPortal(
-    <div className="flex items-center justify-between gap-4 pb-3">
-      <p className="min-w-0 text-sm text-muted-foreground">{description}</p>
-      {actions}
-    </div>,
-    slot,
-  );
+  return slot && actions ? createPortal(actions, slot) : null;
 }
 
 export function Empty({ children }: { children: React.ReactNode }) {
