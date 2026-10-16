@@ -113,7 +113,7 @@ function AutoCollapseForGadgets({ pathname }: { pathname: string }) {
 }
 
 function InsetHeader({ fullBleed }: { fullBleed: boolean }) {
-  const { title, crumbs } = usePageChrome();
+  const { title, crumbs, setSlot } = usePageChrome();
   const label = title ?? (fullBleed ? "Email composer" : null);
 
   return (
@@ -141,6 +141,7 @@ function InsetHeader({ fullBleed }: { fullBleed: boolean }) {
           <h1 className={`min-w-0 truncate ${MARK}`}>{label}</h1>
         )}
       </div>
+      <div ref={setSlot} className="px-4 empty:hidden" />
       <div className="h-px w-full bg-border" />
     </header>
   );

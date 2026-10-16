@@ -7,6 +7,9 @@ type PageChrome = {
   setTitle: (title: string | null) => void;
   crumbs: Crumb[] | null;
   setCrumbs: (crumbs: Crumb[] | null) => void;
+  /** Element in the shell header where a page's description and actions are portaled. */
+  slot: HTMLElement | null;
+  setSlot: (el: HTMLElement | null) => void;
 };
 
 const PageChromeContext = createContext<PageChrome | null>(null);
@@ -14,7 +17,8 @@ const PageChromeContext = createContext<PageChrome | null>(null);
 export function PageChromeProvider({ children }: { children: React.ReactNode }) {
   const [title, setTitle] = useState<string | null>(null);
   const [crumbs, setCrumbs] = useState<Crumb[] | null>(null);
-  const value = useMemo(() => ({ title, setTitle, crumbs, setCrumbs }), [title, crumbs]);
+  const [slot, setSlot] = useState<HTMLElement | null>(null);
+  const value = useMemo(() => ({ title, setTitle, crumbs, setCrumbs, slot, setSlot }), [title, crumbs, slot]);
   return <PageChromeContext.Provider value={value}>{children}</PageChromeContext.Provider>;
 }
 

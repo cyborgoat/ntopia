@@ -1,5 +1,7 @@
-import { usePageCrumbs, usePageTitle, type Crumb } from "@/components/page-chrome";
+import { createPortal } from "react-dom";
+import { usePageChrome, usePageCrumbs, usePageTitle, type Crumb } from "@/components/page-chrome";
 
+/** Registers the page title/crumbs and portals the description and actions into the shell header. */
 export function PageHeader({
   title,
   description,
@@ -13,16 +15,16 @@ export function PageHeader({
 }) {
   usePageTitle(title);
   usePageCrumbs(crumbs);
+  const { slot } = usePageChrome();
 
-  if (!description && !actions) return null;
+  if (!slot || (!description && !actions)) return null;
 
-  return (
-    <div className="sticky top-0 z-10 -mx-8 -mt-4 mb-4 flex items-start justify-between gap-4 border-b bg-background/95 px-8 pt-4 pb-3 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-      <div>
-        {description && <p className="text-sm text-muted-foreground">{description}</p>}
-      </div>
+  return createPortal(
+    <div className="flex items-center justify-between gap-4 pb-3">
+      <p className="min-w-0 text-sm text-muted-foreground">{description}</p>
       {actions}
-    </div>
+    </div>,
+    slot,
   );
 }
 
