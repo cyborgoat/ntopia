@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import type { components } from "@goatcheese/team-orbit-client";
+import type { components } from "@goatcheese/teamorbit-client";
 import { errorMessage, getToken, orbit, reachable, setToken, setUnauthorizedHandler } from "./orbit";
 
 export type User = components["schemas"]["UserDto"];
@@ -9,7 +9,7 @@ type AuthValue = {
   token: string | null;
   loading: boolean;
   isAdmin: boolean;
-  login: (username: string, password: string) => Promise<void>;
+  login: (identifier: string, password: string) => Promise<void>;
   register: (p: components["schemas"]["RegisterDto"]) => Promise<void>;
   logout: () => void;
   setUser: (u: User) => void;
@@ -40,7 +40,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let cancelled = false;
     (async () => {
       try {
-        const { data, response } = await orbit.GET("/auth/me");
+        const { data, response } = await orbit.GET("/api/auth/me");
         if (cancelled) return;
         if (data) setUser(data);
         else if (response.status === 401) logout();
@@ -63,15 +63,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isAdmin: user?.role === "ADMIN" || user?.role === "SUPERUSER",
       setUser,
       logout,
-      async login(username, password) {
-        const { data, error, response } = await reachable(orbit.POST("/auth/login", { body: { username, password } }));
+      async login(identifier, password) {
+        // Same rule as the client's `auth.login` helper: an `@` means email, anything else is a username.
+        const body = identifier.includes("@") ? { email: identifier, password } : { username: identifier, password };
+        const { data, error, response } = await reachable(orbit.POST("/api/auth/login", { body }));
         if (!data) throw new Error(errorMessage(error, response));
         await setToken(data.accessToken);
         setTokenState(data.accessToken);
         setUser(data.user);
       },
       async register(body) {
-        const { error, response } = await reachable(orbit.POST("/auth/register", { body }));
+        const { error, response } = await reachable(orbit.POST("/api/auth/register", { body }));
         if (error) throw new Error(errorMessage(error, response));
       },
     }),

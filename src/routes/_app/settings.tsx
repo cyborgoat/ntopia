@@ -25,7 +25,7 @@ function Settings() {
           <>
             <form className="space-y-4" onSubmit={async (e) => {
               e.preventDefault();
-              const { data, error } = await orbit.PATCH("/auth/me", { body: { fullName: name, email: email.trim() || null } });
+              const { data, error } = await orbit.PATCH("/api/auth/me", { body: { fullName: name, email: email.trim() || null } });
               if (data) { setUser(data); toast.success("Profile updated"); } else toast.error(errorMessage(error));
             }}>
               <h2 className="text-sm font-medium">Profile</h2>
@@ -36,7 +36,7 @@ function Settings() {
 
             <form className="space-y-4" onSubmit={async (e) => {
               e.preventDefault();
-              const { error } = await orbit.POST("/auth/change-password", { body: pw });
+              const { error } = await orbit.POST("/api/auth/change-password", { body: pw });
               if (error) toast.error(errorMessage(error)); else { toast.success("Password changed"); setPw({ currentPassword: "", newPassword: "" }); }
             }}>
               <h2 className="text-sm font-medium">Password</h2>

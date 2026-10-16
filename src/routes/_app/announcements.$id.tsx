@@ -17,10 +17,10 @@ function AnnouncementDetail() {
   const qc = useQueryClient();
   const { data, isPending } = useQuery({
     queryKey: ["announcements", id],
-    queryFn: async () => (await orbit.GET("/announcements/{id}", { params: { path: { id } } })).data ?? null,
+    queryFn: async () => (await orbit.GET("/api/announcements/{id}", { params: { path: { id } } })).data ?? null,
   });
   const del = useMutation({
-    mutationFn: () => orbit.DELETE("/announcements/{id}", { params: { path: { id } } }),
+    mutationFn: () => orbit.DELETE("/api/announcements/{id}", { params: { path: { id } } }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["announcements"] }),
   });
 

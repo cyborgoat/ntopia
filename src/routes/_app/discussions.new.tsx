@@ -21,7 +21,7 @@ function NewThread() {
       submitLabel="Post thread"
       fields={{}}
       onPublish={async ({ title, content }) => {
-        const { error } = await orbit.POST("/forum-posts", { body: { title, content } });
+        const { error } = await orbit.POST("/api/forum-posts", { body: { title, content } });
         if (error) throw new Error(errorMessage(error));
         await qc.invalidateQueries({ queryKey: ["forum-posts"] });
       }}

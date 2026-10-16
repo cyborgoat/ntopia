@@ -39,10 +39,10 @@ function Events() {
   const set = (k: keyof typeof blank) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setF({ ...f, [k]: e.target.value });
   const { data } = useQuery({
     queryKey: ["events"],
-    queryFn: async () => (await orbit.GET("/events", { params: { query: { limit: 50 } } })).data,
+    queryFn: async () => (await orbit.GET("/api/events", { params: { query: { limit: 50 } } })).data,
   });
   const del = useMutation({
-    mutationFn: (id: string) => orbit.DELETE("/events/{id}", { params: { path: { id } } }),
+    mutationFn: (id: string) => orbit.DELETE("/api/events/{id}", { params: { path: { id } } }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["events"] }),
   });
 
@@ -57,7 +57,7 @@ function Events() {
               title="New event"
               triggerLabel="New"
               onSubmit={async () => {
-                const { error } = await orbit.POST("/events", {
+                const { error } = await orbit.POST("/api/events", {
                   body: {
                     ...f,
                     startAt: new Date(f.startAt).toISOString(),

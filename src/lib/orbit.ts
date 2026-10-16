@@ -1,4 +1,4 @@
-import { createTeamOrbitClient } from "@goatcheese/team-orbit-client";
+import { createTeamOrbitClient } from "@goatcheese/teamorbit-client";
 import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
 import { getItem, isTauri, setItem } from "./storage";
 
@@ -7,10 +7,13 @@ export const DEFAULT_SERVER: string =
   import.meta.env.VITE_DEFAULT_SERVER ?? (import.meta.env.DEV ? "http://localhost:3000" : "");
 export const STORAGE_KEYS = ["serverUrl", "token"];
 
-export const getServerUrl = () => getItem<string>("serverUrl") ?? DEFAULT_SERVER;
+/** The API client adds `/api` itself, so accept a server URL pasted with or without it. */
+const normalizeServerUrl = (u: string) => u.trim().replace(/\/+$/, "").replace(/\/api$/, "");
+
+export const getServerUrl = () => normalizeServerUrl(getItem<string>("serverUrl") ?? DEFAULT_SERVER);
 export const getToken = () => getItem<string>("token");
 export const setToken = (t: string | null) => setItem("token", t);
-export const setServerUrl = (u: string) => setItem("serverUrl", u.replace(/\/+$/, ""));
+export const setServerUrl = (u: string) => setItem("serverUrl", normalizeServerUrl(u));
 
 /** Absolute URL for a server-relative path such as `/uploads/x.png`. */
 export const assetUrl = (path?: string | null) =>
@@ -36,7 +39,7 @@ export function createOrbit() {
   });
   client.use({
     onResponse({ response, schemaPath }) {
-      if (response.status === 401 && !schemaPath.startsWith("/auth/login")) onUnauthorized();
+      if (response.status === 401 && !schemaPath.startsWith("/api/auth/login")) onUnauthorized();
     },
   });
   return client;

@@ -20,10 +20,10 @@ function EventDetail() {
   const qc = useQueryClient();
   const { data, isPending } = useQuery({
     queryKey: ["events", id],
-    queryFn: async () => (await orbit.GET("/events/{id}", { params: { path: { id } } })).data ?? null,
+    queryFn: async () => (await orbit.GET("/api/events/{id}", { params: { path: { id } } })).data ?? null,
   });
   const del = useMutation({
-    mutationFn: () => orbit.DELETE("/events/{id}", { params: { path: { id } } }),
+    mutationFn: () => orbit.DELETE("/api/events/{id}", { params: { path: { id } } }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["events"] }),
   });
 

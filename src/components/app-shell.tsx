@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Bell, BookOpen, CalendarDays, Home, LogIn, Megaphone, MessagesSquare, Newspaper, Settings, Toolbox,
 } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Sidebar,
   SidebarContent,
@@ -155,7 +155,7 @@ export function AppShell() {
 
   const { data } = useQuery({
     queryKey: ["notifications", "unread"],
-    queryFn: async () => (await orbit.GET("/notifications", { params: { query: { limit: 100 } } })).data,
+    queryFn: async () => (await orbit.GET("/api/notifications", { params: { query: { limit: 100 } } })).data,
     enabled: !!token,
   });
   const unread = data?.items.filter((n) => !n.read).length ?? 0;
@@ -222,6 +222,7 @@ export function AppShell() {
                   <SidebarMenuItem>
                     <SidebarMenuButton size="lg" className="pointer-events-none" tooltip={user.fullName}>
                       <Avatar className="size-8">
+                        <AvatarImage src={user.avatarUrl} alt="" />
                         <AvatarFallback className="text-xs">{user.fullName.slice(0, 1)}</AvatarFallback>
                       </Avatar>
                       <div className="grid min-w-0 flex-1 text-left text-xs leading-tight">

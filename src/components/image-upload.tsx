@@ -6,7 +6,7 @@ import { errorMessage, orbit } from "@/lib/orbit";
 export async function uploadImage(file: File): Promise<string> {
   const form = new FormData();
   form.append("file", file);
-  const { data, error } = await orbit.POST("/uploads", { body: { file: "" }, bodySerializer: () => form });
+  const { data, error } = await orbit.POST("/api/uploads", { body: { file: "" }, bodySerializer: () => form });
   if (!data) throw new Error(errorMessage(error));
   return data.url;
 }

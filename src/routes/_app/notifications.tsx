@@ -23,10 +23,10 @@ function Notifications() {
   const qc = useQueryClient();
   const { data } = useQuery({
     queryKey: ["notifications", "all"],
-    queryFn: async () => (await orbit.GET("/notifications", { params: { query: { limit: 50 } } })).data,
+    queryFn: async () => (await orbit.GET("/api/notifications", { params: { query: { limit: 50 } } })).data,
   });
   const read = async (id: string) => {
-    await orbit.POST("/notifications/{id}/read", { params: { path: { id } } });
+    await orbit.POST("/api/notifications/{id}/read", { params: { path: { id } } });
     qc.invalidateQueries({ queryKey: ["notifications"] });
   };
 

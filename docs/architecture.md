@@ -1,6 +1,6 @@
 # Architecture
 
-NTOPIA is a **Tauri v2 desktop client**. Auth and team data live in a separate **[team-orbit](https://github.com/cyborgoat/team-orbit)** backend; this repo only talks to it through `@goatcheese/team-orbit-client`. Local gadgets (email, todo) work without signing in.
+NTOPIA is a **Tauri v2 desktop client**. Auth and team data live in a separate **[team-orbit](https://github.com/cyborgoat/team-orbit)** backend; this repo only talks to it through `@goatcheese/teamorbit-client`. Local gadgets (email, todo) work without signing in.
 
 ## Stack
 
@@ -9,7 +9,7 @@ NTOPIA is a **Tauri v2 desktop client**. Auth and team data live in a separate *
 | Shell | Tauri v2 (`src-tauri/`) |
 | UI | React 19, Vite, Tailwind v4, shadcn/ui |
 | Routing / data | TanStack Router (hash history), TanStack Query |
-| Backend | `@goatcheese/team-orbit-client` → team-orbit HTTP + Socket.io |
+| Backend | `@goatcheese/teamorbit-client` → team-orbit HTTP + Socket.io |
 | Sidecar | Portable Node + `@goatcheese/mdmailer` for the email gadget |
 | Markdown | `@mdxeditor/editor` (WYSIWYG for posts/comments), CodeMirror (email source), `react-markdown` + `remark-gfm` (rendering) |
 

@@ -33,7 +33,7 @@ function Discussions() {
   const [q, setQ] = useState("");
   const { data } = useQuery({
     queryKey: ["forum-posts", q],
-    queryFn: async () => (await orbit.GET("/forum-posts", { params: { query: { limit: 50, q: q || undefined } } })).data,
+    queryFn: async () => (await orbit.GET("/api/forum-posts", { params: { query: { limit: 50, q: q || undefined } } })).data,
   });
 
   return (

@@ -44,7 +44,7 @@ function Login() {
           <Input id="server" type="url" required placeholder="https://orbit.example.com" value={server} onChange={(e) => setServer(e.target.value)} />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="username">Username</Label>
+          <Label htmlFor="username">Username or email</Label>
           <Input id="username" autoComplete="username" required value={username} onChange={(e) => setUsername(e.target.value)} />
         </div>
         <div className="space-y-1.5">

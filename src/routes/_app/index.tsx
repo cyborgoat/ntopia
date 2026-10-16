@@ -31,10 +31,10 @@ function GuestHome() {
 }
 
 function SignedInHome() {
-  const ann = useQuery({ queryKey: ["announcements", "home"], queryFn: async () => (await orbit.GET("/announcements", { params: { query: { limit: 3 } } })).data });
-  const ev = useQuery({ queryKey: ["events", "home"], queryFn: async () => (await orbit.GET("/events", { params: { query: { limit: 3 } } })).data });
-  const news = useQuery({ queryKey: ["news", "home"], queryFn: async () => (await orbit.GET("/news", { params: { query: { limit: 3 } } })).data });
-  const forum = useQuery({ queryKey: ["forum-posts", "home"], queryFn: async () => (await orbit.GET("/forum-posts", { params: { query: { limit: 3 } } })).data });
+  const ann = useQuery({ queryKey: ["announcements", "home"], queryFn: async () => (await orbit.GET("/api/announcements", { params: { query: { limit: 3 } } })).data });
+  const ev = useQuery({ queryKey: ["events", "home"], queryFn: async () => (await orbit.GET("/api/events", { params: { query: { limit: 3 } } })).data });
+  const news = useQuery({ queryKey: ["news", "home"], queryFn: async () => (await orbit.GET("/api/news", { params: { query: { limit: 3 } } })).data });
+  const forum = useQuery({ queryKey: ["forum-posts", "home"], queryFn: async () => (await orbit.GET("/api/forum-posts", { params: { query: { limit: 3 } } })).data });
   const muted = <span className="text-muted-foreground">Nothing yet.</span>;
 
   return (

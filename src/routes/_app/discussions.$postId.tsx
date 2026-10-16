@@ -74,13 +74,13 @@ function Thread() {
 
   const { data: post } = useQuery({
     queryKey: key,
-    queryFn: async () => (await orbit.GET("/forum-posts/{id}", { params: { path: { id } } })).data,
+    queryFn: async () => (await orbit.GET("/api/forum-posts/{id}", { params: { path: { id } } })).data,
   });
 
   async function send() {
     if (!text.trim()) return;
     setError("");
-    const { error } = await orbit.POST("/forum-posts/{id}/comments", {
+    const { error } = await orbit.POST("/api/forum-posts/{id}/comments", {
       params: { path: { id } },
       body: { content: text, ...(replyTo ? { parentId: replyTo } : {}) },
     });
@@ -104,12 +104,12 @@ function Thread() {
   if (!post) return <p className="text-sm text-muted-foreground">Loading…</p>;
 
   const voteComment = async (cid: string, value: Vote) => {
-    await orbit.PUT("/forum-comments/{id}/vote", { params: { path: { id: cid } }, body: { value } });
+    await orbit.PUT("/api/forum-comments/{id}/vote", { params: { path: { id: cid } }, body: { value } });
     refresh();
   };
 
   const votePost = async (value: Vote) => {
-    await orbit.PUT("/forum-posts/{id}/vote", { params: { path: { id } }, body: { value } });
+    await orbit.PUT("/api/forum-posts/{id}/vote", { params: { path: { id } }, body: { value } });
     refresh();
   };
 

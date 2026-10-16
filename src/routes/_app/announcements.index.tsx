@@ -34,10 +34,10 @@ function Announcements() {
   const [f, setF] = useState({ title: "", description: "" });
   const { data } = useQuery({
     queryKey: ["announcements"],
-    queryFn: async () => (await orbit.GET("/announcements", { params: { query: { limit: 50 } } })).data,
+    queryFn: async () => (await orbit.GET("/api/announcements", { params: { query: { limit: 50 } } })).data,
   });
   const del = useMutation({
-    mutationFn: (id: string) => orbit.DELETE("/announcements/{id}", { params: { path: { id } } }),
+    mutationFn: (id: string) => orbit.DELETE("/api/announcements/{id}", { params: { path: { id } } }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["announcements"] }),
   });
 
@@ -52,7 +52,7 @@ function Announcements() {
               title="New announcement"
               triggerLabel="New"
               onSubmit={async () => {
-                const { error } = await orbit.POST("/announcements", { body: f });
+                const { error } = await orbit.POST("/api/announcements", { body: f });
                 if (error) throw new Error(errorMessage(error));
                 setF({ title: "", description: "" });
                 qc.invalidateQueries({ queryKey: ["announcements"] });

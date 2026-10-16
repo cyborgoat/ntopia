@@ -4,7 +4,7 @@ Desktop team hub: optional Team Orbit sign-in for announcements, events, news, b
 
 Built with **Tauri v2**, **React + TanStack Router/Query**, **Tailwind v4 + shadcn/ui**.
 
-NTOPIA is only a client. Auth and team data come from **[team-orbit](https://github.com/cyborgoat/team-orbit)** through `@goatcheese/team-orbit-client` — nothing from team-orbit is vendored or imported by path.
+NTOPIA is only a client. Auth and team data come from **[team-orbit](https://github.com/cyborgoat/team-orbit)** through `@goatcheese/teamorbit-client` — nothing from team-orbit is vendored or imported by path.
 
 ## Docs
 
@@ -22,7 +22,7 @@ pnpm install
 pnpm tauri:dev        # prepares the mdmailer sidecar, then launches the app
 ```
 
-You can use Home and Gadgets immediately without signing in. To unlock Team Orbit features, sign in with your username and password at your Team Orbit server URL on the login screen. Dev builds default to `http://localhost:3000`; set `VITE_DEFAULT_SERVER` to preset another URL. USER accounts are read/discuss only; ADMIN/SUPERUSER can publish.
+You can use Home and Gadgets immediately without signing in. To unlock Team Orbit features, sign in with your username (or email) and password at your Team Orbit server URL on the login screen. Enter the server origin only, such as `https://orbit.example.com`; the client adds `/api` itself. Dev builds default to `http://localhost:3000`; set `VITE_DEFAULT_SERVER` to preset another URL. USER accounts are read/discuss only; ADMIN/SUPERUSER can publish.
 
 ## Gadgets
 

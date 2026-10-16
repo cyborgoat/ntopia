@@ -20,9 +20,9 @@ importers:
       '@fontsource-variable/geist':
         specifier: ^5.3.0
         version: 5.3.0
-      '@goatcheese/team-orbit-client':
-        specifier: ^0.3.0
-        version: 0.3.0
+      '@goatcheese/teamorbit-client':
+        specifier: ^0.1.0
+        version: 0.1.0
       '@mdxeditor/editor':
         specifier: ^4.3.3
         version: 4.3.3(@codemirror/language@6.13.1)(@lezer/highlight@1.2.5)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(typescript@6.0.3)(yjs@13.6.33)
@@ -446,8 +446,8 @@ packages:
   '@fontsource-variable/geist@5.3.0':
     resolution: {integrity: sha512-j0m+vLQuG5XAYoHtGCVu0spvlGreR3EzpECUVzkFmI1mTVnAO38l/NEPDCFgZ177JxzYJCLSmTQibIiYPilGrA==}
 
-  '@goatcheese/team-orbit-client@0.3.0':
-    resolution: {integrity: sha512-XPOt0RhBsC2PirI+CZiUJYNyq46Q7xqnPY94yAu5IGSSEJxeIMumILjZj7wJkiroRhDyfrkgWcTBgP6pCUrX8Q==}
+  '@goatcheese/teamorbit-client@0.1.0':
+    resolution: {integrity: sha512-mfjW/8JGi7/1tyxGi68W3x8NKGIRys6s6Aq0epTaf42ievIYBGKWoMbdjg6Zn33HBqnE8iKQ0t1nPsbOmW5OqQ==, tarball: https://registry.npmjs.org/@goatcheese/teamorbit-client/-/teamorbit-client-0.1.0.tgz}
     engines: {node: '>=18'}
 
   '@hono/node-server@2.1.5':
@@ -4153,7 +4153,7 @@ snapshots:
 
   '@fontsource-variable/geist@5.3.0': {}
 
-  '@goatcheese/team-orbit-client@0.3.0':
+  '@goatcheese/teamorbit-client@0.1.0':
     dependencies:
       openapi-fetch: 0.13.8
 
