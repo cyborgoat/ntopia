@@ -5,7 +5,7 @@ import { open, save } from "@tauri-apps/plugin-dialog";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
 import { join } from "@tauri-apps/api/path";
 import { openPath } from "@tauri-apps/plugin-opener";
-import { Copy, Download, Eye, EyeOff, FileText, FolderOpen, ListChecks, Mail, Palette, PenLine, X } from "lucide-react";
+import { Copy, Download, Eye, EyeOff, FileText, FolderOpen, ImagePlus, ListChecks, Mail, Palette, PenLine, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -386,7 +386,8 @@ function Composer() {
   );
 }
 
-function LogoPreview({ name }: { name: string }) {
+/** Logo tile: the preview itself is the button (click to choose a new file), like an avatar upload. */
+function LogoPicker({ name, onPick, onReset }: { name: string; onPick: () => void; onReset?: () => void }) {
   const [url, setUrl] = useState<string>();
   useEffect(() => {
     let live = true;
@@ -402,8 +403,22 @@ function LogoPreview({ name }: { name: string }) {
     };
   }, [name]);
   return (
-    <div className="flex h-10 w-28 shrink-0 items-center justify-center rounded-md border bg-muted/40 p-1">
-      {url ? <img src={url} alt="Logo preview" className="max-h-full max-w-full object-contain" /> : <span className="text-xs text-muted-foreground">No preview</span>}
+    <div className="flex items-center gap-3">
+      <button
+        type="button"
+        onClick={onPick}
+        aria-label="Change logo"
+        className="group relative flex h-14 w-36 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted/40 p-2 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        {url ? <img src={url} alt="Logo preview" className="max-h-full max-w-full object-contain" /> : <ImagePlus className="size-5 text-muted-foreground" />}
+        <span className="absolute inset-0 flex items-center justify-center gap-1.5 bg-background/80 text-xs font-medium opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+          <Upload className="size-3.5" /> Change
+        </span>
+      </button>
+      <div className="min-w-0 space-y-0.5 text-xs text-muted-foreground">
+        <p>Shown in the email header. SVG, PNG or JPG.</p>
+        {onReset && <button type="button" onClick={onReset} className="underline underline-offset-2 hover:text-foreground">Use default logo</button>}
+      </div>
     </div>
   );
 }
@@ -424,13 +439,14 @@ function Branding() {
           <Field label="Tagline"><Input value={b.tagline} onChange={set("tagline")} /></Field>
           <Field label="Footer"><Input value={b.footerText} onChange={set("footerText")} /></Field>
           <Field label="Logo">
-            <div className="flex items-center gap-3">
-              <LogoPreview name={b.logo} />
-              <Button variant="outline" size="sm" onClick={async () => {
+            <LogoPicker
+              name={b.logo}
+              onPick={async () => {
                 const f = await open({ filters: [{ name: "Image", extensions: ["svg", "png", "jpg", "jpeg"] }] });
                 if (f && !Array.isArray(f)) setB({ ...b, logo: await mm.setLogo(f) });
-              }}>{b.logo.startsWith("logo-custom") ? "Replace logo" : "Choose logo"}</Button>
-            </div>
+              }}
+              onReset={b.logo.startsWith("logo-custom") ? () => setB({ ...b, logo: mm.DEFAULT_BRANDING.logo }) : undefined}
+            />
           </Field>
           <Button className="w-full" onClick={async () => { await mm.saveBranding(b); toast.success("Branding saved"); setOpenDlg(false); }}>Save</Button>
         </div>
