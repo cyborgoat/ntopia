@@ -60,7 +60,7 @@ export function AvatarSettings() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger
         aria-label="Change avatar"
-        className="group relative mt-6 block size-16 shrink-0 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="group relative block size-16 shrink-0 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <Avatar className="size-16">
           <AvatarImage src={user.avatarUrl} alt="" />
