@@ -101,10 +101,10 @@ function DetailsForm({ meta, type, onChange }: { meta: Frontmatter; type: string
               onValueChange={(v) => v && v !== "custom" && set("theme", v === DEFAULT_THEME ? undefined : v)}
             >
               <SelectTrigger className="w-full">
-                <SelectValue>{customTheme ? "Custom" : meta.theme ? themeLabel(str(meta.theme)) : "Branding default"}</SelectValue>
+                <SelectValue>{customTheme ? "Custom" : meta.theme ? themeLabel(str(meta.theme)) : "Classic (default)"}</SelectValue>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={DEFAULT_THEME}>Branding default</SelectItem>
+                <SelectItem value={DEFAULT_THEME}>Classic (default)</SelectItem>
                 {THEME_PRESETS.map((t) => <SelectItem key={t} value={t}>{themeLabel(t)}</SelectItem>)}
                 {customTheme && <SelectItem value="custom" disabled>Custom (edit in YAML)</SelectItem>}
               </SelectContent>

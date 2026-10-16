@@ -9,22 +9,21 @@ export type Format = "html" | "eml" | "png";
 
 export type Branding = {
   organization: string;
-  primaryColor: string;
   tagline: string;
   footerText: string;
-  preset: "classic" | "navy-gold" | "forest-cream";
   /** File name of a logo inside the branding folder. */
   logo: string;
 };
 
 export const DEFAULT_BRANDING: Branding = {
   organization: "My Team",
-  primaryColor: "#111827",
   tagline: "",
   footerText: "© {{organization}}",
-  preset: "classic",
   logo: "logo.svg",
 };
+
+/** mdmailer requires a primary color; the visible look comes from the theme preset chosen per email. */
+const PRIMARY_COLOR = "#111827";
 
 /** Scratch Markdown file used for live preview / export (not a user-facing draft library). */
 const WORK_NAME = "compose";
@@ -79,7 +78,14 @@ export async function loadBranding(): Promise<Branding> {
   await ensureWorkspace();
   const p = await brandingPath();
   if (!(await exists(p))) return DEFAULT_BRANDING;
-  return { ...DEFAULT_BRANDING, ...JSON.parse(await readTextFile(p)) };
+  const saved = JSON.parse(await readTextFile(p)) as Partial<Branding>;
+  // Pick known keys only, which also drops the old primaryColor/preset fields.
+  return {
+    organization: saved.organization ?? DEFAULT_BRANDING.organization,
+    tagline: saved.tagline ?? DEFAULT_BRANDING.tagline,
+    footerText: saved.footerText ?? DEFAULT_BRANDING.footerText,
+    logo: saved.logo ?? DEFAULT_BRANDING.logo,
+  };
 }
 
 export async function saveBranding(b: Branding) {
@@ -91,10 +97,9 @@ export async function saveBranding(b: Branding) {
       {
         organization: { name: b.organization, logoUrl: b.logo },
         theme: {
-          primaryColor: b.primaryColor,
+          primaryColor: PRIMARY_COLOR,
           ...(b.tagline && { tagline: b.tagline }),
           footerText: b.footerText,
-          preset: b.preset,
         },
       },
       null,
@@ -190,9 +195,9 @@ export async function readTemplate(name: string) {
 export type Rendered = { html?: string; pngUrl?: string; paths: Partial<Record<Format, string>> };
 
 async function ensureConfig() {
-  const cfg = await configPath();
-  if (!(await exists(cfg))) await saveBranding(await loadBranding());
-  return cfg;
+  // Always rewritten so configs saved by older versions (custom color, default preset) are replaced.
+  await saveBranding(await loadBranding());
+  return configPath();
 }
 
 async function cliPath() {

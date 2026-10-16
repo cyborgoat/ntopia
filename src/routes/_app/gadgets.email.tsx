@@ -9,7 +9,6 @@ import { Copy, Download, Eye, EyeOff, FileText, FolderOpen, ListChecks, Mail, Pa
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import {
   ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger,
@@ -22,7 +21,6 @@ import { Field } from "@/components/form-dialog";
 import { isTauri } from "@/lib/storage";
 import { DetailsPanel } from "@/gadgets/email/details-panel";
 import { SourceEditor } from "@/gadgets/email/source-editor";
-import { THEME_PRESETS as THEMES, themeLabel } from "@/gadgets/email/fields";
 import { TemplatePicker } from "@/gadgets/email/template-picker";
 import { joinDoc, splitDoc, type Frontmatter } from "@/gadgets/email/frontmatter";
 import * as mm from "@/gadgets/email/mdmailer";
@@ -404,7 +402,7 @@ function LogoPreview({ name }: { name: string }) {
     };
   }, [name]);
   return (
-    <div className="flex h-20 w-full items-center justify-center rounded-md border bg-muted/40 p-2">
+    <div className="flex h-10 w-28 shrink-0 items-center justify-center rounded-md border bg-muted/40 p-1">
       {url ? <img src={url} alt="Logo preview" className="max-h-full max-w-full object-contain" /> : <span className="text-xs text-muted-foreground">No preview</span>}
     </div>
   );
@@ -423,23 +421,16 @@ function Branding() {
         <DialogHeader><DialogTitle>Email branding</DialogTitle></DialogHeader>
         <div className="space-y-3">
           <Field label="Organization"><Input value={b.organization} onChange={set("organization")} /></Field>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Primary color"><Input type="color" value={b.primaryColor} onChange={set("primaryColor")} /></Field>
-            <Field label="Default theme">
-              <Select value={b.preset} onValueChange={(v) => v && setB({ ...b, preset: v as mm.Branding["preset"] })}>
-                <SelectTrigger><SelectValue>{themeLabel(b.preset)}</SelectValue></SelectTrigger>
-                <SelectContent>{THEMES.map((t) => <SelectItem key={t} value={t}>{themeLabel(t)}</SelectItem>)}</SelectContent>
-              </Select>
-            </Field>
-          </div>
           <Field label="Tagline"><Input value={b.tagline} onChange={set("tagline")} /></Field>
           <Field label="Footer"><Input value={b.footerText} onChange={set("footerText")} /></Field>
           <Field label="Logo">
-            <LogoPreview name={b.logo} />
-            <Button variant="outline" size="sm" onClick={async () => {
-              const f = await open({ filters: [{ name: "Image", extensions: ["svg", "png", "jpg", "jpeg"] }] });
-              if (f && !Array.isArray(f)) setB({ ...b, logo: await mm.setLogo(f) });
-            }}>{b.logo.startsWith("logo-custom") ? "Replace logo" : "Choose logo"}</Button>
+            <div className="flex items-center gap-3">
+              <LogoPreview name={b.logo} />
+              <Button variant="outline" size="sm" onClick={async () => {
+                const f = await open({ filters: [{ name: "Image", extensions: ["svg", "png", "jpg", "jpeg"] }] });
+                if (f && !Array.isArray(f)) setB({ ...b, logo: await mm.setLogo(f) });
+              }}>{b.logo.startsWith("logo-custom") ? "Replace logo" : "Choose logo"}</Button>
+            </div>
           </Field>
           <Button className="w-full" onClick={async () => { await mm.saveBranding(b); toast.success("Branding saved"); setOpenDlg(false); }}>Save</Button>
         </div>
