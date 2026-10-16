@@ -24,7 +24,7 @@ function GuestHome() {
   return (
     <>
       <PageHeader
-        title="Welcome to NTOPIA"
+        title="Home"
         description="Local tools work offline. Sign in when you want Team Orbit."
         actions={
           <Button render={<Link to="/login" />} size="sm">
@@ -47,7 +47,7 @@ function SignedInHome() {
 
   return (
     <>
-      <PageHeader title={`Hello, ${user?.fullName.split(" ")[0]}`} description="Here's what's happening." />
+      <PageHeader title="Home" description={`Hello, ${user?.fullName.split(" ")[0]}. Here's what's happening.`} />
       <div className="grid gap-4 md:grid-cols-2">
         <Section title="Announcements" to="/announcements">
           {ann.data?.items.length ? ann.data.items.map((a) => <div key={a.id} className="truncate">{a.title}</div>) : muted}
