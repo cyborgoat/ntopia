@@ -161,7 +161,7 @@ export function AppShell() {
 
   return (
     <TooltipProvider>
-      <SidebarProvider>
+      <SidebarProvider className="h-svh overflow-hidden">
         <AutoCollapseForGadgets pathname={pathname} />
         <Sidebar collapsible="icon">
           <SidebarHeader className="gap-2">
@@ -244,7 +244,7 @@ export function AppShell() {
         </Sidebar>
 
         <PageChromeProvider>
-          <SidebarInset className="min-h-svh overflow-hidden">
+          <SidebarInset className="min-h-0 overflow-hidden">
             <InsetHeader fullBleed={fullBleed} />
             <div
               className={
