@@ -3,6 +3,7 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { AvatarSettings } from "@/components/avatar-settings";
 import { Field } from "@/components/form-dialog";
 import { PageHeader } from "@/components/page-header";
 import { useAuth } from "@/lib/auth";
@@ -23,6 +24,8 @@ function Settings() {
       <div className="max-w-md space-y-8">
         {user && (
           <>
+            <AvatarSettings />
+
             <form className="space-y-4" onSubmit={async (e) => {
               e.preventDefault();
               const { data, error } = await orbit.PATCH("/api/auth/me", { body: { fullName: name, email: email.trim() || null } });
