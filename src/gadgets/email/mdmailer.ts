@@ -66,6 +66,13 @@ async function copyDir(from: string, to: string) {
   }
 }
 
+const MIME_BY_EXT: Record<string, string> = { png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", gif: "image/gif", webp: "image/webp", svg: "image/svg+xml" };
+const EXT_BY_MIME: Record<string, string> = {
+  ...Object.fromEntries(Object.entries(MIME_BY_EXT).map(([ext, mime]) => [mime, ext])),
+  "image/jpeg": "jpg",
+  "image/jpg": "jpg",
+};
+
 // ---- branding -------------------------------------------------------------
 
 export async function loadBranding(): Promise<Branding> {
@@ -106,8 +113,13 @@ export async function setLogo(sourcePath: string): Promise<string> {
 
 /** Blob URL for a logo in the branding folder; the caller revokes it. */
 export async function logoBlobUrl(name: string): Promise<string> {
-  const bytes = await readFile(await join(await root(), name));
-  const ext = name.split(".").pop()?.toLowerCase() ?? "";
+  return blobUrlFor(await join(await root(), name));
+}
+
+/** Read a file and expose it as a blob URL typed from its extension; the caller revokes it. */
+async function blobUrlFor(path: string): Promise<string> {
+  const bytes = await readFile(path);
+  const ext = path.split(".").pop()?.toLowerCase() ?? "";
   return URL.createObjectURL(new Blob([bytes], { type: MIME_BY_EXT[ext] ?? "application/octet-stream" }));
 }
 
@@ -121,15 +133,6 @@ export async function writeWorking(text: string) {
 /** Relative to the work dir (mdmailer cwd), e.g. `assets/pasted/img-….png`. */
 const pastedDir = async () => join(await workDir(), "assets", "pasted");
 
-const EXT_BY_MIME: Record<string, string> = {
-  "image/png": "png",
-  "image/jpeg": "jpg",
-  "image/jpg": "jpg",
-  "image/gif": "gif",
-  "image/webp": "webp",
-  "image/svg+xml": "svg",
-};
-
 /** Persist a pasted/dropped image and return a Markdown-relative path under `assets/pasted/`. */
 export async function savePastedImage(bytes: Uint8Array, mimeOrExt = "image/png"): Promise<string> {
   await ensureWorkspace();
@@ -141,7 +144,6 @@ export async function savePastedImage(bytes: Uint8Array, mimeOrExt = "image/png"
   return `assets/pasted/${name}`;
 }
 
-const MIME_BY_EXT: Record<string, string> = { png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", gif: "image/gif", webp: "image/webp", svg: "image/svg+xml" };
 const assetUrlCache = new Map<string, Promise<string>>();
 
 /**
@@ -152,12 +154,7 @@ export function workAssetUrl(src: string): Promise<string> {
   if (/^(https?:|data:|blob:)/.test(src)) return Promise.resolve(src);
   let url = assetUrlCache.get(src);
   if (!url) {
-    url = (async () => {
-      const rel = src.replace(/^\.\//, "");
-      const bytes = await readFile(await join(await workDir(), ...rel.split("/")));
-      const ext = rel.split(".").pop()?.toLowerCase() ?? "";
-      return URL.createObjectURL(new Blob([bytes], { type: MIME_BY_EXT[ext] ?? "application/octet-stream" }));
-    })();
+    url = (async () => blobUrlFor(await join(await workDir(), ...src.replace(/^\.\//, "").split("/"))))();
     url.catch(() => assetUrlCache.delete(src));
     assetUrlCache.set(src, url);
   }
@@ -248,7 +245,7 @@ export type PreviewState = {
 };
 
 /** Stop the running mdmailer preview server, if any. */
-export async function stopPreview() {
+async function stopPreview() {
   previewGeneration++;
   const child = previewChild;
   previewChild = null;
@@ -324,7 +321,7 @@ export async function resetPreview() {
  * Start `mdmailer preview` for the working file on a free port.
  * Restarts if a previous preview is still running.
  */
-export async function startPreview(): Promise<{ url: string }> {
+async function startPreview(): Promise<{ url: string }> {
   await ensureWorkspace();
   await ensureConfig();
   await stopPreview();

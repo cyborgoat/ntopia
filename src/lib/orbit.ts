@@ -16,6 +16,9 @@ export const setServerUrl = (u: string) => setItem("serverUrl", u.replace(/\/+$/
 export const assetUrl = (path?: string | null) =>
   !path ? undefined : /^https?:/.test(path) ? path : `${getServerUrl()}${path}`;
 
+/** `MarkdownEditor` image-preview handler: stored server-relative srcs become displayable URLs. */
+export const imagePreviewUrl = async (src: string) => assetUrl(src) ?? src;
+
 /** Root-relative URLs in content (`/uploads/…`, `/demo/…`) live on the Team Orbit server, not this app. */
 export function serverUrlFor(url: string): string {
   return url.startsWith("/") && !url.startsWith("//") ? `${getServerUrl()}${url}` : url;

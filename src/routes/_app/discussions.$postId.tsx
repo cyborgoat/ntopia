@@ -103,7 +103,7 @@ function Thread() {
 
   if (!post) return <p className="text-sm text-muted-foreground">Loading…</p>;
 
-  const voteComment = (cid: string) => async (value: Vote) => {
+  const voteComment = async (cid: string, value: Vote) => {
     await orbit.PUT("/forum-comments/{id}/vote", { params: { path: { id: cid } }, body: { value } });
     refresh();
   };
@@ -139,13 +139,13 @@ function Thread() {
                   <p className="mb-1 text-xs text-muted-foreground">{c.author.fullName} · {new Date(c.createdAt).toLocaleString()}</p>
                   <Markdown>{c.content}</Markdown>
                   <div className="mt-2 flex items-center gap-2">
-                    <VoteBar score={c.score} mine={c.myVote} onVote={voteComment(c.id)} />
+                    <VoteBar score={c.score} mine={c.myVote} onVote={(v) => voteComment(c.id, v)} />
                     <Button variant="ghost" size="sm" onClick={() => startReply(c.id)}>Reply</Button>
                   </div>
                 </div>
               </ContextMenuTrigger>
               <ContextMenuContent>
-                <VoteMenuItems mine={c.myVote} onVote={(v) => void voteComment(c.id)(v)} onReply={() => startReply(c.id)} />
+                <VoteMenuItems mine={c.myVote} onVote={(v) => void voteComment(c.id, v)} onReply={() => startReply(c.id)} />
               </ContextMenuContent>
             </ContextMenu>
             {c.replies.map((r) => (
@@ -154,11 +154,11 @@ function Thread() {
                   <div className="ml-8 rounded-lg border bg-muted/30 p-4">
                     <p className="mb-1 text-xs text-muted-foreground">{r.author.fullName} · {new Date(r.createdAt).toLocaleString()}</p>
                     <Markdown>{r.content}</Markdown>
-                    <div className="mt-2"><VoteBar score={r.score} mine={r.myVote} onVote={voteComment(r.id)} /></div>
+                    <div className="mt-2"><VoteBar score={r.score} mine={r.myVote} onVote={(v) => voteComment(r.id, v)} /></div>
                   </div>
                 </ContextMenuTrigger>
                 <ContextMenuContent>
-                  <VoteMenuItems mine={r.myVote} onVote={(v) => void voteComment(r.id)(v)} />
+                  <VoteMenuItems mine={r.myVote} onVote={(v) => void voteComment(r.id, v)} />
                 </ContextMenuContent>
               </ContextMenu>
             ))}
@@ -181,7 +181,7 @@ function Thread() {
             onChange={setText}
             onSubmit={() => void send()}
             imageUploadHandler={uploadImage}
-            imagePreviewHandler={async (src) => assetUrl(src) ?? src}
+            imagePreviewHandler={imagePreviewUrl}
           />
         </div>
         {error && <p className="text-sm text-destructive">{error}</p>}

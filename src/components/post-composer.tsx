@@ -7,11 +7,9 @@ import { Input } from "@/components/ui/input";
 import { MarkdownEditor } from "@/components/markdown-editor";
 import { uploadImage } from "@/components/image-upload";
 import { usePageCrumbs, usePageTitle } from "@/components/page-chrome";
-import { assetUrl } from "@/lib/orbit";
+import { assetUrl, imagePreviewUrl } from "@/lib/orbit";
 
 export type PostDraft = { title: string; content: string; tags: string[]; coverImageUrl?: string };
-
-const previewUpload = async (src: string) => assetUrl(src) ?? src;
 
 /** Full-page composer for Markdown posts (blog, news, discussion threads). */
 export function PostComposer({
@@ -133,7 +131,7 @@ export function PostComposer({
         onChange={setContent}
         placeholder="Write your post… Markdown shortcuts like #, -, > and ``` work as you type."
         imageUploadHandler={uploadImage}
-        imagePreviewHandler={previewUpload}
+        imagePreviewHandler={imagePreviewUrl}
       />
     </div>
   );
