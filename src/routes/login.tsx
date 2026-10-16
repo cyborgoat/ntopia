@@ -1,26 +1,14 @@
 import { useState } from "react";
+import { toMessage } from "@/lib/utils";
 import { Link, Navigate, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { AuthCard } from "@/components/auth-card";
 import { useAuth } from "@/lib/auth";
-import { getServerUrl, resetOrbit, setServerUrl } from "@/lib/orbit";
+import { applyServerUrl, getServerUrl } from "@/lib/orbit";
 
 export const Route = createFileRoute("/login")({ component: Login });
-
-export function AuthCard({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/30 p-6">
-      <div className="w-full max-w-sm rounded-xl border bg-background p-6 shadow-sm">
-        <div className="mb-5">
-          <div className="text-xs font-semibold tracking-widest text-muted-foreground">NTOPIA</div>
-          <h1 className="mt-1 text-lg font-semibold">{title}</h1>
-        </div>
-        {children}
-      </div>
-    </div>
-  );
-}
 
 function Login() {
   const { login, token } = useAuth();
@@ -38,12 +26,11 @@ function Login() {
     setBusy(true);
     setError("");
     try {
-      await setServerUrl(server);
-      resetOrbit();
+      await applyServerUrl(server);
       await login(username, password);
       navigate({ to: "/" });
     } catch (err) {
-      setError((err as Error).message);
+      setError(toMessage(err));
     } finally {
       setBusy(false);
     }

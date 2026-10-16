@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useRef } from "react";
+import { toMessage } from "@/lib/utils";
 import CodeMirror from "@uiw/react-codemirror";
 import { markdown } from "@codemirror/lang-markdown";
 import { EditorView, keymap } from "@codemirror/view";
@@ -6,7 +7,7 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { Bold, Code, Code2, Heading2, ImagePlus, Italic, Link2, List, ListOrdered, Minus, Quote, Strikethrough } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { useIsDark } from "@/components/markdown-editor";
+import { useIsDark } from "@/hooks/use-is-dark";
 import * as mm from "./mdmailer";
 
 const IMAGE_EXTS = ["png", "jpg", "jpeg", "gif", "webp", "svg"];
@@ -79,7 +80,7 @@ function ToolButton({ label, onClick, children }: { label: string; onClick: () =
   );
 }
 
-const errText = (e: unknown) => (e instanceof Error ? e.message : String(e));
+const errText = toMessage;
 
 /** Plain Markdown source editor for the email body, with image import (button, paste and drop). */
 export function SourceEditor({ value, onChange }: { value: string; onChange: (v: string) => void }) {

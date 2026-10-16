@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Field } from "@/components/form-dialog";
 import { PageHeader } from "@/components/page-header";
 import { useAuth } from "@/lib/auth";
-import { errorMessage, getServerUrl, orbit, resetOrbit, setServerUrl } from "@/lib/orbit";
+import { applyServerUrl, errorMessage, getServerUrl, orbit } from "@/lib/orbit";
 
 export const Route = createFileRoute("/_app/settings")({ component: Settings });
 
@@ -53,12 +53,12 @@ function Settings() {
           <div className="flex flex-wrap gap-2">
             {user ? (
               <>
-                <Button size="sm" variant="outline" onClick={() => { setServerUrl(server); resetOrbit(); toast.success("Saved. Sign in again to apply."); logout(); }}>Save & sign out</Button>
+                <Button size="sm" variant="outline" onClick={() => { void applyServerUrl(server); toast.success("Saved. Sign in again to apply."); logout(); }}>Save & sign out</Button>
                 <Button size="sm" variant="ghost" onClick={logout}>Sign out</Button>
               </>
             ) : (
               <>
-                <Button size="sm" variant="outline" onClick={() => { setServerUrl(server); resetOrbit(); toast.success("Server URL saved"); }}>Save</Button>
+                <Button size="sm" variant="outline" onClick={() => { void applyServerUrl(server); toast.success("Server URL saved"); }}>Save</Button>
                 <Button size="sm" render={<Link to="/login" />}>Sign in</Button>
               </>
             )}

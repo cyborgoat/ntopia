@@ -16,3 +16,12 @@ export function excerpt(md: string, max = 160) {
     .trim();
   return text.length > max ? `${text.slice(0, max).trimEnd()}…` : text;
 }
+
+/** Message text of a caught value, which is not necessarily an `Error`. */
+export function toMessage(e: unknown): string {
+  return e instanceof Error ? e.message : String(e);
+}
+
+export function formatDateTime(d: string) {
+  return new Date(d).toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
+}

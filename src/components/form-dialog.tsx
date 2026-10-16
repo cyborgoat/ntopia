@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toMessage } from "@/lib/utils";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -27,7 +28,7 @@ export function FormDialog({
       await onSubmit();
       setOpen(false);
     } catch (err) {
-      setError((err as Error).message);
+      setError(toMessage(err));
     } finally {
       setBusy(false);
     }

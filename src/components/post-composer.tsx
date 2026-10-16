@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { toMessage } from "@/lib/utils";
 import { Link, useBlocker, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, ImagePlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -61,7 +62,7 @@ export function PostComposer({
       published.current = true;
       await navigate({ to: backTo });
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(toMessage(e));
     } finally {
       setBusy(false);
     }
@@ -102,7 +103,7 @@ export function PostComposer({
                   try {
                     setCover(await uploadImage(f));
                   } catch (err) {
-                    setError(err instanceof Error ? err.message : String(err));
+                    setError(toMessage(err));
                   } finally {
                     setCoverBusy(false);
                   }

@@ -43,6 +43,12 @@ export let orbit = createOrbit();
 /** Rebuild the client after the server URL changes. */
 export const resetOrbit = () => (orbit = createOrbit());
 
+/** Persist a new server URL and rebuild the client against it. */
+export async function applyServerUrl(url: string) {
+  await setServerUrl(url);
+  resetOrbit();
+}
+
 export function errorMessage(error: unknown, response?: Response): string {
   const m = (error as { message?: string | string[] } | undefined)?.message;
   if (m) return Array.isArray(m) ? m.join(", ") : m;

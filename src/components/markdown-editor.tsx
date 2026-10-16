@@ -1,4 +1,5 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef, useSyncExternalStore } from "react";
+import { useIsDark } from "@/hooks/use-is-dark";
+import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import {
   BlockTypeSelect, BoldItalicUnderlineToggles, ChangeCodeMirrorLanguage, CodeToggle, ConditionalContents,
   CreateLink, DiffSourceToggleWrapper, InsertCodeBlock, InsertImage, InsertTable, InsertThematicBreak,
@@ -32,18 +33,6 @@ type Props = {
   /** Called on Mod+Enter. */
   onSubmit?: () => void;
 };
-
-/** Tracks the `.dark` class on <html>, which is what the app's dark tokens key off. */
-export function useIsDark() {
-  return useSyncExternalStore(
-    (cb) => {
-      const obs = new MutationObserver(cb);
-      obs.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
-      return () => obs.disconnect();
-    },
-    () => document.documentElement.classList.contains("dark"),
-  );
-}
 
 // Tables inside MDXEditor swallow wheel events; forward them to the nearest scroller.
 function forwardTableWheel(wrapper: HTMLElement, event: WheelEvent) {

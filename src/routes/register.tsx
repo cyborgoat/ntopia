@@ -1,10 +1,11 @@
 import { useState } from "react";
+import { toMessage } from "@/lib/utils";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth";
-import { AuthCard } from "./login";
+import { AuthCard } from "@/components/auth-card";
 
 export const Route = createFileRoute("/register")({ component: Register });
 
@@ -22,7 +23,7 @@ function Register() {
       await register({ ...f, email: f.email.trim() || null });
       setDone(true);
     } catch (err) {
-      setError((err as Error).message);
+      setError(toMessage(err));
     }
   }
 

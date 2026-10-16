@@ -19,6 +19,7 @@ import { Empty, PageHeader } from "@/components/page-header";
 import { RequireAuth } from "@/components/require-auth";
 import { useAuth } from "@/lib/auth";
 import { assetUrl, errorMessage, orbit } from "@/lib/orbit";
+import { formatDateTime } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/events/")({
   component: () => (
@@ -44,7 +45,6 @@ function Events() {
     mutationFn: (id: string) => orbit.DELETE("/events/{id}", { params: { path: { id } } }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["events"] }),
   });
-  const fmt = (d: string) => new Date(d).toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
 
   return (
     <>
@@ -100,7 +100,7 @@ function Events() {
                   {ev.coverImageUrl && <img src={assetUrl(ev.coverImageUrl)} alt="" className="w-28 shrink-0 object-cover" />}
                   <div className="min-w-0 flex-1 p-4">
                     <h2 className={`truncate font-medium ${isAdmin ? "pr-10" : ""}`}>{ev.title}</h2>
-                    <p className="mt-1 text-sm text-muted-foreground">{fmt(ev.startAt)}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">{formatDateTime(ev.startAt)}</p>
                     <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground"><MapPin className="size-3.5 shrink-0" /><span className="truncate">{ev.location}</span></p>
                   </div>
                 </Link>

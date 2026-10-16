@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { toMessage } from "@/lib/utils";
 import { createFileRoute } from "@tanstack/react-router";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
@@ -103,7 +104,7 @@ function Composer() {
         setReady(true);
       })
       .catch((e) => {
-        if (!cancelled) setError(e instanceof Error ? e.message : String(e));
+        if (!cancelled) setError(toMessage(e));
       });
     return () => {
       cancelled = true;
@@ -139,7 +140,7 @@ function Composer() {
           setError("");
         }
       } catch (e) {
-        if (!stopped) setError(e instanceof Error ? e.message : String(e));
+        if (!stopped) setError(toMessage(e));
       }
       if (!stopped) timer = setTimeout(tick, 500);
     };
@@ -153,7 +154,7 @@ function Composer() {
   useEffect(() => {
     if (!ready) return;
     const t = setTimeout(() => {
-      void mm.writeWorking(doc).catch((e) => setError(e instanceof Error ? e.message : String(e)));
+      void mm.writeWorking(doc).catch((e) => setError(toMessage(e)));
     }, 400);
     return () => clearTimeout(t);
   }, [doc, ready]);
@@ -168,7 +169,7 @@ function Composer() {
       await mm.writeWorking(text);
       setError("");
     } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
+      const msg = toMessage(e);
       setError(msg);
       toast.error(msg);
     }
@@ -183,7 +184,7 @@ function Composer() {
         await writeTextFile(target, doc);
         toast.success("Saved Markdown");
       }
-    } catch (e) { toast.error(e instanceof Error ? e.message : String(e)); }
+    } catch (e) { toast.error(toMessage(e)); }
   }
 
   async function exportOne(format: mm.Format) {
@@ -194,7 +195,7 @@ function Composer() {
         await mm.exportTo(r.paths[format]!, target);
         toast.success(`Saved ${format.toUpperCase()}`);
       }
-    } catch (e) { toast.error(e instanceof Error ? e.message : String(e)); }
+    } catch (e) { toast.error(toMessage(e)); }
   }
 
   async function exportAll() {
@@ -207,14 +208,14 @@ function Composer() {
         await mm.exportTo(r.paths[f]!, await join(dir, `${base}.${f}`));
       }
       toast.success("Exported Markdown, HTML, EML and PNG");
-    } catch (e) { toast.error(e instanceof Error ? e.message : String(e)); }
+    } catch (e) { toast.error(toMessage(e)); }
   }
 
   async function openInMail() {
     try {
       const r = await mm.render(["eml"]);
       await openPath(r.paths.eml!);
-    } catch (e) { toast.error(e instanceof Error ? e.message : String(e)); }
+    } catch (e) { toast.error(toMessage(e)); }
   }
 
   const copyHtml = () => void navigator.clipboard.writeText(html).then(() => toast.success("HTML copied"));
