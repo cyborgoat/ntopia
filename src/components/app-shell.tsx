@@ -120,7 +120,7 @@ function InsetHeader({ fullBleed }: { fullBleed: boolean }) {
     <header className="flex shrink-0 flex-col gap-2 pt-2">
       {crumbs && crumbs.length > 0 && (
         <Breadcrumb className="px-4">
-          <BreadcrumbList>
+          <BreadcrumbList className="justify-end">
             {crumbs.map((c, i) => (
               <Fragment key={i}>
                 {i > 0 && <BreadcrumbSeparator />}
@@ -136,11 +136,11 @@ function InsetHeader({ fullBleed }: { fullBleed: boolean }) {
           </BreadcrumbList>
         </Breadcrumb>
       )}
-      <div className="flex h-12 items-center gap-3 px-4">
+      <div className="flex h-12 items-center justify-end gap-3 px-4">
+        <div ref={setSlot} className="flex shrink-0 items-center gap-2" />
         {label && (
           <h1 className={`min-w-0 truncate ${MARK}`}>{label}</h1>
         )}
-        <div ref={setSlot} className="ml-auto flex shrink-0 items-center gap-2" />
       </div>
       <div className="h-px w-full bg-border" />
     </header>
