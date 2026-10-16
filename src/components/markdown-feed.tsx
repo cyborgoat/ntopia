@@ -14,16 +14,33 @@ import {
 import { DetailPage } from "@/components/detail-page";
 import { Markdown } from "@/components/markdown";
 import { Empty, PageHeader } from "@/components/page-header";
-import { PostComposer } from "@/components/post-composer";
+import { PostComposer, type PostDraft } from "@/components/post-composer";
 import { useAuth } from "@/lib/auth";
 import { assetUrl, errorMessage, orbit } from "@/lib/orbit";
 import { excerpt } from "@/lib/utils";
 
 type Kind = "/news" | "/blog-posts";
 
-const SECTION = {
-  "/news": { label: "News", to: "/news" },
-  "/blog-posts": { label: "Blog", to: "/blog" },
+/** Everything that differs between the two feeds: route targets and the typed API calls. */
+const FEED = {
+  "/news": {
+    section: { label: "News", to: "/news" },
+    newTo: "/news/new",
+    detailTo: "/news/$id",
+    list: async () => (await orbit.GET("/news", { params: { query: { limit: 50 } } })).data,
+    get: async (id: string) => (await orbit.GET("/news/{id}", { params: { path: { id } } })).data ?? null,
+    remove: (id: string) => orbit.DELETE("/news/{id}", { params: { path: { id } } }),
+    create: (body: PostDraft) => orbit.POST("/news", { body }),
+  },
+  "/blog-posts": {
+    section: { label: "Blog", to: "/blog" },
+    newTo: "/blog/new",
+    detailTo: "/blog/$id",
+    list: async () => (await orbit.GET("/blog-posts", { params: { query: { limit: 50 } } })).data,
+    get: async (id: string) => (await orbit.GET("/blog-posts/{id}", { params: { path: { id } } })).data ?? null,
+    remove: (id: string) => orbit.DELETE("/blog-posts/{id}", { params: { path: { id } } }),
+    create: (body: PostDraft) => orbit.POST("/blog-posts", { body }),
+  },
 } as const;
 
 /** News and blog posts share one shape, so they share one page. */
@@ -31,20 +48,12 @@ export function MarkdownFeed({ kind, title, description }: { kind: Kind; title: 
   const { isAdmin } = useAuth();
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const feed = FEED[kind];
   const key = [kind];
-  const { data } = useQuery({
-    queryKey: key,
-    queryFn: async () =>
-      kind === "/news"
-        ? (await orbit.GET("/news", { params: { query: { limit: 50 } } })).data
-        : (await orbit.GET("/blog-posts", { params: { query: { limit: 50 } } })).data,
-  });
+  const { data } = useQuery({ queryKey: key, queryFn: feed.list });
 
   const del = useMutation({
-    mutationFn: (id: string) =>
-      kind === "/news"
-        ? orbit.DELETE("/news/{id}", { params: { path: { id } } })
-        : orbit.DELETE("/blog-posts/{id}", { params: { path: { id } } }),
+    mutationFn: feed.remove,
     onSuccess: () => qc.invalidateQueries({ queryKey: key }),
   });
 
@@ -56,7 +65,7 @@ export function MarkdownFeed({ kind, title, description }: { kind: Kind; title: 
         crumbs={[{ label: "Home", to: "/" }, { label: title }]}
         actions={
           isAdmin && (
-            <Button size="sm" render={<Link to={kind === "/news" ? "/news/new" : "/blog/new"} />}>
+            <Button size="sm" render={<Link to={feed.newTo} />}>
               <Plus /> New
             </Button>
           )
@@ -69,7 +78,7 @@ export function MarkdownFeed({ kind, title, description }: { kind: Kind; title: 
             <ContextMenuTrigger className="block">
               <div className="relative">
                 <Link
-                  to={kind === "/news" ? "/news/$id" : "/blog/$id"}
+                  to={feed.detailTo}
                   params={{ id: p.id }}
                   className="flex overflow-hidden rounded-lg border transition-colors hover:bg-muted/50"
                 >
@@ -90,7 +99,7 @@ export function MarkdownFeed({ kind, title, description }: { kind: Kind; title: 
             </ContextMenuTrigger>
             <ContextMenuContent>
               <ContextMenuItem
-                onClick={() => void navigate({ to: kind === "/news" ? "/news/$id" : "/blog/$id", params: { id: p.id } })}
+                onClick={() => void navigate({ to: feed.detailTo, params: { id: p.id } })}
               >
                 <ExternalLink /> Open
               </ContextMenuItem>
@@ -116,25 +125,16 @@ export function MarkdownFeed({ kind, title, description }: { kind: Kind; title: 
 /** Full content of one news or blog post. */
 export function FeedPostDetail({ kind, id }: { kind: Kind; id: string }) {
   const qc = useQueryClient();
-  const { data, isPending } = useQuery({
-    queryKey: [kind, id],
-    queryFn: async () =>
-      (kind === "/news"
-        ? await orbit.GET("/news/{id}", { params: { path: { id } } })
-        : await orbit.GET("/blog-posts/{id}", { params: { path: { id } } })
-      ).data ?? null,
-  });
+  const feed = FEED[kind];
+  const { data, isPending } = useQuery({ queryKey: [kind, id], queryFn: () => feed.get(id) });
   const del = useMutation({
-    mutationFn: () =>
-      kind === "/news"
-        ? orbit.DELETE("/news/{id}", { params: { path: { id } } })
-        : orbit.DELETE("/blog-posts/{id}", { params: { path: { id } } }),
+    mutationFn: () => feed.remove(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: [kind] }),
   });
 
   return (
     <DetailPage
-      section={SECTION[kind]}
+      section={FEED[kind].section}
       itemTitle={data?.title}
       loading={isPending}
       notFound={!data}
@@ -165,7 +165,7 @@ export function NewFeedPost({ kind, title }: { kind: Kind; title: string }) {
       pageTitle={`New ${title.toLowerCase()} post`}
       backTo={kind === "/news" ? "/news" : "/blog"}
       onPublish={async (body) => {
-        const { error } = kind === "/news" ? await orbit.POST("/news", { body }) : await orbit.POST("/blog-posts", { body });
+        const { error } = await FEED[kind].create(body);
         if (error) throw new Error(errorMessage(error));
         await qc.invalidateQueries({ queryKey: [kind] });
       }}

@@ -15,7 +15,7 @@ import { MarkdownEditor, type MarkdownEditorHandle } from "@/components/markdown
 import { uploadImage } from "@/components/image-upload";
 import { usePageCrumbs, usePageTitle } from "@/components/page-chrome";
 import { RequireAuth } from "@/components/require-auth";
-import { assetUrl, errorMessage, orbit } from "@/lib/orbit";
+import { errorMessage, imagePreviewUrl, orbit } from "@/lib/orbit";
 
 export const Route = createFileRoute("/_app/discussions/$postId")({
   component: () => (
