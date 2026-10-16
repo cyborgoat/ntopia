@@ -162,7 +162,7 @@ export function SourceEditor({ value, onChange }: { value: string; onChange: (v:
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex flex-wrap items-center gap-x-0.5 gap-y-1 border-b bg-muted/40 px-2 py-1">
+      <div className="flex flex-wrap items-center gap-x-0.5 gap-y-1 border-b bg-muted/40 px-4 py-1">
         <ToolButton label="Heading" onClick={run((v) => prefixLines(v, "## "))}><Heading2 /></ToolButton>
         <ToolButton label="Bold (⌘B)" onClick={run((v) => wrap(v, "**"))}><Bold /></ToolButton>
         <ToolButton label="Italic (⌘I)" onClick={run((v) => wrap(v, "*"))}><Italic /></ToolButton>
