@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowBigDown, ArrowBigUp, ArrowLeft, MessageSquare, Undo2 } from "lucide-react";
+import { ArrowBigDown, ArrowBigUp, MessageSquare, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   ContextMenu,
@@ -13,6 +13,7 @@ import {
 import { Markdown } from "@/components/markdown";
 import { MarkdownEditor, type MarkdownEditorHandle } from "@/components/markdown-editor";
 import { uploadImage } from "@/components/image-upload";
+import { usePageCrumbs, usePageTitle } from "@/components/page-chrome";
 import { RequireAuth } from "@/components/require-auth";
 import { assetUrl, errorMessage, orbit } from "@/lib/orbit";
 
@@ -97,6 +98,9 @@ function Thread() {
     });
   }
 
+  usePageTitle("Discussions");
+  usePageCrumbs([{ label: "Home", to: "/" }, { label: "Discussions", to: "/discussions" }, { label: post?.title ?? "…" }]);
+
   if (!post) return <p className="text-sm text-muted-foreground">Loading…</p>;
 
   const voteComment = (cid: string) => async (value: Vote) => {
@@ -111,9 +115,6 @@ function Thread() {
 
   return (
     <>
-      <Link to="/discussions" className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-        <ArrowLeft className="size-4" /> Discussions
-      </Link>
       <ContextMenu>
         <ContextMenuTrigger className="block">
           <article className="space-y-3 rounded-lg border p-5">

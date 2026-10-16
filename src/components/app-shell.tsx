@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { Fragment } from "react";
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -23,6 +24,13 @@ import {
   SidebarSeparator,
   useSidebar,
 } from "@/components/ui/sidebar";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { PageChromeProvider, usePageChrome } from "@/components/page-chrome";
 import { useAuth } from "@/lib/auth";
@@ -106,11 +114,29 @@ function AutoCollapseForGadgets({ pathname }: { pathname: string }) {
 }
 
 function InsetHeader({ fullBleed }: { fullBleed: boolean }) {
-  const { title } = usePageChrome();
+  const { title, crumbs } = usePageChrome();
   const label = title ?? (fullBleed ? "Email composer" : null);
 
   return (
     <header className="flex shrink-0 flex-col gap-2 p-2">
+      {crumbs && crumbs.length > 0 && (
+        <Breadcrumb className="px-2">
+          <BreadcrumbList>
+            {crumbs.map((c, i) => (
+              <Fragment key={i}>
+                {i > 0 && <BreadcrumbSeparator />}
+                <BreadcrumbItem>
+                  {c.to && i < crumbs.length - 1 ? (
+                    <Link to={c.to} className="truncate hover:text-foreground">{c.label}</Link>
+                  ) : (
+                    <BreadcrumbPage>{c.label}</BreadcrumbPage>
+                  )}
+                </BreadcrumbItem>
+              </Fragment>
+            ))}
+          </BreadcrumbList>
+        </Breadcrumb>
+      )}
       <div className="flex h-12 items-center px-2">
         {label && (
           <h1 className={`min-w-0 truncate ${MARK}`}>{label}</h1>

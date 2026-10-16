@@ -1,15 +1,18 @@
-import { usePageTitle } from "@/components/page-chrome";
+import { usePageCrumbs, usePageTitle, type Crumb } from "@/components/page-chrome";
 
 export function PageHeader({
   title,
   description,
   actions,
+  crumbs,
 }: {
   title: string;
+  crumbs?: Crumb[];
   description?: string;
   actions?: React.ReactNode;
 }) {
   usePageTitle(title);
+  usePageCrumbs(crumbs);
 
   if (!description && !actions) return null;
 

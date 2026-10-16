@@ -87,6 +87,8 @@ Sidebar (`src/components/app-shell.tsx`):
 
 ## Routes
 
+List pages show summary cards that link to a detail page. Pages register breadcrumbs into the shell header with `usePageCrumbs` (`src/components/page-chrome.tsx`); `DetailPage` (`src/components/detail-page.tsx`) provides the shared detail frame.
+
 File routes under `src/routes/`; generated tree in `src/routeTree.gen.ts`.
 
 | Area | Paths | Notes |
@@ -94,7 +96,7 @@ File routes under `src/routes/`; generated tree in `src/routeTree.gen.ts`.
 | Public | `/login`, `/register` | Outside the shell; login can “Continue without signing in” |
 | Shell | `/_app` → `AppShell` | Pathless layout; URLs stay `/`, `/gadgets`, … |
 | Local | `/`, `/gadgets`, `/gadgets/email`, `/gadgets/todo`, `/settings` | No Orbit API required |
-| Orbit | `/announcements`, `/events`, `/news`, `/news/new`, `/blog`, `/blog/new`, `/discussions/*`, `/notifications` | Behind `RequireAuth`; `*/new` composers are full-bleed (`FULL_BLEED` in `app-shell.tsx`) |
+| Orbit | `/announcements`, `/events`, `/news`, `/news/new`, `/blog`, `/blog/new`, `/discussions/*`, `/notifications`; detail pages `/announcements/$id`, `/events/$id`, `/news/$id`, `/blog/$id` | Behind `RequireAuth`; `*/new` composers are full-bleed (`FULL_BLEED` in `app-shell.tsx`) |
 
 ## Key libraries (`src/lib/`)
 

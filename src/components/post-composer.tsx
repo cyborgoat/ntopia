@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MarkdownEditor } from "@/components/markdown-editor";
 import { uploadImage } from "@/components/image-upload";
-import { usePageTitle } from "@/components/page-chrome";
+import { usePageCrumbs, usePageTitle } from "@/components/page-chrome";
 import { assetUrl } from "@/lib/orbit";
 
 export type PostDraft = { title: string; content: string; tags: string[]; coverImageUrl?: string };
@@ -28,6 +28,8 @@ export function PostComposer({
   onPublish: (draft: PostDraft) => Promise<void>;
 }) {
   usePageTitle(pageTitle);
+  const section = { "/blog": "Blog", "/news": "News", "/discussions": "Discussions" }[backTo];
+  usePageCrumbs([{ label: "Home", to: "/" }, { label: section, to: backTo }, { label: "New" }]);
   const navigate = useNavigate();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");

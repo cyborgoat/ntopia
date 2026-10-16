@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Copy, MapPin, Trash2 } from "lucide-react";
+import { Copy, ExternalLink, MapPin, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,7 +20,7 @@ import { RequireAuth } from "@/components/require-auth";
 import { useAuth } from "@/lib/auth";
 import { assetUrl, errorMessage, orbit } from "@/lib/orbit";
 
-export const Route = createFileRoute("/_app/events")({
+export const Route = createFileRoute("/_app/events/")({
   component: () => (
     <RequireAuth>
       <Events />
@@ -33,6 +33,7 @@ const blank = { title: "", description: "", startAt: "", endAt: "", location: ""
 function Events() {
   const { isAdmin } = useAuth();
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const [f, setF] = useState(blank);
   const set = (k: keyof typeof blank) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setF({ ...f, [k]: e.target.value });
   const { data } = useQuery({
@@ -49,6 +50,7 @@ function Events() {
     <>
       <PageHeader
         title="Events"
+        crumbs={[{ label: "Home", to: "/" }, { label: "Events" }]}
         description="What's coming up."
         actions={
           isAdmin && (
@@ -89,22 +91,28 @@ function Events() {
         {data?.items.map((ev) => (
           <ContextMenu key={ev.id}>
             <ContextMenuTrigger className="block">
-              <article className="overflow-hidden rounded-lg border">
-                {ev.coverImageUrl && <img src={assetUrl(ev.coverImageUrl)} alt="" className="h-36 w-full object-cover" />}
-                <div className="p-4">
-                  <div className="flex items-start justify-between gap-2">
-                    <h2 className="font-medium">{ev.title}</h2>
-                    {isAdmin && (
-                      <Button variant="ghost" size="icon-sm" onClick={() => del.mutate(ev.id)} aria-label="Delete"><Trash2 /></Button>
-                    )}
+              <div className="relative">
+                <Link
+                  to="/events/$id"
+                  params={{ id: ev.id }}
+                  className="flex overflow-hidden rounded-lg border transition-colors hover:bg-muted/50"
+                >
+                  {ev.coverImageUrl && <img src={assetUrl(ev.coverImageUrl)} alt="" className="w-28 shrink-0 object-cover" />}
+                  <div className="min-w-0 flex-1 p-4">
+                    <h2 className={`truncate font-medium ${isAdmin ? "pr-10" : ""}`}>{ev.title}</h2>
+                    <p className="mt-1 text-sm text-muted-foreground">{fmt(ev.startAt)}</p>
+                    <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground"><MapPin className="size-3.5 shrink-0" /><span className="truncate">{ev.location}</span></p>
                   </div>
-                  <p className="mt-1 text-sm text-muted-foreground">{fmt(ev.startAt)} → {fmt(ev.endAt)}</p>
-                  <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground"><MapPin className="size-3.5" />{ev.location}</p>
-                  <p className="mt-3 whitespace-pre-wrap text-sm">{ev.description}</p>
-                </div>
-              </article>
+                </Link>
+                {isAdmin && (
+                  <Button variant="ghost" size="icon-sm" className="absolute top-3 right-3" onClick={() => del.mutate(ev.id)} aria-label="Delete"><Trash2 /></Button>
+                )}
+              </div>
             </ContextMenuTrigger>
             <ContextMenuContent>
+              <ContextMenuItem onClick={() => void navigate({ to: "/events/$id", params: { id: ev.id } })}>
+                <ExternalLink /> Open
+              </ContextMenuItem>
               <ContextMenuItem onClick={() => void navigator.clipboard.writeText(ev.title).then(() => toast.success("Title copied"))}>
                 <Copy /> Copy title
               </ContextMenuItem>

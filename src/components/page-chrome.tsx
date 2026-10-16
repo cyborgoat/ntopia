@@ -1,15 +1,20 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
+export type Crumb = { label: string; to?: string };
+
 type PageChrome = {
   title: string | null;
   setTitle: (title: string | null) => void;
+  crumbs: Crumb[] | null;
+  setCrumbs: (crumbs: Crumb[] | null) => void;
 };
 
 const PageChromeContext = createContext<PageChrome | null>(null);
 
 export function PageChromeProvider({ children }: { children: React.ReactNode }) {
   const [title, setTitle] = useState<string | null>(null);
-  const value = useMemo(() => ({ title, setTitle }), [title]);
+  const [crumbs, setCrumbs] = useState<Crumb[] | null>(null);
+  const value = useMemo(() => ({ title, setTitle, crumbs, setCrumbs }), [title, crumbs]);
   return <PageChromeContext.Provider value={value}>{children}</PageChromeContext.Provider>;
 }
 
@@ -26,4 +31,14 @@ export function usePageTitle(title: string) {
     setTitle(title);
     return () => setTitle(null);
   }, [title, setTitle]);
+}
+
+/** Register breadcrumbs (last one is the current page) into the shell header. */
+export function usePageCrumbs(crumbs: Crumb[] | undefined) {
+  const { setCrumbs } = usePageChrome();
+  const key = crumbs ? JSON.stringify(crumbs) : "";
+  useEffect(() => {
+    setCrumbs(key ? (JSON.parse(key) as Crumb[]) : null);
+    return () => setCrumbs(null);
+  }, [key, setCrumbs]);
 }
