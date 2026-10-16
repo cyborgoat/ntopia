@@ -2,7 +2,9 @@ import { createTeamOrbitClient } from "@goatcheese/team-orbit-client";
 import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
 import { getItem, isTauri, setItem } from "./storage";
 
-export const DEFAULT_SERVER = "http://localhost:3000";
+/** Preset via VITE_DEFAULT_SERVER; dev builds fall back to a local server, release builds start blank. */
+export const DEFAULT_SERVER: string =
+  import.meta.env.VITE_DEFAULT_SERVER ?? (import.meta.env.DEV ? "http://localhost:3000" : "");
 export const STORAGE_KEYS = ["serverUrl", "token"];
 
 export const getServerUrl = () => getItem<string>("serverUrl") ?? DEFAULT_SERVER;
@@ -13,6 +15,11 @@ export const setServerUrl = (u: string) => setItem("serverUrl", u.replace(/\/+$/
 /** Absolute URL for a server-relative path such as `/uploads/x.png`. */
 export const assetUrl = (path?: string | null) =>
   !path ? undefined : /^https?:/.test(path) ? path : `${getServerUrl()}${path}`;
+
+/** Root-relative URLs in content (`/uploads/…`, `/demo/…`) live on the Team Orbit server, not this app. */
+export function serverUrlFor(url: string): string {
+  return url.startsWith("/") && !url.startsWith("//") ? `${getServerUrl()}${url}` : url;
+}
 
 let onUnauthorized: () => void = () => {};
 export const setUnauthorizedHandler = (fn: () => void) => (onUnauthorized = fn);

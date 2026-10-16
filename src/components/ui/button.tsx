@@ -48,6 +48,8 @@ function Button({
   return (
     <ButtonPrimitive
       data-slot="button"
+      // A `render` element (e.g. a router <Link>) is not a native <button>.
+      nativeButton={!props.render}
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}
     />

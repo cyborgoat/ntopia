@@ -49,7 +49,7 @@ function Settings() {
 
         <div className="space-y-4">
           <h2 className="text-sm font-medium">Server</h2>
-          <Field label="Team Orbit URL"><Input value={server} onChange={(e) => setServer(e.target.value)} /></Field>
+          <Field label="Team Orbit URL"><Input type="url" placeholder="https://orbit.example.com" value={server} onChange={(e) => setServer(e.target.value)} /></Field>
           <div className="flex flex-wrap gap-2">
             {user ? (
               <>

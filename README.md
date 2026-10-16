@@ -22,7 +22,7 @@ pnpm install
 pnpm tauri:dev        # prepares the mdmailer sidecar, then launches the app
 ```
 
-You can use Home and Gadgets immediately without signing in. To unlock Team Orbit features, sign in at the server URL on the login screen (default `http://localhost:3000`), e.g. `admin@teamorbit.local` / `password123`. USER accounts are read/discuss only; ADMIN/SUPERUSER can publish.
+You can use Home and Gadgets immediately without signing in. To unlock Team Orbit features, sign in with your username and password at your Team Orbit server URL on the login screen. Dev builds default to `http://localhost:3000`; set `VITE_DEFAULT_SERVER` to preset another URL. USER accounts are read/discuss only; ADMIN/SUPERUSER can publish.
 
 ## Gadgets
 

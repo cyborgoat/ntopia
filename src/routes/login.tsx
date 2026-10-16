@@ -54,7 +54,7 @@ function Login() {
       <form onSubmit={submit} className="space-y-4">
         <div className="space-y-1.5">
           <Label htmlFor="server">Server</Label>
-          <Input id="server" value={server} onChange={(e) => setServer(e.target.value)} />
+          <Input id="server" type="url" required placeholder="https://orbit.example.com" value={server} onChange={(e) => setServer(e.target.value)} />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="username">Username</Label>

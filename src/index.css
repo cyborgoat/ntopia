@@ -151,6 +151,19 @@
   & table { @apply w-full border-collapse text-left; }
   & th, & td { @apply border px-2 py-1; }
   & th { @apply bg-muted font-medium; }
+  & del { @apply text-muted-foreground; }
+  & kbd { @apply rounded border bg-muted px-1 font-mono text-[0.85em]; }
+  & sup, & sub { @apply text-[0.75em]; }
+  & details { @apply rounded-md border px-3 py-2; }
+  & summary { @apply cursor-pointer font-medium; }
+  /* GFM task lists */
+  & ul.contains-task-list { @apply list-none pl-0; }
+  & li.task-list-item { @apply flex items-start gap-2; }
+  & li.task-list-item > input { @apply mt-1 shrink-0; }
+  /* GFM footnotes */
+  & section[data-footnotes] { @apply border-t pt-3 text-xs text-muted-foreground; }
+  & section[data-footnotes] h2 { @apply sr-only; }
+  & a[data-footnote-backref] { @apply no-underline; }
 }
 
 /* MDXEditor themed with the app's tokens (also applies to its popups, which copy the root class). */
