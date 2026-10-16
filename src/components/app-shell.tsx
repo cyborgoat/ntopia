@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -91,6 +92,19 @@ function BrandToggle() {
   );
 }
 
+// Collapse the sidebar when entering a gadget (/gadgets/<name>) from elsewhere.
+// Only the transition triggers it, so a manual toggle sticks while in gadgets.
+function AutoCollapseForGadgets({ pathname }: { pathname: string }) {
+  const { setOpen } = useSidebar();
+  const inGadget = /^\/gadgets\/[^/]+/.test(pathname);
+  const wasInGadget = useRef(false);
+  useEffect(() => {
+    if (inGadget && !wasInGadget.current) setOpen(false);
+    wasInGadget.current = inGadget;
+  }, [inGadget, setOpen]);
+  return null;
+}
+
 function InsetHeader({ fullBleed }: { fullBleed: boolean }) {
   const { title } = usePageChrome();
   const label = title ?? (fullBleed ? "Email composer" : null);
@@ -123,6 +137,7 @@ export function AppShell() {
   return (
     <TooltipProvider>
       <SidebarProvider>
+        <AutoCollapseForGadgets pathname={pathname} />
         <Sidebar collapsible="icon">
           <SidebarHeader className="gap-2">
             <SidebarMenu>

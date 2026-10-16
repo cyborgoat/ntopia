@@ -161,7 +161,7 @@ export function SourceEditor({ value, onChange }: { value: string; onChange: (v:
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex flex-wrap items-center gap-0.5 border-b bg-muted/40 px-2 py-1">
+      <div className="flex flex-wrap items-center gap-x-0.5 gap-y-1 border-b bg-muted/40 px-2 py-1">
         <ToolButton label="Heading" onClick={run((v) => prefixLines(v, "## "))}><Heading2 /></ToolButton>
         <ToolButton label="Bold (⌘B)" onClick={run((v) => wrap(v, "**"))}><Bold /></ToolButton>
         <ToolButton label="Italic (⌘I)" onClick={run((v) => wrap(v, "*"))}><Italic /></ToolButton>
@@ -176,9 +176,7 @@ export function SourceEditor({ value, onChange }: { value: string; onChange: (v:
         <ToolButton label="Code block" onClick={run((v) => insertBlock(v, "```\n\n```\n", 4))}><Code2 /></ToolButton>
         <ToolButton label="Divider" onClick={run((v) => insertBlock(v, "---\n"))}><Minus /></ToolButton>
         <Sep />
-        <Button variant="ghost" size="sm" className="h-7 text-xs" onMouseDown={(e) => e.preventDefault()} onClick={() => void pickImage()}>
-          <ImagePlus /> Import image
-        </Button>
+        <ToolButton label="Import image" onClick={() => void pickImage()}><ImagePlus /></ToolButton>
       </div>
       <div className="min-h-0 flex-1 overflow-auto text-sm">
         <CodeMirror

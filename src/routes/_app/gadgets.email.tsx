@@ -1,15 +1,14 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
 import { join } from "@tauri-apps/api/path";
 import { openPath } from "@tauri-apps/plugin-opener";
-import { Copy, Download, FileText, FolderOpen, Mail, Palette } from "lucide-react";
+import { Copy, Download, Eye, EyeOff, FileText, FolderOpen, Mail, Palette } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import {
   ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger,
@@ -31,6 +30,7 @@ export const Route = createFileRoute("/_app/gadgets/email")({ component: EmailGa
 const BLANK_META: Frontmatter = { title: "Untitled", type: "news", lang: "en" };
 const BLANK_BODY = "## Hello\n\nWrite your message…\n";
 const LAYOUT_KEY = "ntopia.email-composer.layout";
+const PREVIEW_KEY = "ntopia.email-composer.preview";
 const DEFAULT_LAYOUT = { editor: 50, preview: 50 };
 
 function loadLayout(): Record<string, number> {
@@ -43,6 +43,14 @@ function loadLayout(): Record<string, number> {
     /* ignore */
   }
   return DEFAULT_LAYOUT;
+}
+
+function loadShowPreview() {
+  try {
+    return localStorage.getItem(PREVIEW_KEY) !== "0";
+  } catch {
+    return true;
+  }
 }
 
 function exportBasename(meta: Frontmatter) {
@@ -64,21 +72,24 @@ function Composer() {
   const doc = useMemo(() => joinDoc(meta, body), [meta, body]);
   const [ready, setReady] = useState(false);
   const [html, setHtml] = useState("");
-  const [pngUrl, setPngUrl] = useState<string>();
-  const [tab, setTab] = useState<"html" | "png">("html");
+  const [showPreview, setShowPreview] = useState(loadShowPreview);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [templates, setTemplates] = useState<string[]>([]);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const versionRef = useRef(0);
-  const pngUrlRef = useRef<string | undefined>(undefined);
   const layout = useMemo(() => loadLayout(), []);
 
-  const clearPng = useCallback(() => {
-    if (pngUrlRef.current) URL.revokeObjectURL(pngUrlRef.current);
-    pngUrlRef.current = undefined;
-    setPngUrl(undefined);
-  }, []);
+  function togglePreview() {
+    setShowPreview((v) => {
+      try {
+        localStorage.setItem(PREVIEW_KEY, v ? "0" : "1");
+      } catch {
+        /* ignore */
+      }
+      return !v;
+    });
+  }
 
   const [attempt, setAttempt] = useState(0);
 
@@ -102,9 +113,6 @@ function Composer() {
 
   useEffect(() => {
     mm.listTemplates().then(setTemplates).catch(() => {});
-    return () => {
-      if (pngUrlRef.current) URL.revokeObjectURL(pngUrlRef.current);
-    };
   }, []);
 
   async function retryPreview() {
@@ -127,7 +135,6 @@ function Composer() {
           setHtml(state.html);
           versionRef.current = state.version;
           setError("");
-          clearPng();
         } else if (!state.updating) {
           setError("");
         }
@@ -141,7 +148,7 @@ function Composer() {
       stopped = true;
       clearTimeout(timer);
     };
-  }, [previewUrl, clearPng]);
+  }, [previewUrl]);
 
   useEffect(() => {
     if (!ready) return;
@@ -151,38 +158,12 @@ function Composer() {
     return () => clearTimeout(t);
   }, [doc, ready]);
 
-  useEffect(() => {
-    if (tab !== "png" || !ready || pngUrl || error) return;
-    let cancelled = false;
-    setBusy(true);
-    mm.render(["png"])
-      .then((r) => {
-        if (cancelled) {
-          if (r.pngUrl) URL.revokeObjectURL(r.pngUrl);
-          return;
-        }
-        if (pngUrlRef.current) URL.revokeObjectURL(pngUrlRef.current);
-        pngUrlRef.current = r.pngUrl;
-        setPngUrl(r.pngUrl);
-      })
-      .catch((e) => {
-        if (!cancelled) setError(e instanceof Error ? e.message : String(e));
-      })
-      .finally(() => {
-        if (!cancelled) setBusy(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [tab, ready, pngUrl, error, html]);
-
   async function loadTemplate(t: string) {
     try {
       const text = await mm.readTemplate(t);
       const { data, body: templateBody } = splitDoc(text);
       setMeta(data);
       setBody(templateBody.replace(/^\n+/, ""));
-      clearPng();
       setHtml("");
       await mm.writeWorking(text);
       setError("");
@@ -263,6 +244,9 @@ function Composer() {
           </Select>
         )}
         <div className="ml-auto flex items-center gap-1">
+          <Button variant="outline" size="sm" aria-pressed={showPreview} onClick={togglePreview}>
+            {showPreview ? <EyeOff /> : <Eye />} {showPreview ? "Hide preview" : "Show preview"}
+          </Button>
           <Button size="sm" onClick={() => void openInMail()}><Mail /> Open in Mail</Button>
           <DropdownMenu>
             <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
@@ -289,6 +273,7 @@ function Composer() {
         id="email-composer"
         defaultLayout={layout}
         onLayoutChanged={(next) => {
+          if (!showPreview) return;
           try {
             localStorage.setItem(LAYOUT_KEY, JSON.stringify(next));
           } catch {
@@ -307,15 +292,13 @@ function Composer() {
             </ContextMenu>
           </div>
         </ResizablePanel>
-        <ResizableHandle withHandle />
-        <ResizablePanel id="preview" defaultSize={`${layout.preview}%`} minSize="25%" className="min-w-0">
+        {showPreview && <ResizableHandle withHandle />}
+        {showPreview && <ResizablePanel id="preview" defaultSize={`${layout.preview}%`} minSize="25%" className="min-w-0">
           <ContextMenu>
             <ContextMenuTrigger className="flex h-full min-h-0 flex-col">
               <section className="flex h-full min-h-0 flex-col">
                 <div className="flex items-center justify-between gap-2 border-b p-3">
-                  <Tabs value={tab} onValueChange={(v) => setTab(v as "html" | "png")}>
-                    <TabsList><TabsTrigger value="html">Email</TabsTrigger><TabsTrigger value="png">PNG card</TabsTrigger></TabsList>
-                  </Tabs>
+                  <span className="text-sm font-medium">Preview</span>
                   {busy && <span className="text-xs text-muted-foreground">Rendering…</span>}
                 </div>
                 <div className="relative min-h-0 flex-1 overflow-auto bg-muted/40">
@@ -325,9 +308,8 @@ function Composer() {
                       {!previewUrl && <Button size="sm" variant="outline" onClick={() => void retryPreview()}>Restart preview</Button>}
                     </div>
                   )}
-                  {tab === "html" && html && <iframe title="Email preview" sandbox="" srcDoc={html} className="h-full w-full bg-white" />}
-                  {tab === "png" && !error && pngUrl && <img src={pngUrl} alt="PNG card" className="mx-auto max-w-full p-4" />}
-                  {tab === "html" && !html && !busy && !error && (
+                  {html && <iframe title="Email preview" sandbox="" srcDoc={html} className="h-full w-full bg-white" />}
+                  {!html && !busy && !error && (
                     <p className="p-6 text-sm text-muted-foreground">{previewUrl ? "Rendering preview…" : "Starting live preview…"}</p>
                   )}
                 </div>
@@ -335,7 +317,7 @@ function Composer() {
             </ContextMenuTrigger>
             <ContextMenuContent>{exportMenuItems}</ContextMenuContent>
           </ContextMenu>
-        </ResizablePanel>
+        </ResizablePanel>}
       </ResizablePanelGroup>
     </div>
   );
