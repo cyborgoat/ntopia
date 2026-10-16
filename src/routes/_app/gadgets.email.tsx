@@ -22,7 +22,8 @@ import { Field } from "@/components/form-dialog";
 import { isTauri } from "@/lib/storage";
 import { DetailsBar } from "@/gadgets/email/details-bar";
 import { SourceEditor } from "@/gadgets/email/source-editor";
-import { THEME_PRESETS as THEMES } from "@/gadgets/email/fields";
+import { THEME_PRESETS as THEMES, themeLabel } from "@/gadgets/email/fields";
+import { TemplatePicker } from "@/gadgets/email/template-picker";
 import { joinDoc, splitDoc, type Frontmatter } from "@/gadgets/email/frontmatter";
 import * as mm from "@/gadgets/email/mdmailer";
 
@@ -71,6 +72,8 @@ function Composer() {
   const [meta, setMeta] = useState<Frontmatter>(BLANK_META);
   const [body, setBody] = useState(BLANK_BODY);
   const doc = useMemo(() => joinDoc(meta, body), [meta, body]);
+  // The document as last loaded (blank or a template); anything else counts as an unsaved edit.
+  const [baseline, setBaseline] = useState(() => joinDoc(BLANK_META, BLANK_BODY));
   const [ready, setReady] = useState(false);
   const [html, setHtml] = useState("");
   const [showPreview, setShowPreview] = useState(loadShowPreview);
@@ -163,8 +166,10 @@ function Composer() {
     try {
       const text = await mm.readTemplate(t);
       const { data, body: templateBody } = splitDoc(text);
+      const nextBody = templateBody.replace(/^\n+/, "");
       setMeta(data);
-      setBody(templateBody.replace(/^\n+/, ""));
+      setBody(nextBody);
+      setBaseline(joinDoc(data, nextBody));
       setHtml("");
       await mm.writeWorking(text);
       setError("");
@@ -238,12 +243,7 @@ function Composer() {
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex flex-wrap items-center gap-2 border-b px-3 py-2">
         <Branding />
-        {templates.length > 0 && (
-          <Select onValueChange={(t) => { if (typeof t === "string") void loadTemplate(t); }}>
-            <SelectTrigger className="w-48"><SelectValue placeholder="Template…" /></SelectTrigger>
-            <SelectContent>{templates.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
-          </Select>
-        )}
+        <TemplatePicker templates={templates} dirty={doc !== baseline} onPick={(t) => void loadTemplate(t)} />
         <div className="ml-auto flex items-center gap-1">
           <Button variant="outline" size="sm" aria-pressed={showPreview} onClick={togglePreview}>
             {showPreview ? <EyeOff /> : <Eye />} {showPreview ? "Hide preview" : "Show preview"}
@@ -363,8 +363,8 @@ function Branding() {
             <Field label="Primary color"><Input type="color" value={b.primaryColor} onChange={set("primaryColor")} /></Field>
             <Field label="Default theme">
               <Select value={b.preset} onValueChange={(v) => v && setB({ ...b, preset: v as mm.Branding["preset"] })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{THEMES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+                <SelectTrigger><SelectValue>{themeLabel(b.preset)}</SelectValue></SelectTrigger>
+                <SelectContent>{THEMES.map((t) => <SelectItem key={t} value={t}>{themeLabel(t)}</SelectItem>)}</SelectContent>
               </Select>
             </Field>
           </div>

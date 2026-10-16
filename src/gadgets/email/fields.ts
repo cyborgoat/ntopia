@@ -1,11 +1,41 @@
 /** Which frontmatter keys mdmailer reads for each email `type` (see mdmailer's dist/cli.js). */
 
-export const EMAIL_TYPES = ["news", "notification", "event", "meeting", "webinar", "invitation"] as const;
+export const EMAIL_TYPES = [
+  { value: "news", label: "News update", description: "Newsletter-style update with a date" },
+  { value: "notification", label: "Notification", description: "Short announcement with a banner and headline" },
+  { value: "event", label: "Event", description: "Date, location, hosts and agenda" },
+  { value: "meeting", label: "Meeting", description: "Meeting invite with a join link" },
+  { value: "webinar", label: "Webinar", description: "Online session with hosts and a join link" },
+  { value: "invitation", label: "Invitation", description: "Formal invitation with an RSVP link" },
+] as const;
 export const EMAIL_LANGS = [
   { value: "en", label: "English" },
   { value: "zh", label: "中文" },
 ] as const;
 export const THEME_PRESETS = ["classic", "navy-gold", "forest-cream"] as const;
+export const THEME_LABELS: Record<(typeof THEME_PRESETS)[number], string> = {
+  classic: "Classic",
+  "navy-gold": "Navy & Gold",
+  "forest-cream": "Forest & Cream",
+};
+export const themeLabel = (t: string) => THEME_LABELS[t as keyof typeof THEME_LABELS] ?? t;
+export const typeLabel = (t: string) => EMAIL_TYPES.find((x) => x.value === t)?.label ?? t;
+
+/** Display info for the bundled mdmailer templates, keyed by base file name (without `.zh`). */
+export const TEMPLATE_INFO: Record<string, { name: string; description: string }> = {
+  news: { name: "News update", description: "A newsletter-style update showing every supported Markdown element." },
+  notification: { name: "Notification", description: "A short announcement with a banner, headline and explanation." },
+  event: { name: "Event invitation", description: "An event with date, location, hosts, agenda and a join link." },
+  meeting: { name: "Meeting invite", description: "A meeting with a time, room and call link, plus a host." },
+  webinar: { name: "Webinar invite", description: "An online session with speakers, agenda and a registration link." },
+  invitation: { name: "Formal invitation", description: "A formal invitation with hosts and an RSVP link." },
+};
+
+/** Split a template file name such as `invitation.zh` into its base name and language. */
+export function parseTemplate(file: string): { base: string; lang: string } {
+  const m = file.match(/^(.*)\.([a-z]{2})$/);
+  return m ? { base: m[1], lang: m[2] } : { base: file, lang: "en" };
+}
 
 export type FieldDef = {
   key: string;
