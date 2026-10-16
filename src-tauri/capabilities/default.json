@@ -29,7 +29,6 @@
     "fs:allow-write-file",
     "fs:allow-write-text-file",
     "fs:allow-remove",
-    "fs:allow-rename",
     "fs:allow-copy-file",
     {
       "identifier": "fs:scope",
@@ -47,7 +46,6 @@
     {
       "identifier": "opener:allow-open-path",
       "allow": [{ "path": "$APPDATA/**" }, { "path": "$DOWNLOAD/**" }, { "path": "$DOCUMENT/**" }, { "path": "$DESKTOP/**" }]
-    },
-    "opener:allow-reveal-item-in-dir"
+    }
   ]
 }

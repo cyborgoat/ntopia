@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth";
-import { resetOrbit, setServerUrl, getServerUrl } from "@/lib/orbit";
 import { AuthCard } from "./login";
 
 export const Route = createFileRoute("/register")({ component: Register });
@@ -20,8 +19,6 @@ function Register() {
     e.preventDefault();
     setError("");
     try {
-      await setServerUrl(getServerUrl());
-      resetOrbit();
       await register({ ...f, email: f.email.trim() || null });
       setDone(true);
     } catch (err) {

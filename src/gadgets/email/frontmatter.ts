@@ -27,9 +27,3 @@ export function stringifyMeta(data: Frontmatter): string {
 export function joinDoc(data: Frontmatter, body: string): string {
   return `---\n${stringifyMeta(data)}\n---\n${body.startsWith("\n") ? "" : "\n"}${body}`;
 }
-
-/** Update frontmatter keys in a document, leaving the body untouched. */
-export function patchDoc(doc: string, patch: Frontmatter): string {
-  const { data, body } = splitDoc(doc);
-  return joinDoc({ ...data, ...patch }, body);
-}

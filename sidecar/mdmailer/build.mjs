@@ -2,7 +2,7 @@
 //   src-tauri/binaries/node-<target-triple>   portable official Node runtime (externalBin)
 //   src-tauri/resources/mdmailer/             @goatcheese/mdmailer + its node_modules (resources)
 // mdmailer relies on native modules (sharp) and Puppeteer, so it can't be compiled into one binary;
-// it runs as `node <resources>/mdmailer/cli.js`.
+// it runs as `node <resources>/mdmailer/node_modules/@goatcheese/mdmailer/dist/cli.js`.
 import { execFileSync } from "node:child_process";
 import { cpSync, existsSync, mkdirSync, rmSync, chmodSync, mkdtempSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";

@@ -27,7 +27,6 @@ function TodoGadget() {
   const [title, setTitle] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const refresh = (next: TodoItem[]) => setItems(next);
   const focusAdd = () => inputRef.current?.focus();
   const doneCount = items.filter((t) => t.done).length;
 
@@ -36,7 +35,7 @@ function TodoGadget() {
     try {
       addTodo(title);
       setTitle("");
-      refresh(listTodos());
+      setItems(listTodos());
     } catch {
       /* empty title */
     }
@@ -48,7 +47,7 @@ function TodoGadget() {
   const listMenu = (
     <ContextMenuContent>
       <ContextMenuItem onClick={focusAdd}>Focus add field</ContextMenuItem>
-      <ContextMenuItem disabled={doneCount === 0} onClick={() => refresh(clearCompleted())}>
+      <ContextMenuItem disabled={doneCount === 0} onClick={() => setItems(clearCompleted())}>
         Clear completed
       </ContextMenuItem>
     </ContextMenuContent>
@@ -61,7 +60,7 @@ function TodoGadget() {
         description="A simple local checklist. Stored on this device."
         actions={
           doneCount > 0 ? (
-            <Button size="sm" variant="outline" onClick={() => refresh(clearCompleted())}>
+            <Button size="sm" variant="outline" onClick={() => setItems(clearCompleted())}>
               Clear completed
             </Button>
           ) : undefined
@@ -99,7 +98,7 @@ function TodoGadget() {
                       <input
                         type="checkbox"
                         checked={t.done}
-                        onChange={() => refresh(toggleTodo(t.id))}
+                        onChange={() => setItems(toggleTodo(t.id))}
                         className="size-4 accent-foreground"
                         aria-label={t.done ? "Mark incomplete" : "Mark complete"}
                       />
@@ -110,19 +109,19 @@ function TodoGadget() {
                         type="button"
                         variant="ghost"
                         size="icon-sm"
-                        onClick={() => refresh(deleteTodo(t.id))}
+                        onClick={() => setItems(deleteTodo(t.id))}
                         aria-label="Delete"
                       >
                         <Trash2 />
                       </Button>
                     </ContextMenuTrigger>
                     <ContextMenuContent>
-                      <ContextMenuItem onClick={() => refresh(toggleTodo(t.id))}>
+                      <ContextMenuItem onClick={() => setItems(toggleTodo(t.id))}>
                         {t.done ? <Circle /> : <Check />}
                         {t.done ? "Mark incomplete" : "Mark complete"}
                       </ContextMenuItem>
                       <ContextMenuSeparator />
-                      <ContextMenuItem variant="destructive" onClick={() => refresh(deleteTodo(t.id))}>
+                      <ContextMenuItem variant="destructive" onClick={() => setItems(deleteTodo(t.id))}>
                         <Trash2 /> Delete
                       </ContextMenuItem>
                     </ContextMenuContent>

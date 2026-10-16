@@ -109,7 +109,7 @@ File routes under `src/routes/`; generated tree in `src/routeTree.gen.ts`.
 
 ## Markdown editing
 
-- `src/components/markdown-editor.tsx` — the one Markdown editor: MDXEditor (WYSIWYG, markdown shortcuts, rich-text/source toggle). `variant="full"` for posts and email, `"compact"` for comments (Mod+Enter submits). Pass `imageUploadHandler` to enable paste/drop/toolbar images and `imagePreviewHandler` to map stored `src`s to displayable URLs. It's uncontrolled internally; `value` changes from outside (resets, template loads) are pushed in with `setMarkdown`.
+- `src/components/markdown-editor.tsx` — the one Markdown editor: MDXEditor (WYSIWYG, markdown shortcuts, rich-text/source toggle). `variant="full"` for posts, `"compact"` for comments (Mod+Enter submits). Pass `imageUploadHandler` to enable paste/drop/toolbar images and `imagePreviewHandler` to map stored `src`s to displayable URLs. It's uncontrolled internally; `value` changes from outside (resets, template loads) are pushed in with `setMarkdown`.
 - `src/components/post-composer.tsx` — full-page composer (title, tags, cover, editor) behind `/news/new`, `/blog/new` and `/discussions/new`. Images upload to Orbit `/uploads`. Posts can't be edited after publishing (the API has no update endpoint).
 - `.prose-ntopia` in `src/index.css` is shared by `<Markdown>` and the editor so drafts look like the published post. `.md-editor-root` maps MDXEditor's `--base*` variables to the app's theme tokens.
 
