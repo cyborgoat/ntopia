@@ -117,9 +117,9 @@ function InsetHeader({ fullBleed }: { fullBleed: boolean }) {
   const label = title ?? (fullBleed ? "Email composer" : null);
 
   return (
-    <header className="flex shrink-0 flex-col gap-2 p-2">
+    <header className="flex shrink-0 flex-col gap-2 pt-2">
       {crumbs && crumbs.length > 0 && (
-        <Breadcrumb className="px-2">
+        <Breadcrumb className="px-4">
           <BreadcrumbList>
             {crumbs.map((c, i) => (
               <Fragment key={i}>
@@ -136,7 +136,7 @@ function InsetHeader({ fullBleed }: { fullBleed: boolean }) {
           </BreadcrumbList>
         </Breadcrumb>
       )}
-      <div className="flex h-12 items-center px-2">
+      <div className="flex h-12 items-center px-4">
         {label && (
           <h1 className={`min-w-0 truncate ${MARK}`}>{label}</h1>
         )}

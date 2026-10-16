@@ -279,7 +279,7 @@ function Composer() {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex flex-wrap items-center gap-2 border-b px-3 py-2">
+      <div className="flex flex-wrap items-center gap-2 border-b px-4 py-2">
         <Branding />
         <TemplatePicker templates={templates} dirty={doc !== baseline} onPick={(t) => void loadTemplate(t)} />
         <div className="ml-auto flex items-center gap-1">
@@ -322,7 +322,7 @@ function Composer() {
       >
         <ResizablePanel id="editor" defaultSize={`${layout.editor}%`} minSize="25%" className="min-w-0">
           <div className="flex h-full min-h-0 flex-col">
-            <div className="flex items-center gap-1 border-b px-2 py-1.5" role="tablist" aria-label="Email content">
+            <div className="flex items-center gap-1 border-b px-4 py-1.5" role="tablist" aria-label="Email content">
               <Button role="tab" aria-selected={tab === "details"} size="sm" variant={tab === "details" ? "secondary" : "ghost"} onClick={() => setTab("details")}>
                 <ListChecks /> Details
               </Button>
@@ -334,7 +334,7 @@ function Composer() {
               </span>
             </div>
             {!hintDismissed && (
-              <div className="flex items-start gap-2 border-b bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+              <div className="flex items-start gap-2 border-b bg-muted/40 px-4 py-2 text-xs text-muted-foreground">
                 <p className="flex-1">
                   The preview is built from two parts: <strong className="text-foreground">Details</strong> (the header, event card, hosts
                   and agenda) and <strong className="text-foreground">Message</strong> (the Markdown body). Switch tabs to edit each;
@@ -360,7 +360,7 @@ function Composer() {
           <ContextMenu>
             <ContextMenuTrigger className="flex h-full min-h-0 flex-col">
               <section className="flex h-full min-h-0 flex-col">
-                <div className="flex items-center justify-between gap-2 border-b p-3">
+                <div className="flex items-center justify-between gap-2 border-b px-4 py-3">
                   <span className="text-sm font-medium">Preview <span className="font-normal text-muted-foreground">· Details + Message</span></span>
                   {busy && <span className="text-xs text-muted-foreground">Rendering…</span>}
                 </div>
