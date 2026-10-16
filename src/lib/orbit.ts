@@ -36,7 +36,23 @@ export let orbit = createOrbit();
 /** Rebuild the client after the server URL changes. */
 export const resetOrbit = () => (orbit = createOrbit());
 
-export function errorMessage(error: unknown): string {
+export function errorMessage(error: unknown, response?: Response): string {
   const m = (error as { message?: string | string[] } | undefined)?.message;
-  return Array.isArray(m) ? m.join(", ") : (m ?? "Something went wrong");
+  if (m) return Array.isArray(m) ? m.join(", ") : m;
+  // No parseable error body, e.g. a proxy/gateway error page.
+  if (response?.status && response.status >= 500)
+    return `The server at ${getServerUrl()} is unavailable (HTTP ${response.status}). Try again later.`;
+  if (response?.status === 404)
+    return `No Team Orbit API found at ${getServerUrl()} (HTTP 404). Check the server URL.`;
+  if (response?.status) return `Request failed (HTTP ${response.status}).`;
+  return "Something went wrong";
+}
+
+/** Run a client call, turning network failures into a message naming the server. */
+export async function reachable<T>(call: Promise<T>): Promise<T> {
+  try {
+    return await call;
+  } catch {
+    throw new Error(`Can't reach the server at ${getServerUrl()}. Check the server URL and that it is running.`);
+  }
 }

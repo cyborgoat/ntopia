@@ -25,12 +25,12 @@ function Settings() {
           <>
             <form className="space-y-4" onSubmit={async (e) => {
               e.preventDefault();
-              const { data, error } = await orbit.PATCH("/auth/me", { body: { fullName: name, email } });
+              const { data, error } = await orbit.PATCH("/auth/me", { body: { fullName: name, email: email.trim() || null } });
               if (data) { setUser(data); toast.success("Profile updated"); } else toast.error(errorMessage(error));
             }}>
               <h2 className="text-sm font-medium">Profile</h2>
               <Field label="Full name"><Input value={name} onChange={(e) => setName(e.target.value)} /></Field>
-              <Field label="Email"><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></Field>
+              <Field label="Email (optional)"><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></Field>
               <Button type="submit" size="sm">Save profile</Button>
             </form>
 

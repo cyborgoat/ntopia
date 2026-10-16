@@ -1,2 +1,2 @@
 minimumReleaseAgeExclude:
-  - '@goatcheese/team-orbit-client@0.1.1'
+  - '@goatcheese/team-orbit-client@0.1.1 || 0.3.0'

@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { components } from "@goatcheese/team-orbit-client";
-import { errorMessage, getToken, orbit, setToken, setUnauthorizedHandler } from "./orbit";
+import { errorMessage, getToken, orbit, reachable, setToken, setUnauthorizedHandler } from "./orbit";
 
 export type User = components["schemas"]["UserDto"];
 
@@ -9,7 +9,7 @@ type AuthValue = {
   token: string | null;
   loading: boolean;
   isAdmin: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (username: string, password: string) => Promise<void>;
   register: (p: components["schemas"]["RegisterDto"]) => Promise<void>;
   logout: () => void;
   setUser: (u: User) => void;
@@ -63,16 +63,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isAdmin: user?.role === "ADMIN" || user?.role === "SUPERUSER",
       setUser,
       logout,
-      async login(email, password) {
-        const { data, error } = await orbit.POST("/auth/login", { body: { email, password } });
-        if (!data) throw new Error(errorMessage(error));
+      async login(username, password) {
+        const { data, error, response } = await reachable(orbit.POST("/auth/login", { body: { username, password } }));
+        if (!data) throw new Error(errorMessage(error, response));
         await setToken(data.accessToken);
         setTokenState(data.accessToken);
         setUser(data.user);
       },
       async register(body) {
-        const { error } = await orbit.POST("/auth/register", { body });
-        if (error) throw new Error(errorMessage(error));
+        const { error, response } = await reachable(orbit.POST("/auth/register", { body }));
+        if (error) throw new Error(errorMessage(error, response));
       },
     }),
     [user, token, loading, logout],

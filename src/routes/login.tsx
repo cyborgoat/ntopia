@@ -26,7 +26,7 @@ function Login() {
   const { login, token } = useAuth();
   const navigate = useNavigate();
   const [server, setServer] = useState(getServerUrl());
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -40,7 +40,7 @@ function Login() {
     try {
       await setServerUrl(server);
       resetOrbit();
-      await login(email, password);
+      await login(username, password);
       navigate({ to: "/" });
     } catch (err) {
       setError((err as Error).message);
@@ -57,8 +57,8 @@ function Login() {
           <Input id="server" value={server} onChange={(e) => setServer(e.target.value)} />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="email">Email</Label>
-          <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+          <Label htmlFor="username">Username</Label>
+          <Input id="username" autoComplete="username" required value={username} onChange={(e) => setUsername(e.target.value)} />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="password">Password</Label>

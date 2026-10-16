@@ -22,7 +22,7 @@ function Register() {
     try {
       await setServerUrl(getServerUrl());
       resetOrbit();
-      await register(f);
+      await register({ ...f, email: f.email.trim() || null });
       setDone(true);
     } catch (err) {
       setError((err as Error).message);
@@ -46,8 +46,8 @@ function Register() {
       <form onSubmit={submit} className="space-y-4">
         {(["fullName", "username", "email", "password"] as const).map((k) => (
           <div key={k} className="space-y-1.5">
-            <Label htmlFor={k}>{k === "fullName" ? "Full name" : k[0].toUpperCase() + k.slice(1)}</Label>
-            <Input id={k} required type={k === "password" ? "password" : k === "email" ? "email" : "text"} value={f[k]} onChange={set(k)} />
+            <Label htmlFor={k}>{k === "fullName" ? "Full name" : k[0].toUpperCase() + k.slice(1)}{k === "email" && " (optional)"}</Label>
+            <Input id={k} required={k !== "email"} type={k === "password" ? "password" : k === "email" ? "email" : "text"} value={f[k]} onChange={set(k)} />
           </div>
         ))}
         {error && <p className="text-sm text-destructive">{error}</p>}

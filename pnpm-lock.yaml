@@ -24,8 +24,8 @@ importers:
         specifier: ^5.3.0
         version: 5.3.0
       '@goatcheese/team-orbit-client':
-        specifier: ^0.1.1
-        version: 0.1.1
+        specifier: ^0.3.0
+        version: 0.3.0
       '@mdxeditor/editor':
         specifier: ^4.3.3
         version: 4.3.3(@codemirror/language@6.13.1)(@lezer/highlight@1.2.5)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(typescript@6.0.3)(yjs@13.6.33)
@@ -437,8 +437,8 @@ packages:
   '@fontsource-variable/geist@5.3.0':
     resolution: {integrity: sha512-j0m+vLQuG5XAYoHtGCVu0spvlGreR3EzpECUVzkFmI1mTVnAO38l/NEPDCFgZ177JxzYJCLSmTQibIiYPilGrA==}
 
-  '@goatcheese/team-orbit-client@0.1.1':
-    resolution: {integrity: sha512-HlMqPAw/F/D95fAVtFgF4uZ3xbz3sJCZJSmKUaBzf7icPYdePfQm5v8oM4DjOUqb8kOq7549NkYmH3qd+2BjCA==}
+  '@goatcheese/team-orbit-client@0.3.0':
+    resolution: {integrity: sha512-XPOt0RhBsC2PirI+CZiUJYNyq46Q7xqnPY94yAu5IGSSEJxeIMumILjZj7wJkiroRhDyfrkgWcTBgP6pCUrX8Q==}
     engines: {node: '>=18'}
 
   '@hono/node-server@2.1.5':
@@ -4057,7 +4057,7 @@ snapshots:
 
   '@fontsource-variable/geist@5.3.0': {}
 
-  '@goatcheese/team-orbit-client@0.1.1':
+  '@goatcheese/team-orbit-client@0.3.0':
     dependencies:
       openapi-fetch: 0.13.8
 
