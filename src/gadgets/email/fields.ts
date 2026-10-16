@@ -43,7 +43,7 @@ export const TEMPLATE_INFO: Record<string, Record<"en" | "zh", TemplateText>> = 
   },
   webinar: {
     en: { name: "Webinar invite", description: "An online session with speakers, agenda and a registration link." },
-    zh: { name: "网络研讨会邀请", description: "包含主讲人、议程和报名链接的线上研讨会邀请。" },
+    zh: { name: "线上研讨会", description: "包含主讲人、议程和报名链接的线上研讨会邀请。" },
   },
   invitation: {
     en: { name: "Formal invitation", description: "A formal invitation with hosts and an RSVP link." },
