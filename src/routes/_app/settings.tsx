@@ -24,16 +24,19 @@ function Settings() {
       <div className="max-w-md space-y-8">
         {user && (
           <>
-            <AvatarSettings />
-
             <form className="space-y-4" onSubmit={async (e) => {
               e.preventDefault();
               const { data, error } = await orbit.PATCH("/api/auth/me", { body: { fullName: name, email: email.trim() || null } });
               if (data) { setUser(data); toast.success("Profile updated"); } else toast.error(errorMessage(error));
             }}>
               <h2 className="text-sm font-medium">Profile</h2>
-              <Field label="Full name"><Input value={name} onChange={(e) => setName(e.target.value)} /></Field>
-              <Field label="Email (optional)"><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></Field>
+              <div className="flex items-start gap-4">
+                <AvatarSettings />
+                <div className="min-w-0 flex-1 space-y-4">
+                  <Field label="Full name"><Input value={name} onChange={(e) => setName(e.target.value)} /></Field>
+                  <Field label="Email (optional)"><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></Field>
+                </div>
+              </div>
               <Button type="submit" size="sm">Save profile</Button>
             </form>
 

@@ -60,11 +60,11 @@ export function AvatarSettings() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger
         aria-label="Change avatar"
-        className="group relative block size-20 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="group relative mt-6 block size-16 shrink-0 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
-        <Avatar className="size-20">
+        <Avatar className="size-16">
           <AvatarImage src={user.avatarUrl} alt="" />
-          <AvatarFallback className="text-xl">{user.fullName.slice(0, 1)}</AvatarFallback>
+          <AvatarFallback className="text-lg">{user.fullName.slice(0, 1)}</AvatarFallback>
         </Avatar>
         <span className="absolute inset-0 flex items-center justify-center rounded-full bg-background/70 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
           <Pencil className="size-5" />
