@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import { cn, toMessage } from "@/lib/utils";
 import { stringifyMeta, type Frontmatter } from "./frontmatter";
@@ -21,41 +20,28 @@ const DEFAULT_THEME = "__branding__";
 
 const str = (v: unknown) => (v == null ? "" : String(v));
 
-/** Side sheet with the email's frontmatter as a sectioned form, with a YAML escape hatch. */
-export function DetailsSheet({
-  open: isOpen,
-  onOpenChange,
-  meta,
-  onChange,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  meta: Frontmatter;
-  onChange: (meta: Frontmatter) => void;
-}) {
+/** The email's frontmatter as a sectioned form, with a YAML escape hatch. */
+export function DetailsPanel({ meta, onChange }: { meta: Frontmatter; onChange: (meta: Frontmatter) => void }) {
   const [yamlMode, setYamlMode] = useState(false);
   const type = str(meta.type) || "news";
 
   return (
-    <Sheet open={isOpen} onOpenChange={onOpenChange}>
-      <SheetContent className="data-[side=right]:sm:max-w-lg">
-        <SheetHeader className="border-b">
-          <SheetTitle>Email details</SheetTitle>
-          <SheetDescription>Subject, type, theme and the fields this email type uses.</SheetDescription>
-          <div className="flex gap-1 pt-1" role="group" aria-label="Edit mode">
-            <Button size="sm" variant={yamlMode ? "ghost" : "secondary"} aria-pressed={!yamlMode} onClick={() => setYamlMode(false)}>
-              <ListChecks /> Form
-            </Button>
-            <Button size="sm" variant={yamlMode ? "secondary" : "ghost"} aria-pressed={yamlMode} onClick={() => setYamlMode(true)}>
-              <Code /> YAML
-            </Button>
-          </div>
-        </SheetHeader>
-        <div className="min-h-0 flex-1 overflow-auto px-4 pb-6">
-          {yamlMode ? <YamlEditor value={meta} onChange={onChange} rows={24} /> : <DetailsForm meta={meta} type={type} onChange={onChange} />}
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="flex items-center justify-between gap-2 px-4 py-2">
+        <p className="text-xs text-muted-foreground">These fields fill the header, event card, hosts and agenda of the email.</p>
+        <div className="flex shrink-0 gap-1" role="group" aria-label="Edit mode">
+          <Button size="sm" variant={yamlMode ? "ghost" : "secondary"} aria-pressed={!yamlMode} onClick={() => setYamlMode(false)}>
+            <ListChecks /> Form
+          </Button>
+          <Button size="sm" variant={yamlMode ? "secondary" : "ghost"} aria-pressed={yamlMode} onClick={() => setYamlMode(true)}>
+            <Code /> YAML
+          </Button>
         </div>
-      </SheetContent>
-    </Sheet>
+      </div>
+      <div className="min-h-0 flex-1 overflow-auto px-4 pb-6">
+        {yamlMode ? <YamlEditor value={meta} onChange={onChange} rows={24} /> : <DetailsForm meta={meta} type={type} onChange={onChange} />}
+      </div>
+    </div>
   );
 }
 
@@ -89,7 +75,7 @@ function DetailsForm({ meta, type, onChange }: { meta: Frontmatter; type: string
 
   return (
     <div className="space-y-6">
-      <Section title="Basics">
+      <Section title="Basics" description="Subject line and look of the whole email.">
         <FieldRow label="Subject">
           <Input value={str(meta.title)} onChange={(e) => set("title", e.target.value)} />
         </FieldRow>
@@ -129,7 +115,10 @@ function DetailsForm({ meta, type, onChange }: { meta: Frontmatter; type: string
 
       <Separator />
 
-      <Section title={isEventType(type) ? "Event details" : type === "notification" ? "Notification" : "Content"}>
+      <Section
+        title={isEventType(type) ? "Event details" : type === "notification" ? "Notification" : "Content"}
+        description={isEventType(type) ? "Shown in the event card at the top of the email." : type === "notification" ? "Shown as the banner and headline." : "Shown under the title."}
+      >
         <div className="grid grid-cols-2 gap-3">
           {typeFields(type).map((f) => <TextField key={f.key} def={f} value={meta[f.key]} onChange={(v) => set(f.key, v)} />)}
         </div>
@@ -177,10 +166,13 @@ function TextField({ def, value, onChange }: { def: FieldDef; value: unknown; on
   );
 }
 
-function SectionHeader({ title, onAdd, addLabel }: { title: string; onAdd: () => void; addLabel: string }) {
+function SectionHeader({ title, hint, onAdd, addLabel }: { title: string; hint: string; onAdd: () => void; addLabel: string }) {
   return (
     <div className="flex items-center justify-between">
-      <h3 className="text-sm font-semibold">{title}</h3>
+      <div>
+        <h3 className="text-sm font-semibold">{title}</h3>
+        <p className="text-xs text-muted-foreground">{hint}</p>
+      </div>
       <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={onAdd}><Plus /> {addLabel}</Button>
     </div>
   );
@@ -193,7 +185,7 @@ function update<T>(list: T[], i: number, patch: Partial<T>): T[] {
 function Hosts({ value, onChange }: { value: Host[]; onChange: (v: Host[]) => void }) {
   return (
     <div className="space-y-2">
-      <SectionHeader title="Hosts" addLabel="Add host" onAdd={() => onChange([...value, { name: "" }])} />
+      <SectionHeader title="Hosts" hint="Shown as host cards with photo, role and bio." addLabel="Add host" onAdd={() => onChange([...value, { name: "" }])} />
       {value.map((h, i) => (
         <div key={i} className="flex gap-3 rounded-md border bg-background p-2">
           <HostPhoto
@@ -246,7 +238,7 @@ function HostPhoto({ src, onPick }: { src?: string; onPick: () => void }) {
 function Agenda({ value, onChange }: { value: AgendaItem[]; onChange: (v: AgendaItem[]) => void }) {
   return (
     <div className="space-y-2">
-      <SectionHeader title="Agenda" addLabel="Add item" onAdd={() => onChange([...value, { time: "", title: "" }])} />
+      <SectionHeader title="Agenda" hint="Shown as a timeline below the event card." addLabel="Add item" onAdd={() => onChange([...value, { time: "", title: "" }])} />
       {value.map((a, i) => (
         <div key={i} className="flex items-center gap-2">
           <Input className="w-24" placeholder="15:00" value={str(a.time)} onChange={(e) => onChange(update(value, i, { time: e.target.value }))} />

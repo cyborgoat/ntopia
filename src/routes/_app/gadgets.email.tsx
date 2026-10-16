@@ -5,7 +5,7 @@ import { open, save } from "@tauri-apps/plugin-dialog";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
 import { join } from "@tauri-apps/api/path";
 import { openPath } from "@tauri-apps/plugin-opener";
-import { Copy, Download, Eye, EyeOff, FileText, FolderOpen, Mail, Palette } from "lucide-react";
+import { Copy, Download, Eye, EyeOff, FileText, FolderOpen, ListChecks, Mail, Palette, PenLine, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +20,7 @@ import {
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { Field } from "@/components/form-dialog";
 import { isTauri } from "@/lib/storage";
-import { DetailsBar } from "@/gadgets/email/details-bar";
+import { DetailsPanel } from "@/gadgets/email/details-panel";
 import { SourceEditor } from "@/gadgets/email/source-editor";
 import { THEME_PRESETS as THEMES, themeLabel } from "@/gadgets/email/fields";
 import { TemplatePicker } from "@/gadgets/email/template-picker";
@@ -33,6 +33,8 @@ const BLANK_META: Frontmatter = { title: "Untitled", type: "news", lang: "en" };
 const BLANK_BODY = "## Hello\n\nWrite your message…\n";
 const LAYOUT_KEY = "ntopia.email-composer.layout";
 const PREVIEW_KEY = "ntopia.email-composer.preview";
+const TAB_KEY = "ntopia.email-composer.tab";
+const HINT_KEY = "ntopia.email-composer.hint-dismissed";
 const DEFAULT_LAYOUT = { editor: 50, preview: 50 };
 
 function loadLayout(): Record<string, number> {
@@ -52,6 +54,24 @@ function loadShowPreview() {
     return localStorage.getItem(PREVIEW_KEY) !== "0";
   } catch {
     return true;
+  }
+}
+
+type Tab = "details" | "message";
+
+function loadTab(): Tab {
+  try {
+    return localStorage.getItem(TAB_KEY) === "message" ? "message" : "details";
+  } catch {
+    return "details";
+  }
+}
+
+function loadHintDismissed() {
+  try {
+    return localStorage.getItem(HINT_KEY) === "1";
+  } catch {
+    return false;
   }
 }
 
@@ -96,6 +116,26 @@ function Composer() {
   }
 
   const [attempt, setAttempt] = useState(0);
+  const [tab, setTabState] = useState<Tab>(loadTab);
+  const [hintDismissed, setHintDismissed] = useState(loadHintDismissed);
+
+  function setTab(next: Tab) {
+    setTabState(next);
+    try {
+      localStorage.setItem(TAB_KEY, next);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function dismissHint() {
+    setHintDismissed(true);
+    try {
+      localStorage.setItem(HINT_KEY, "1");
+    } catch {
+      /* ignore */
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -284,13 +324,37 @@ function Composer() {
       >
         <ResizablePanel id="editor" defaultSize={`${layout.editor}%`} minSize="25%" className="min-w-0">
           <div className="flex h-full min-h-0 flex-col">
-            <DetailsBar meta={meta} onChange={setMeta} />
-            <ContextMenu>
-              <ContextMenuTrigger className="flex min-h-0 flex-1 flex-col">
-                <SourceEditor value={body} onChange={setBody} />
-              </ContextMenuTrigger>
-              <ContextMenuContent>{exportMenuItems}</ContextMenuContent>
-            </ContextMenu>
+            <div className="flex items-center gap-1 border-b px-2 py-1.5" role="tablist" aria-label="Email content">
+              <Button role="tab" aria-selected={tab === "details"} size="sm" variant={tab === "details" ? "secondary" : "ghost"} onClick={() => setTab("details")}>
+                <ListChecks /> Details
+              </Button>
+              <Button role="tab" aria-selected={tab === "message"} size="sm" variant={tab === "message" ? "secondary" : "ghost"} onClick={() => setTab("message")}>
+                <PenLine /> Message
+              </Button>
+              <span className="ml-2 min-w-0 truncate text-xs text-muted-foreground">
+                {tab === "details" ? "Subject, date, location, hosts, theme" : "The Markdown text of the email"}
+              </span>
+            </div>
+            {!hintDismissed && (
+              <div className="flex items-start gap-2 border-b bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                <p className="flex-1">
+                  The preview is built from two parts: <strong className="text-foreground">Details</strong> (the header, event card, hosts
+                  and agenda) and <strong className="text-foreground">Message</strong> (the Markdown body). Switch tabs to edit each;
+                  the preview updates as you type.
+                </p>
+                <Button variant="ghost" size="icon-xs" aria-label="Dismiss" onClick={dismissHint}><X /></Button>
+              </div>
+            )}
+            {tab === "details" ? (
+              <div className="min-h-0 flex-1 pt-1"><DetailsPanel meta={meta} onChange={setMeta} /></div>
+            ) : (
+              <ContextMenu>
+                <ContextMenuTrigger className="flex min-h-0 flex-1 flex-col">
+                  <SourceEditor value={body} onChange={setBody} />
+                </ContextMenuTrigger>
+                <ContextMenuContent>{exportMenuItems}</ContextMenuContent>
+              </ContextMenu>
+            )}
           </div>
         </ResizablePanel>
         {showPreview && <ResizableHandle withHandle />}
@@ -299,7 +363,7 @@ function Composer() {
             <ContextMenuTrigger className="flex h-full min-h-0 flex-col">
               <section className="flex h-full min-h-0 flex-col">
                 <div className="flex items-center justify-between gap-2 border-b p-3">
-                  <span className="text-sm font-medium">Preview</span>
+                  <span className="text-sm font-medium">Preview <span className="font-normal text-muted-foreground">· Details + Message</span></span>
                   {busy && <span className="text-xs text-muted-foreground">Rendering…</span>}
                 </div>
                 <div className="relative min-h-0 flex-1 overflow-auto bg-muted/40">
