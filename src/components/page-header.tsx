@@ -17,7 +17,7 @@ export function PageHeader({
   if (!description && !actions) return null;
 
   return (
-    <div className="mb-6 flex items-start justify-between gap-4">
+    <div className="sticky top-0 z-10 -mx-8 -mt-4 mb-4 flex items-start justify-between gap-4 border-b bg-background/95 px-8 pt-4 pb-3 backdrop-blur supports-[backdrop-filter]:bg-background/80">
       <div>
         {description && <p className="text-sm text-muted-foreground">{description}</p>}
       </div>
