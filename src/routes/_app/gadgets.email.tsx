@@ -323,6 +323,28 @@ function Composer() {
   );
 }
 
+function LogoPreview({ name }: { name: string }) {
+  const [url, setUrl] = useState<string>();
+  useEffect(() => {
+    let live = true;
+    let made: string | undefined;
+    setUrl(undefined);
+    mm.logoBlobUrl(name).then((u) => {
+      if (live) setUrl((made = u));
+      else URL.revokeObjectURL(u);
+    }).catch(() => {});
+    return () => {
+      live = false;
+      if (made) URL.revokeObjectURL(made);
+    };
+  }, [name]);
+  return (
+    <div className="flex h-20 w-full items-center justify-center rounded-md border bg-muted/40 p-2">
+      {url ? <img src={url} alt="Logo preview" className="max-h-full max-w-full object-contain" /> : <span className="text-xs text-muted-foreground">No preview</span>}
+    </div>
+  );
+}
+
 function Branding() {
   const [b, setB] = useState<mm.Branding>(mm.DEFAULT_BRANDING);
   const [openDlg, setOpenDlg] = useState(false);
@@ -348,6 +370,7 @@ function Branding() {
           <Field label="Tagline"><Input value={b.tagline} onChange={set("tagline")} /></Field>
           <Field label="Footer"><Input value={b.footerText} onChange={set("footerText")} /></Field>
           <Field label="Logo">
+            <LogoPreview name={b.logo} />
             <Button variant="outline" size="sm" onClick={async () => {
               const f = await open({ filters: [{ name: "Image", extensions: ["svg", "png", "jpg", "jpeg"] }] });
               if (f && !Array.isArray(f)) setB({ ...b, logo: await mm.setLogo(f) });

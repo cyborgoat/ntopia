@@ -104,6 +104,13 @@ export async function setLogo(sourcePath: string): Promise<string> {
   return name;
 }
 
+/** Blob URL for a logo in the branding folder; the caller revokes it. */
+export async function logoBlobUrl(name: string): Promise<string> {
+  const bytes = await readFile(await join(await root(), name));
+  const ext = name.split(".").pop()?.toLowerCase() ?? "";
+  return URL.createObjectURL(new Blob([bytes], { type: MIME_BY_EXT[ext] ?? "application/octet-stream" }));
+}
+
 // ---- working document -----------------------------------------------------
 
 export async function writeWorking(text: string) {

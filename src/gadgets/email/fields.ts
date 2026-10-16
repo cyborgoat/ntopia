@@ -41,12 +41,5 @@ export function typeFields(type: string): FieldDef[] {
   return [{ key: "date", label: "Date", input: "date" }];
 }
 
-/** Keys the details form edits for this type; anything else shows under "Other fields". */
-export function knownKeys(type: string): Set<string> {
-  const keys = ["title", "type", "lang", "theme", ...typeFields(type).map((f) => f.key)];
-  if (isEventType(type)) keys.push("hosts", "agenda");
-  return new Set(keys);
-}
-
 export type Host = { name?: string; role?: string; photo?: string; bio?: string };
 export type AgendaItem = { time?: string; title?: string };
