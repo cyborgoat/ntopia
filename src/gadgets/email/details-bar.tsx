@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import YAML from "yaml";
 import { open } from "@tauri-apps/plugin-dialog";
-import { ChevronRight, ImagePlus, Plus, X } from "lucide-react";
+import { ChevronRight, Code, ImagePlus, ListChecks, Plus, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,9 +9,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { type Frontmatter } from "./frontmatter";
+import { stringifyMeta, type Frontmatter } from "./frontmatter";
 import {
-  EMAIL_LANGS, EMAIL_TYPES, THEME_PRESETS, isEventType, typeFields,
+  EMAIL_LANGS, EMAIL_TYPES, THEME_PRESETS, isEventType, knownKeys, typeFields,
   type AgendaItem, type FieldDef, type Host,
 } from "./fields";
 import * as mm from "./mdmailer";
@@ -30,10 +31,11 @@ function loadOpen() {
 
 /**
  * Email frontmatter as a mail-style header: a one-line summary that expands into a form
- * (fields depend on `type`).
+ * (fields depend on `type`), with an "Edit as YAML" escape hatch.
  */
 export function DetailsBar({ meta, onChange }: { meta: Frontmatter; onChange: (meta: Frontmatter) => void }) {
   const [expanded, setExpanded] = useState(loadOpen);
+  const [yamlMode, setYamlMode] = useState(false);
   const type = str(meta.type) || "news";
   const theme = typeof meta.theme === "object" && meta.theme ? "custom" : str(meta.theme);
   const when = str(isEventType(type) ? meta.startsAt : meta.date);
@@ -67,10 +69,15 @@ export function DetailsBar({ meta, onChange }: { meta: Frontmatter; onChange: (m
             {when && <span className="text-xs text-muted-foreground">{when}</span>}
           </span>
         </button>
+        {expanded && (
+          <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setYamlMode((v) => !v)}>
+            {yamlMode ? <><ListChecks /> Form</> : <><Code /> Edit as YAML</>}
+          </Button>
+        )}
       </div>
       {expanded && (
         <div className="max-h-[45vh] overflow-auto border-t px-3 py-3">
-          <DetailsForm meta={meta} type={type} onChange={onChange} />
+          {yamlMode ? <YamlEditor value={meta} onChange={onChange} /> : <DetailsForm meta={meta} type={type} onChange={onChange} />}
         </div>
       )}
     </div>
@@ -88,6 +95,8 @@ function FieldRow({ label, wide, children }: { label: string; wide?: boolean; ch
 
 function DetailsForm({ meta, type, onChange }: { meta: Frontmatter; type: string; onChange: (m: Frontmatter) => void }) {
   const set = (key: string, value: unknown) => onChange({ ...meta, [key]: value });
+  const known = knownKeys(type);
+  const other = Object.fromEntries(Object.entries(meta).filter(([k]) => !known.has(k)));
   const customTheme = typeof meta.theme === "object" && meta.theme != null;
 
   return (
@@ -117,7 +126,7 @@ function DetailsForm({ meta, type, onChange }: { meta: Frontmatter; type: string
             <SelectContent>
               <SelectItem value={DEFAULT_THEME}>Branding default</SelectItem>
               {THEME_PRESETS.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-              {customTheme && <SelectItem value="custom" disabled>custom</SelectItem>}
+              {customTheme && <SelectItem value="custom" disabled>custom (edit as YAML)</SelectItem>}
             </SelectContent>
           </Select>
         </FieldRow>
@@ -131,6 +140,19 @@ function DetailsForm({ meta, type, onChange }: { meta: Frontmatter; type: string
         </>
       )}
 
+      {Object.keys(other).length > 0 && (
+        <div className="space-y-1">
+          <Label className="text-xs font-normal text-muted-foreground">Other fields</Label>
+          <YamlEditor
+            value={other}
+            rows={3}
+            onChange={(next) => {
+              const kept = Object.fromEntries(Object.entries(meta).filter(([k]) => known.has(k)));
+              onChange({ ...kept, ...next });
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -226,6 +248,46 @@ function Agenda({ value, onChange }: { value: AgendaItem[]; onChange: (v: Agenda
           <Button variant="ghost" size="icon-xs" aria-label="Remove item" onClick={() => onChange(value.filter((_, j) => j !== i))}><X /></Button>
         </div>
       ))}
+    </div>
+  );
+}
+
+/** YAML textarea that only emits when the text parses to a mapping; shows the parse error otherwise. */
+function YamlEditor({ value, onChange, rows = 10 }: { value: Frontmatter; onChange: (v: Frontmatter) => void; rows?: number }) {
+  const serialized = stringifyMeta(value);
+  const [text, setText] = useState(serialized);
+  const [error, setError] = useState("");
+  const emitted = useRef(serialized);
+
+  // Resync only when the value changes from outside (template load, form edits), not on our own echoes.
+  useEffect(() => {
+    if (serialized === emitted.current) return;
+    emitted.current = serialized;
+    setText(serialized);
+    setError("");
+  }, [serialized]);
+
+  return (
+    <div className="space-y-1">
+      <Textarea
+        rows={rows}
+        spellCheck={false}
+        className="font-mono text-xs"
+        value={text}
+        onChange={(e) => {
+          setText(e.target.value);
+          try {
+            const parsed = (YAML.parse(e.target.value) ?? {}) as unknown;
+            if (typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("Expected key: value pairs");
+            setError("");
+            emitted.current = stringifyMeta(parsed as Frontmatter);
+            onChange(parsed as Frontmatter);
+          } catch (err) {
+            setError(err instanceof Error ? err.message.split("\n")[0] : String(err));
+          }
+        }}
+      />
+      {error && <p className="text-xs text-destructive">{error}</p>}
     </div>
   );
 }
