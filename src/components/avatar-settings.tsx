@@ -1,19 +1,23 @@
 import { useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { RotateCcw, Upload } from "lucide-react";
+import { Pencil, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger,
+} from "@/components/ui/dialog";
 import { uploadImage } from "@/components/image-upload";
 import { useAuth } from "@/lib/auth";
 import { errorMessage, orbit } from "@/lib/orbit";
 import { cn, toMessage } from "@/lib/utils";
 
-/** Avatar picker for the settings page: preset catalogue, custom upload, and reset to the default. */
+/** Settings avatar: click it to pick a preset (the default preset restores the default) or upload an image. */
 export function AvatarSettings() {
   const { user, setUser } = useAuth();
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
+  const [open, setOpen] = useState(false);
   const { data } = useQuery({
     queryKey: ["avatars"],
     queryFn: async () => (await orbit.GET("/api/avatars")).data,
@@ -22,8 +26,6 @@ export function AvatarSettings() {
   if (!user) return null;
 
   const presets = data?.items ?? [];
-  const isPreset = presets.some((p) => p.url === user.avatarUrl);
-  const isCustom = !isPreset;
 
   /** `null` restores the default avatar. */
   async function save(avatarUrl: string | null) {
@@ -33,6 +35,7 @@ export function AvatarSettings() {
       if (data) {
         setUser(data);
         toast.success("Avatar updated");
+        setOpen(false);
       } else toast.error(errorMessage(error));
     } catch (e) {
       toast.error(toMessage(e));
@@ -54,39 +57,26 @@ export function AvatarSettings() {
   }
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-sm font-medium">Avatar</h2>
-      <div className="flex items-center gap-4">
-        <Avatar className="size-16">
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger
+        aria-label="Change avatar"
+        className="group relative block size-20 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <Avatar className="size-20">
           <AvatarImage src={user.avatarUrl} alt="" />
-          <AvatarFallback>{user.fullName.slice(0, 1)}</AvatarFallback>
+          <AvatarFallback className="text-xl">{user.fullName.slice(0, 1)}</AvatarFallback>
         </Avatar>
-        <div className="space-y-2">
-          <div className="flex flex-wrap gap-2">
-            <input
-              ref={input}
-              type="file"
-              accept="image/*"
-              hidden
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                e.target.value = "";
-                if (f) void upload(f);
-              }}
-            />
-            <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => input.current?.click()}>
-              <Upload /> Upload image
-            </Button>
-            <Button type="button" size="sm" variant="ghost" disabled={busy} onClick={() => void save(null)}>
-              <RotateCcw /> Use default
-            </Button>
-          </div>
-          <p className="text-xs text-muted-foreground">{isCustom ? "Using a custom image." : "Pick a preset below or upload your own."}</p>
-        </div>
-      </div>
+        <span className="absolute inset-0 flex items-center justify-center rounded-full bg-background/70 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+          <Pencil className="size-5" />
+        </span>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Choose your avatar</DialogTitle>
+          <DialogDescription>Pick a preset or upload your own image.</DialogDescription>
+        </DialogHeader>
 
-      {presets.length > 0 && (
-        <div className="grid grid-cols-5 gap-2 sm:grid-cols-6" role="radiogroup" aria-label="Avatar presets">
+        <div className="grid grid-cols-4 gap-3" role="radiogroup" aria-label="Avatar presets">
           {presets.map((p) => {
             const selected = p.url === user.avatarUrl;
             return (
@@ -109,7 +99,22 @@ export function AvatarSettings() {
             );
           })}
         </div>
-      )}
-    </div>
+
+        <input
+          ref={input}
+          type="file"
+          accept="image/*"
+          hidden
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            e.target.value = "";
+            if (f) void upload(f);
+          }}
+        />
+        <Button type="button" variant="outline" disabled={busy} onClick={() => input.current?.click()}>
+          <Upload /> Upload your own
+        </Button>
+      </DialogContent>
+    </Dialog>
   );
 }
