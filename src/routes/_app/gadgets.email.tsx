@@ -1,14 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { toMessage } from "@/lib/utils";
+import { cn, toMessage } from "@/lib/utils";
 import { createFileRoute } from "@tanstack/react-router";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
 import { join } from "@tauri-apps/api/path";
 import { openPath } from "@tauri-apps/plugin-opener";
-import { Copy, Download, Eye, EyeOff, FileText, FolderOpen, ImagePlus, ListChecks, Mail, Palette, PenLine, Upload, X } from "lucide-react";
+import { ChevronDown, Copy, Download, Eye, EyeOff, FileText, FolderOpen, ImagePlus, ListChecks, Mail, Palette, PenLine, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import {
   ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger,
@@ -21,8 +23,9 @@ import { Field } from "@/components/form-dialog";
 import { isTauri } from "@/lib/storage";
 import { DetailsPanel } from "@/gadgets/email/details-panel";
 import { SourceEditor } from "@/gadgets/email/source-editor";
-import { TemplatePicker } from "@/gadgets/email/template-picker";
+import { TemplateGallery, TemplatePicker } from "@/gadgets/email/template-picker";
 import { joinDoc, splitDoc, type Frontmatter } from "@/gadgets/email/frontmatter";
+import { loadDraft, saveDraft } from "@/gadgets/email/draft";
 import * as mm from "@/gadgets/email/mdmailer";
 
 export const Route = createFileRoute("/_app/gadgets/email")({ component: EmailGadget });
@@ -87,11 +90,16 @@ function EmailGadget() {
 }
 
 function Composer() {
-  const [meta, setMeta] = useState<Frontmatter>(BLANK_META);
-  const [body, setBody] = useState(BLANK_BODY);
+  // A saved draft is restored on mount; without one the user is asked to pick a template first.
+  const [saved] = useState(loadDraft);
+  const [started, setStarted] = useState(saved != null);
+  const [meta, setMeta] = useState<Frontmatter>(saved?.meta ?? BLANK_META);
+  const [body, setBody] = useState(saved?.body ?? BLANK_BODY);
   const doc = useMemo(() => joinDoc(meta, body), [meta, body]);
+  const docRef = useRef(doc);
+  docRef.current = doc;
   // The document as last loaded (blank or a template); anything else counts as an unsaved edit.
-  const [baseline, setBaseline] = useState(() => joinDoc(BLANK_META, BLANK_BODY));
+  const [baseline, setBaseline] = useState(saved?.baseline ?? joinDoc(BLANK_META, BLANK_BODY));
   const [ready, setReady] = useState(false);
   const [html, setHtml] = useState("");
   const [showPreview, setShowPreview] = useState(loadShowPreview);
@@ -135,10 +143,22 @@ function Composer() {
     }
   }
 
+  // Keep the draft across navigation and restarts; the cleanup flushes the pending write on unmount.
   useEffect(() => {
+    if (!started) return;
+    const draft = { meta, body, baseline };
+    const t = setTimeout(() => saveDraft(draft), 300);
+    return () => {
+      clearTimeout(t);
+      saveDraft(draft);
+    };
+  }, [started, meta, body, baseline]);
+
+  useEffect(() => {
+    if (!started) return;
     let cancelled = false;
     setError("");
-    mm.acquirePreview(joinDoc(BLANK_META, BLANK_BODY))
+    mm.acquirePreview(docRef.current, { keepImages: true })
       .then(({ url }) => {
         if (cancelled) return;
         setPreviewUrl(url);
@@ -151,7 +171,7 @@ function Composer() {
       cancelled = true;
       mm.releasePreview();
     };
-  }, [attempt]);
+  }, [attempt, started]);
 
   useEffect(() => {
     mm.listTemplates().then(setTemplates).catch(() => {});
@@ -200,17 +220,21 @@ function Composer() {
     return () => clearTimeout(t);
   }, [doc, ready]);
 
+  async function startDraft(data: Frontmatter, nextBody: string) {
+    await mm.clearPastedImages();
+    setMeta(data);
+    setBody(nextBody);
+    setBaseline(joinDoc(data, nextBody));
+    setHtml("");
+    await mm.writeWorking(joinDoc(data, nextBody));
+    setStarted(true);
+    setError("");
+  }
+
   async function loadTemplate(t: string) {
     try {
-      const text = await mm.readTemplate(t);
-      const { data, body: templateBody } = splitDoc(text);
-      const nextBody = templateBody.replace(/^\n+/, "");
-      setMeta(data);
-      setBody(nextBody);
-      setBaseline(joinDoc(data, nextBody));
-      setHtml("");
-      await mm.writeWorking(text);
-      setError("");
+      const { data, body: templateBody } = splitDoc(await mm.readTemplate(t));
+      await startDraft(data, templateBody.replace(/^\n+/, ""));
     } catch (e) {
       const msg = toMessage(e);
       setError(msg);
@@ -279,17 +303,51 @@ function Composer() {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex flex-wrap items-center gap-2 border-b px-4 py-2">
-        <Branding />
-        <TemplatePicker templates={templates} dirty={doc !== baseline} onPick={(t) => void loadTemplate(t)} />
-        <div className="ml-auto flex items-center gap-1">
-          <Button variant="outline" size="sm" aria-pressed={showPreview} onClick={togglePreview}>
-            {showPreview ? <EyeOff /> : <Eye />} {showPreview ? "Hide preview" : "Show preview"}
-          </Button>
-          <Button size="sm" onClick={() => void openInMail()}><Mail /> Open in Mail</Button>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b px-4 py-2">
+        {/* Start: where the draft comes from */}
+        <div className="flex items-center gap-1" role="group" aria-label="Start">
+          {started && <TemplatePicker templates={templates} dirty={doc !== baseline} onPick={(t) => void loadTemplate(t)} />}
+          <Branding />
+        </div>
+        <Separator orientation="vertical" className="h-5 self-center" />
+        {/* Edit: which part of the email is being edited */}
+        <div
+          className={cn("inline-flex items-center gap-0.5 rounded-lg bg-muted p-0.5", !started && "pointer-events-none opacity-50")}
+          role="tablist"
+          aria-label="Email content"
+        >
+          <SegmentButton active={tab === "details"} onClick={() => setTab("details")} hint="Subject, date, location, hosts, theme">
+            <ListChecks /> Details
+          </SegmentButton>
+          <SegmentButton active={tab === "message"} onClick={() => setTab("message")} hint="The Markdown text of the email">
+            <PenLine /> Message
+          </SegmentButton>
+        </div>
+        <div className="ml-auto flex items-center gap-3">
+          {/* View */}
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  variant={showPreview ? "secondary" : "ghost"}
+                  size="icon-sm"
+                  aria-pressed={showPreview}
+                  disabled={!started}
+                  aria-label={showPreview ? "Hide preview" : "Show preview"}
+                  onClick={togglePreview}
+                />
+              }
+            >
+              {showPreview ? <EyeOff /> : <Eye />}
+            </TooltipTrigger>
+            <TooltipContent>{showPreview ? "Hide preview" : "Show preview"}</TooltipContent>
+          </Tooltip>
+          <Separator orientation="vertical" className="h-5 self-center" />
+          {/* Output: Export is secondary, Open in Mail is the primary action */}
+          <div className="flex items-center gap-1.5" role="group" aria-label="Output">
           <DropdownMenu>
-            <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
-              <Download /> Export
+            <DropdownMenuTrigger render={<Button variant="outline" size="sm" disabled={!started} />}>
+              <Download /> Export <ChevronDown className="opacity-60" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => void exportMd()}><FileText /> Save Markdown</DropdownMenuItem>
@@ -303,9 +361,27 @@ function Composer() {
               <DropdownMenuItem onClick={() => void exportAll()}><FolderOpen /> Export all…</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          <Button size="sm" disabled={!started} onClick={() => void openInMail()}><Mail /> Open in Mail</Button>
+          </div>
         </div>
       </div>
 
+      {!started ? (
+        <div className="min-h-0 flex-1 overflow-auto">
+          <div className="mx-auto flex max-w-4xl flex-col gap-4 px-4 py-8">
+            <div className="space-y-1">
+              <h2 className="text-lg font-semibold">Choose a template to start</h2>
+              <p className="text-sm text-muted-foreground">Pick a ready-made layout. You can change every detail afterwards.</p>
+            </div>
+            <TemplateGallery
+              templates={templates}
+              dirty={false}
+              onPick={(t) => void loadTemplate(t)}
+              onBlank={() => void startDraft(BLANK_META, BLANK_BODY).catch((e) => toast.error(toMessage(e)))}
+            />
+          </div>
+        </div>
+      ) : (
       <ResizablePanelGroup
         orientation="horizontal"
         className="min-h-0 flex-1"
@@ -322,17 +398,6 @@ function Composer() {
       >
         <ResizablePanel id="editor" defaultSize={`${layout.editor}%`} minSize="25%" className="min-w-0">
           <div className="flex h-full min-h-0 flex-col">
-            <div className="flex items-center gap-1 border-b px-4 py-1.5" role="tablist" aria-label="Email content">
-              <Button role="tab" aria-selected={tab === "details"} size="sm" variant={tab === "details" ? "secondary" : "ghost"} onClick={() => setTab("details")}>
-                <ListChecks /> Details
-              </Button>
-              <Button role="tab" aria-selected={tab === "message"} size="sm" variant={tab === "message" ? "secondary" : "ghost"} onClick={() => setTab("message")}>
-                <PenLine /> Message
-              </Button>
-              <span className="ml-2 min-w-0 truncate text-xs text-muted-foreground">
-                {tab === "details" ? "Subject, date, location, hosts, theme" : "The Markdown text of the email"}
-              </span>
-            </div>
             {!hintDismissed && (
               <div className="flex items-start gap-2 border-b bg-muted/40 px-4 py-2 text-xs text-muted-foreground">
                 <p className="flex-1">
@@ -360,7 +425,7 @@ function Composer() {
           <ContextMenu>
             <ContextMenuTrigger className="flex h-full min-h-0 flex-col">
               <section className="flex h-full min-h-0 flex-col">
-                <div className="flex items-center justify-between gap-2 border-b px-4 py-3">
+                <div className="flex h-10 items-center justify-between gap-2 border-b px-4">
                   <span className="text-sm font-medium">Preview <span className="font-normal text-muted-foreground">· Details + Message</span></span>
                   {busy && <span className="text-xs text-muted-foreground">Rendering…</span>}
                 </div>
@@ -382,7 +447,26 @@ function Composer() {
           </ContextMenu>
         </ResizablePanel>}
       </ResizablePanelGroup>
+      )}
     </div>
+  );
+}
+
+function SegmentButton({ active, onClick, hint, children }: { active: boolean; onClick: () => void; hint: string; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={active}
+      title={hint}
+      onClick={onClick}
+      className={cn(
+        "inline-flex h-6 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring [&_svg]:size-3.5",
+        active ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+      )}
+    >
+      {children}
+    </button>
   );
 }
 

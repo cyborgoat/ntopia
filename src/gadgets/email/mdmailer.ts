@@ -284,13 +284,13 @@ let stopTimer: ReturnType<typeof setTimeout> | undefined;
  * Start (or join) the live preview session. A fresh session resets the working file to `initialDoc`.
  * Rejects within ~25s instead of hanging. Pair every call with `releasePreview()`.
  */
-export function acquirePreview(initialDoc: string): Promise<{ url: string }> {
+export function acquirePreview(initialDoc: string, opts: { keepImages?: boolean } = {}): Promise<{ url: string }> {
   sessionUsers++;
   clearTimeout(stopTimer);
   if (!session) {
     const s = withTimeout(
       (async () => {
-        await clearPastedImages();
+        if (!opts.keepImages) await clearPastedImages();
         await writeWorking(initialDoc);
         return startPreview();
       })(),
