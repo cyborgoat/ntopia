@@ -1,32 +1,46 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="478" height="370" viewBox="-24 0 478 370" role="img" aria-labelledby="title desc">
-  <title id="title">NAAD — Graphite Mono</title>
-  <desc id="desc">Rotationally symmetric isosceles A forms with flat plateaus and equal rail clearance on a transparent background.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">NTOPIA</title>
+  <desc id="desc">A softly sculpted pale white N facing right at thirty degrees, floating in a rounded graphite space.</desc>
   <defs>
-    <clipPath id="outer-clip"><rect x="0" y="35" width="430" height="133"/></clipPath>
-    <clipPath id="center-clip"><rect x="0" y="35" width="430" height="300"/></clipPath>
-    <g id="outer-leg" clip-path="url(#outer-clip)">
-      <path d="M 149.675070 -2 L 60.575070 196"/>
-      <path d="M 143.095556 -2 L 53.995556 196"/>
-      <path d="M 136.516043 -2 L 47.416043 196"/>
-      <path d="M 129.936529 -2 L 40.836529 196"/>
-    </g>
-    <g id="upper-rails">
-      <path d="M -8 176 H 196.476900 M 225.423100 176 H 438"/>
-      <path d="M -8 182 H 199.176900 M 228.123100 182 H 438"/>
-    </g>
-    <g id="center-pair">
-      <path d="M 121.880730 0 L 288.380730 370"/>
-      <path d="M 128.460243 0 L 294.960243 370"/>
+    <clipPath id="tile"><rect x="64" y="64" width="896" height="896" rx="208"/></clipPath>
+    <linearGradient id="background" x1="160" y1="64" x2="864" y2="960" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#454B52"/><stop offset="1" stop-color="#22262C"/>
+    </linearGradient>
+    <linearGradient id="side" x1="300" y1="280" x2="760" y2="760" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#B6BFC7"/><stop offset=".5" stop-color="#87939E"/><stop offset="1" stop-color="#5E6A75"/>
+    </linearGradient>
+    <linearGradient id="face" x1="340" y1="260" x2="650" y2="760" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF"/><stop offset=".65" stop-color="#F3F4F2"/><stop offset="1" stop-color="#DDE2E4"/>
+    </linearGradient>
+    <g id="letter" transform="matrix(.866 .16 0 1 98 -82)">
+      <path d="M 312 710 V 292 L 712 710 V 292" fill="none" stroke-width="116" stroke-linecap="round" stroke-linejoin="round"/>
     </g>
   </defs>
-  <g fill="none" stroke="#3A3F44" stroke-width="4.2" stroke-linecap="butt">
-    <use href="#upper-rails"/>
-    <use href="#upper-rails" transform="rotate(180 215 185)"/>
-    <use href="#outer-leg"/>
-    <use href="#outer-leg" transform="rotate(180 215 185)"/>
-    <g clip-path="url(#center-clip)">
-      <use href="#center-pair"/>
-      <use href="#center-pair" transform="rotate(180 215 185)"/>
+  <g clip-path="url(#tile)">
+    <rect x="64" y="64" width="896" height="896" fill="url(#background)"/>
+    <g stroke="url(#side)">
+      <use href="#letter" transform="translate(-60 22.0)"/>
+      <use href="#letter" transform="translate(-57 20.9)"/>
+      <use href="#letter" transform="translate(-54 19.8)"/>
+      <use href="#letter" transform="translate(-51 18.7)"/>
+      <use href="#letter" transform="translate(-48 17.6)"/>
+      <use href="#letter" transform="translate(-45 16.5)"/>
+      <use href="#letter" transform="translate(-42 15.4)"/>
+      <use href="#letter" transform="translate(-39 14.3)"/>
+      <use href="#letter" transform="translate(-36 13.2)"/>
+      <use href="#letter" transform="translate(-33 12.1)"/>
+      <use href="#letter" transform="translate(-30 11.0)"/>
+      <use href="#letter" transform="translate(-27 9.9)"/>
+      <use href="#letter" transform="translate(-24 8.8)"/>
+      <use href="#letter" transform="translate(-21 7.7)"/>
+      <use href="#letter" transform="translate(-18 6.6)"/>
+      <use href="#letter" transform="translate(-15 5.5)"/>
+      <use href="#letter" transform="translate(-12 4.4)"/>
+      <use href="#letter" transform="translate(-9 3.3)"/>
+      <use href="#letter" transform="translate(-6 2.2)"/>
+      <use href="#letter" transform="translate(-3 1.1)"/>
     </g>
+    <use href="#letter" stroke="url(#face)"/>
   </g>
+  <rect x="66" y="66" width="892" height="892" rx="206" fill="none" stroke="#FFFFFF" stroke-opacity=".09" stroke-width="4"/>
 </svg>
