@@ -14,6 +14,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppNotificationsRouteImport } from './routes/_app/notifications'
+import { Route as AppTodoRouteImport } from './routes/_app/todo'
 import { Route as AppAnnouncementsIndexRouteImport } from './routes/_app/announcements.index'
 import { Route as AppAnnouncementsIdRouteImport } from './routes/_app/announcements.$id'
 import { Route as AppBlogIndexRouteImport } from './routes/_app/blog.index'
@@ -26,7 +27,6 @@ import { Route as AppEventsIndexRouteImport } from './routes/_app/events.index'
 import { Route as AppEventsIdRouteImport } from './routes/_app/events.$id'
 import { Route as AppGadgetsIndexRouteImport } from './routes/_app/gadgets.index'
 import { Route as AppGadgetsEmailRouteImport } from './routes/_app/gadgets.email'
-import { Route as AppGadgetsTodoRouteImport } from './routes/_app/gadgets.todo'
 import { Route as AppNewsIndexRouteImport } from './routes/_app/news.index'
 import { Route as AppNewsIdRouteImport } from './routes/_app/news.$id'
 import { Route as AppNewsNewRouteImport } from './routes/_app/news.new'
@@ -53,6 +53,11 @@ const AppIndexRoute = AppIndexRouteImport.update({
 const AppNotificationsRoute = AppNotificationsRouteImport.update({
   id: '/notifications',
   path: '/notifications',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppTodoRoute = AppTodoRouteImport.update({
+  id: '/todo',
+  path: '/todo',
   getParentRoute: () => AppRoute,
 } as any)
 const AppAnnouncementsIndexRoute = AppAnnouncementsIndexRouteImport.update({
@@ -115,11 +120,6 @@ const AppGadgetsEmailRoute = AppGadgetsEmailRouteImport.update({
   path: '/gadgets/email',
   getParentRoute: () => AppRoute,
 } as any)
-const AppGadgetsTodoRoute = AppGadgetsTodoRouteImport.update({
-  id: '/gadgets/todo',
-  path: '/gadgets/todo',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppNewsIndexRoute = AppNewsIndexRouteImport.update({
   id: '/news/',
   path: '/news/',
@@ -141,6 +141,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/notifications': typeof AppNotificationsRoute
+  '/todo': typeof AppTodoRoute
   '/announcements/$id': typeof AppAnnouncementsIdRoute
   '/blog/$id': typeof AppBlogIdRoute
   '/blog/new': typeof AppBlogNewRoute
@@ -148,7 +149,6 @@ export interface FileRoutesByFullPath {
   '/discussions/new': typeof AppDiscussionsNewRoute
   '/events/$id': typeof AppEventsIdRoute
   '/gadgets/email': typeof AppGadgetsEmailRoute
-  '/gadgets/todo': typeof AppGadgetsTodoRoute
   '/news/$id': typeof AppNewsIdRoute
   '/news/new': typeof AppNewsNewRoute
   '/announcements/': typeof AppAnnouncementsIndexRoute
@@ -162,6 +162,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/notifications': typeof AppNotificationsRoute
+  '/todo': typeof AppTodoRoute
   '/': typeof AppIndexRoute
   '/announcements/$id': typeof AppAnnouncementsIdRoute
   '/blog/$id': typeof AppBlogIdRoute
@@ -170,7 +171,6 @@ export interface FileRoutesByTo {
   '/discussions/new': typeof AppDiscussionsNewRoute
   '/events/$id': typeof AppEventsIdRoute
   '/gadgets/email': typeof AppGadgetsEmailRoute
-  '/gadgets/todo': typeof AppGadgetsTodoRoute
   '/news/$id': typeof AppNewsIdRoute
   '/news/new': typeof AppNewsNewRoute
   '/announcements': typeof AppAnnouncementsIndexRoute
@@ -186,6 +186,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/_app/notifications': typeof AppNotificationsRoute
+  '/_app/todo': typeof AppTodoRoute
   '/_app/': typeof AppIndexRoute
   '/_app/announcements/$id': typeof AppAnnouncementsIdRoute
   '/_app/blog/$id': typeof AppBlogIdRoute
@@ -194,7 +195,6 @@ export interface FileRoutesById {
   '/_app/discussions/new': typeof AppDiscussionsNewRoute
   '/_app/events/$id': typeof AppEventsIdRoute
   '/_app/gadgets/email': typeof AppGadgetsEmailRoute
-  '/_app/gadgets/todo': typeof AppGadgetsTodoRoute
   '/_app/news/$id': typeof AppNewsIdRoute
   '/_app/news/new': typeof AppNewsNewRoute
   '/_app/announcements/': typeof AppAnnouncementsIndexRoute
@@ -211,6 +211,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/notifications'
+    | '/todo'
     | '/announcements/$id'
     | '/blog/$id'
     | '/blog/new'
@@ -218,7 +219,6 @@ export interface FileRouteTypes {
     | '/discussions/new'
     | '/events/$id'
     | '/gadgets/email'
-    | '/gadgets/todo'
     | '/news/$id'
     | '/news/new'
     | '/announcements/'
@@ -232,6 +232,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/notifications'
+    | '/todo'
     | '/'
     | '/announcements/$id'
     | '/blog/$id'
@@ -240,7 +241,6 @@ export interface FileRouteTypes {
     | '/discussions/new'
     | '/events/$id'
     | '/gadgets/email'
-    | '/gadgets/todo'
     | '/news/$id'
     | '/news/new'
     | '/announcements'
@@ -255,6 +255,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/_app/notifications'
+    | '/_app/todo'
     | '/_app/'
     | '/_app/announcements/$id'
     | '/_app/blog/$id'
@@ -263,7 +264,6 @@ export interface FileRouteTypes {
     | '/_app/discussions/new'
     | '/_app/events/$id'
     | '/_app/gadgets/email'
-    | '/_app/gadgets/todo'
     | '/_app/news/$id'
     | '/_app/news/new'
     | '/_app/announcements/'
@@ -315,6 +315,13 @@ declare module '@tanstack/react-router' {
       path: '/notifications'
       fullPath: '/notifications'
       preLoaderRoute: typeof AppNotificationsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/todo': {
+      id: '/_app/todo'
+      path: '/todo'
+      fullPath: '/todo'
+      preLoaderRoute: typeof AppTodoRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/announcements/': {
@@ -401,13 +408,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppGadgetsEmailRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/gadgets/todo': {
-      id: '/_app/gadgets/todo'
-      path: '/gadgets/todo'
-      fullPath: '/gadgets/todo'
-      preLoaderRoute: typeof AppGadgetsTodoRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/_app/news/': {
       id: '/_app/news/'
       path: '/news'
@@ -434,6 +434,7 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppNotificationsRoute: typeof AppNotificationsRoute
+  AppTodoRoute: typeof AppTodoRoute
   AppIndexRoute: typeof AppIndexRoute
   AppAnnouncementsIdRoute: typeof AppAnnouncementsIdRoute
   AppBlogIdRoute: typeof AppBlogIdRoute
@@ -442,7 +443,6 @@ interface AppRouteChildren {
   AppDiscussionsNewRoute: typeof AppDiscussionsNewRoute
   AppEventsIdRoute: typeof AppEventsIdRoute
   AppGadgetsEmailRoute: typeof AppGadgetsEmailRoute
-  AppGadgetsTodoRoute: typeof AppGadgetsTodoRoute
   AppNewsIdRoute: typeof AppNewsIdRoute
   AppNewsNewRoute: typeof AppNewsNewRoute
   AppAnnouncementsIndexRoute: typeof AppAnnouncementsIndexRoute
@@ -455,6 +455,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppNotificationsRoute: AppNotificationsRoute,
+  AppTodoRoute: AppTodoRoute,
   AppIndexRoute: AppIndexRoute,
   AppAnnouncementsIdRoute: AppAnnouncementsIdRoute,
   AppBlogIdRoute: AppBlogIdRoute,
@@ -463,7 +464,6 @@ const AppRouteChildren: AppRouteChildren = {
   AppDiscussionsNewRoute: AppDiscussionsNewRoute,
   AppEventsIdRoute: AppEventsIdRoute,
   AppGadgetsEmailRoute: AppGadgetsEmailRoute,
-  AppGadgetsTodoRoute: AppGadgetsTodoRoute,
   AppNewsIdRoute: AppNewsIdRoute,
   AppNewsNewRoute: AppNewsNewRoute,
   AppAnnouncementsIndexRoute: AppAnnouncementsIndexRoute,

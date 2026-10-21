@@ -70,7 +70,7 @@ Login is **optional**.
 
 | State | What you get |
 |--------|----------------|
-| Guest (no token) | Home hub, Gadgets (email + todo), Settings (server URL + Sign in). Team Orbit nav hidden. |
+| Guest (no token) | Home hub, Todo, Gadgets (email), Settings (server URL + Sign in). Team Orbit nav hidden. |
 | Signed in | Orbit nav + notifications + home feed. Profile/password in Settings. |
 
 - `_app` always renders `AppShell` after auth bootstrap (`src/routes/_app.tsx`). It does **not** redirect guests to `/login`.
@@ -95,7 +95,7 @@ File routes under `src/routes/`; generated tree in `src/routeTree.gen.ts`.
 |------|--------|--------|
 | Public | `/login`, `/register` | Outside the shell; login can “Continue without signing in” |
 | Shell | `/_app` → `AppShell` | Pathless layout; URLs stay `/`, `/gadgets`, … |
-| Local | `/`, `/gadgets`, `/gadgets/email`, `/gadgets/todo`, `/settings` | No Orbit API required |
+| Local | `/`, `/gadgets`, `/gadgets/email`, `/todo`, `/settings` | No Orbit API required |
 | Orbit | `/announcements`, `/events`, `/news`, `/news/new`, `/blog`, `/blog/new`, `/discussions/*`, `/notifications`; detail pages `/announcements/$id`, `/events/$id`, `/news/$id`, `/blog/$id` | Behind `RequireAuth`; `*/new` composers are full-bleed (`FULL_BLEED` in `app-shell.tsx`) |
 
 ## Key libraries (`src/lib/`)
@@ -126,10 +126,14 @@ Gadgets are small local tools. Register one in `src/gadgets/registry.ts` and add
 - Scratch workspace under app data: `email/work/`, `email/out/`, branding JSON, pasted images in `work/assets/pasted/`.
 - Sidecar: `pnpm sidecar` downloads portable Node into `src-tauri/binaries/` and copies mdmailer into `src-tauri/resources/mdmailer/`. The app shells out to `node …/cli.js` for live `preview` and generate (HTML / EML / PNG).
 
-### Todo list (`/gadgets/todo`)
+### Todo list (`/todo`)
 
-- Implementation: `src/gadgets/todo/store.ts` + route UI.
-- Persists `{ id, title, done, createdAt }[]` under the `todos` storage key (loaded at boot with `serverUrl` / `token`).
+A dedicated sidebar feature, not a gadget.
+
+- Implementation: `src/features/todo/` (`store.ts`, `group.ts` for the weekly grouping, `reminders.ts`, `todo-dialog.tsx`) + route UI.
+- Persists `{ id, title, done, createdAt, dueDate?, dueTime?, remind?, notes?, location?, remindedAt? }[]` under the `todos` storage key (loaded at boot with `serverUrl` / `token`). Older items without the optional fields still load.
+- The list is grouped Overdue → Today → the remaining weekdays of the current Mon–Sun week → Upcoming → No date → Completed.
+- Reminders: `useTodoReminders()` (mounted in `routes/_app.tsx`) checks every 30 s and fires a native notification plus a toast once per item. They only fire while the app is running; ones missed while closed fire on launch.
 
 ## Context menus
 
@@ -137,7 +141,7 @@ Desktop right-click menus use shadcn [`context-menu`](https://ui.shadcn.com/docs
 
 | Surface | Actions |
 |---------|---------|
-| Todo rows / list | Toggle, delete; focus add / clear completed |
+| Todo rows / list | Edit, toggle, delete; focus add / clear completed |
 | Email editor & preview | Open in Mail, export formats, copy HTML |
 | Notifications | Mark as read |
 | Announcements / events / news / blog | Copy title; Delete if `isAdmin` |

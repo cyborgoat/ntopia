@@ -32,7 +32,7 @@ One-shot composer — pick a template, set subject/type/theme/hosts/agenda in th
 
 mdmailer needs native modules (sharp) and Puppeteer, so it can't be compiled into a single binary. `pnpm sidecar` (`sidecar/mdmailer/build.mjs`) downloads a portable Node runtime into `src-tauri/binaries/` (Tauri `externalBin`) and copies mdmailer + `node_modules` into `src-tauri/resources/mdmailer/`. The app runs `node …/cli.js preview` for live preview and generate for export/PNG against a scratch file in app-data. Puppeteer downloads Chrome on first PNG render if none is found. Run `pnpm sidecar` before `pnpm tauri build`.
 
-### Todo (`/gadgets/todo`)
+### Todo (`/todo`, sidebar)
 
 Local checklist stored on this device via `plugin-store` / localStorage. No server required.
 
@@ -41,6 +41,7 @@ Local checklist stored on this device via `plugin-store` / localStorage. No serv
 - `src/lib` — orbit client + token/server storage (`plugin-store`), auth, realtime (Socket.io)
 - `src/routes` — file-based routes; `_app/*` is the app shell (guests allowed; Orbit pages use `RequireAuth`)
 - `src/gadgets` — `registry.ts` lists gadgets; add a route + registry entry for a new one
+- `src/features` — standalone local features with their own sidebar entry (Todo)
 - `src-tauri` — Rust shell, capabilities (least-privilege fs/shell/http scopes)
 - `docs/` — architecture and gadget authoring notes
 

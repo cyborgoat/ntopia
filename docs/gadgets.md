@@ -7,7 +7,6 @@ Gadgets are **local tools** that run inside NTOPIA without Team Orbit. They appe
 | Id | Route | Storage | Notes |
 |----|--------|---------|--------|
 | `email` | `/gadgets/email` | App data `email/` + mdmailer sidecar | Markdown → branded HTML / EML / PNG; live preview |
-| `todo` | `/gadgets/todo` | `plugin-store` / localStorage key `todos` | Simple checklist |
 
 ## Adding a gadget
 

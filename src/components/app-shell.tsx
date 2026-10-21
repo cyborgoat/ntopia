@@ -2,7 +2,7 @@ import { Fragment, useEffect, useRef, useState } from "react";
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Bell, BookOpen, CalendarDays, ChevronsUpDown, Home, KeyRound, LogIn, LogOut, Megaphone, MessagesSquare, Newspaper, Server, Toolbox, UserRound,
+  Bell, BookOpen, CalendarDays, ChevronsUpDown, Home, KeyRound, ListTodo, LogIn, LogOut, Megaphone, MessagesSquare, Newspaper, Server, Toolbox, UserRound,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -48,6 +48,7 @@ import { useNotificationsSocket } from "@/lib/realtime";
 
 const localNav = [
   { to: "/", label: "Home", icon: Home },
+  { to: "/todo", label: "Todo", icon: ListTodo },
   { to: "/gadgets", label: "Gadgets", icon: Toolbox },
 ] as const;
 
@@ -59,7 +60,7 @@ const orbitNav = [
   { to: "/discussions", label: "Discussions", icon: MessagesSquare },
 ] as const;
 
-const FULL_BLEED = ["/gadgets/email", "/blog/new", "/news/new", "/discussions/new"];
+const FULL_BLEED = ["/gadgets/email", "/todo", "/blog/new", "/news/new", "/discussions/new"];
 const MARK = "text-[1.65rem] font-semibold tracking-[-0.06em]";
 
 function NavItems({
