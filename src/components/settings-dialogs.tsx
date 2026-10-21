@@ -1,71 +1,25 @@
 import { useState } from "react";
-import { Link, createFileRoute } from "@tanstack/react-router";
-import { KeyRound, Server, UserRound, type LucideIcon } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { AvatarSettings } from "@/components/avatar-settings";
 import { Field } from "@/components/form-dialog";
-import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/auth";
 import { applyServerUrl, errorMessage, getServerUrl, orbit } from "@/lib/orbit";
-import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/_app/settings")({ component: Settings });
-
-type SectionId = "profile" | "password" | "server";
-const SECTIONS: { id: SectionId; label: string; icon: LucideIcon; account: boolean }[] = [
-  { id: "profile", label: "Profile", icon: UserRound, account: true },
-  { id: "password", label: "Password", icon: KeyRound, account: true },
-  { id: "server", label: "Server", icon: Server, account: false },
-];
-
-function Settings() {
-  const { user } = useAuth();
-  const sections = SECTIONS.filter((s) => user || !s.account);
-  const [active, setActive] = useState<SectionId>(sections[0].id);
-  const current = sections.some((s) => s.id === active) ? active : sections[0].id;
-
-  return (
-    <>
-      <PageHeader title="Settings" />
-      <div className="grid gap-6 md:grid-cols-[11rem_1fr]">
-        <nav aria-label="Settings sections" className="flex gap-1 md:flex-col">
-          {sections.map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              type="button"
-              aria-current={current === id ? "page" : undefined}
-              onClick={() => setActive(id)}
-              className={cn(
-                "flex items-center gap-2 rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-muted",
-                current === id && "bg-muted font-medium",
-              )}
-            >
-              <Icon className="size-4" /> {label}
-            </button>
-          ))}
-        </nav>
-
-        <div className="min-w-0 max-w-lg">
-          {current === "profile" && <ProfileSection />}
-          {current === "password" && <PasswordSection />}
-          {current === "server" && <ServerSection />}
-        </div>
-      </div>
-    </>
-  );
-}
+export type SettingsPanel = "profile" | "password" | "server";
 
 function Section({ title, description, children }: { title: string; description: string; children: React.ReactNode }) {
   return (
-    <section className="space-y-5">
-      <div className="border-b pb-3">
-        <h2 className="text-base font-semibold">{title}</h2>
-        <p className="text-sm text-muted-foreground">{description}</p>
-      </div>
-      {children}
-    </section>
+    <>
+      <DialogHeader>
+        <DialogTitle>{title}</DialogTitle>
+        <DialogDescription>{description}</DialogDescription>
+      </DialogHeader>
+      <div className="space-y-5">{children}</div>
+    </>
   );
 }
 
@@ -141,5 +95,16 @@ function ServerSection() {
         )}
       </div>
     </Section>
+  );
+}
+
+const PANELS = { profile: ProfileSection, password: PasswordSection, server: ServerSection };
+
+export function SettingsDialog({ panel, onClose }: { panel: SettingsPanel | null; onClose: () => void }) {
+  const Panel = panel ? PANELS[panel] : null;
+  return (
+    <Dialog open={!!panel} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent className="sm:max-w-md">{Panel && <Panel />}</DialogContent>
+    </Dialog>
   );
 }

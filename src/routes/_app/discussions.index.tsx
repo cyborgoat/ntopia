@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { ArrowBigUp, Copy, ExternalLink, MessageSquare, Plus } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/context-menu";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { ListPagination, PAGE_SIZE } from "@/components/list-pagination";
 import { Empty, PageHeader } from "@/components/page-header";
 import { RequireAuth } from "@/components/require-auth";
 import { orbit } from "@/lib/orbit";
@@ -31,9 +32,11 @@ function threadUrl(id: string) {
 function Discussions() {
   const navigate = useNavigate();
   const [q, setQ] = useState("");
+  const [page, setPage] = useState(1);
   const { data } = useQuery({
-    queryKey: ["forum-posts", q],
-    queryFn: async () => (await orbit.GET("/api/forum-posts", { params: { query: { limit: 50, q: q || undefined } } })).data,
+    queryKey: ["forum-posts", q, page],
+    queryFn: async () => (await orbit.GET("/api/forum-posts", { params: { query: { page, limit: PAGE_SIZE, q: q || undefined } } })).data,
+    placeholderData: keepPreviousData,
   });
 
   return (
@@ -47,7 +50,7 @@ function Discussions() {
           </Button>
         }
       />
-      <Input placeholder="Search threads…" value={q} onChange={(e) => setQ(e.target.value)} className="mb-4" />
+      <Input placeholder="Search threads…" value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} className="mb-4" />
       <div className="divide-y rounded-lg border">
         {data?.items.length === 0 && <Empty>No threads yet. Start one!</Empty>}
         {data?.items.map((p) => (
@@ -77,6 +80,7 @@ function Discussions() {
           </ContextMenu>
         ))}
       </div>
+      <ListPagination page={page} total={data?.total} onPageChange={setPage} />
     </>
   );
 }

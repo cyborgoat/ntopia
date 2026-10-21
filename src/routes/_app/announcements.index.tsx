@@ -1,6 +1,7 @@
 import { useState } from "react";
+import { ListPagination, PAGE_SIZE } from "@/components/list-pagination";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Copy, ExternalLink, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -32,9 +33,11 @@ function Announcements() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const [f, setF] = useState({ title: "", description: "" });
+  const [page, setPage] = useState(1);
   const { data } = useQuery({
-    queryKey: ["announcements"],
-    queryFn: async () => (await orbit.GET("/api/announcements", { params: { query: { limit: 50 } } })).data,
+    queryKey: ["announcements", page],
+    queryFn: async () => (await orbit.GET("/api/announcements", { params: { query: { page, limit: PAGE_SIZE } } })).data,
+    placeholderData: keepPreviousData,
   });
   const del = useMutation({
     mutationFn: (id: string) => orbit.DELETE("/api/announcements/{id}", { params: { path: { id } } }),
@@ -105,6 +108,7 @@ function Announcements() {
           </ContextMenu>
         ))}
       </div>
+      <ListPagination page={page} total={data?.total} onPageChange={setPage} />
     </>
   );
 }

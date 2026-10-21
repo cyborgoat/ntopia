@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Copy, ExternalLink, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +14,7 @@ import {
 } from "@/components/ui/context-menu";
 import { DetailPage } from "@/components/detail-page";
 import { Markdown } from "@/components/markdown";
+import { ListPagination, PAGE_SIZE } from "@/components/list-pagination";
 import { Empty, PageHeader } from "@/components/page-header";
 import { PostComposer, type PostDraft } from "@/components/post-composer";
 import { useAuth } from "@/lib/auth";
@@ -27,7 +29,7 @@ const FEED = {
     section: { label: "News", to: "/news" },
     newTo: "/news/new",
     detailTo: "/news/$id",
-    list: async () => (await orbit.GET("/api/news", { params: { query: { limit: 50 } } })).data,
+    list: async (page: number) => (await orbit.GET("/api/news", { params: { query: { page, limit: PAGE_SIZE } } })).data,
     get: async (id: string) => (await orbit.GET("/api/news/{id}", { params: { path: { id } } })).data ?? null,
     remove: (id: string) => orbit.DELETE("/api/news/{id}", { params: { path: { id } } }),
     create: (body: PostDraft) => orbit.POST("/api/news", { body }),
@@ -36,7 +38,7 @@ const FEED = {
     section: { label: "Blog", to: "/blog" },
     newTo: "/blog/new",
     detailTo: "/blog/$id",
-    list: async () => (await orbit.GET("/api/blog-posts", { params: { query: { limit: 50 } } })).data,
+    list: async (page: number) => (await orbit.GET("/api/blog-posts", { params: { query: { page, limit: PAGE_SIZE } } })).data,
     get: async (id: string) => (await orbit.GET("/api/blog-posts/{id}", { params: { path: { id } } })).data ?? null,
     remove: (id: string) => orbit.DELETE("/api/blog-posts/{id}", { params: { path: { id } } }),
     create: (body: PostDraft) => orbit.POST("/api/blog-posts", { body }),
@@ -50,7 +52,8 @@ export function MarkdownFeed({ kind, title }: { kind: Kind; title: string }) {
   const navigate = useNavigate();
   const feed = FEED[kind];
   const key = [kind];
-  const { data } = useQuery({ queryKey: key, queryFn: feed.list });
+  const [page, setPage] = useState(1);
+  const { data } = useQuery({ queryKey: [kind, "list", page], queryFn: () => feed.list(page), placeholderData: keepPreviousData });
 
   const del = useMutation({
     mutationFn: feed.remove,
@@ -117,6 +120,7 @@ export function MarkdownFeed({ kind, title }: { kind: Kind; title: string }) {
           </ContextMenu>
         ))}
       </div>
+      <ListPagination page={page} total={data?.total} onPageChange={setPage} />
     </>
   );
 }

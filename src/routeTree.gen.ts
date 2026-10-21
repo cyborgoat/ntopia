@@ -14,7 +14,6 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppNotificationsRouteImport } from './routes/_app/notifications'
-import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppAnnouncementsIndexRouteImport } from './routes/_app/announcements.index'
 import { Route as AppAnnouncementsIdRouteImport } from './routes/_app/announcements.$id'
 import { Route as AppBlogIndexRouteImport } from './routes/_app/blog.index'
@@ -54,11 +53,6 @@ const AppIndexRoute = AppIndexRouteImport.update({
 const AppNotificationsRoute = AppNotificationsRouteImport.update({
   id: '/notifications',
   path: '/notifications',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppSettingsRoute = AppSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
   getParentRoute: () => AppRoute,
 } as any)
 const AppAnnouncementsIndexRoute = AppAnnouncementsIndexRouteImport.update({
@@ -147,7 +141,6 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/notifications': typeof AppNotificationsRoute
-  '/settings': typeof AppSettingsRoute
   '/announcements/$id': typeof AppAnnouncementsIdRoute
   '/blog/$id': typeof AppBlogIdRoute
   '/blog/new': typeof AppBlogNewRoute
@@ -169,7 +162,6 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/notifications': typeof AppNotificationsRoute
-  '/settings': typeof AppSettingsRoute
   '/': typeof AppIndexRoute
   '/announcements/$id': typeof AppAnnouncementsIdRoute
   '/blog/$id': typeof AppBlogIdRoute
@@ -194,7 +186,6 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/_app/notifications': typeof AppNotificationsRoute
-  '/_app/settings': typeof AppSettingsRoute
   '/_app/': typeof AppIndexRoute
   '/_app/announcements/$id': typeof AppAnnouncementsIdRoute
   '/_app/blog/$id': typeof AppBlogIdRoute
@@ -220,7 +211,6 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/notifications'
-    | '/settings'
     | '/announcements/$id'
     | '/blog/$id'
     | '/blog/new'
@@ -242,7 +232,6 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/notifications'
-    | '/settings'
     | '/'
     | '/announcements/$id'
     | '/blog/$id'
@@ -266,7 +255,6 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/_app/notifications'
-    | '/_app/settings'
     | '/_app/'
     | '/_app/announcements/$id'
     | '/_app/blog/$id'
@@ -327,13 +315,6 @@ declare module '@tanstack/react-router' {
       path: '/notifications'
       fullPath: '/notifications'
       preLoaderRoute: typeof AppNotificationsRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/settings': {
-      id: '/_app/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof AppSettingsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/announcements/': {
@@ -453,7 +434,6 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppNotificationsRoute: typeof AppNotificationsRoute
-  AppSettingsRoute: typeof AppSettingsRoute
   AppIndexRoute: typeof AppIndexRoute
   AppAnnouncementsIdRoute: typeof AppAnnouncementsIdRoute
   AppBlogIdRoute: typeof AppBlogIdRoute
@@ -475,7 +455,6 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppNotificationsRoute: AppNotificationsRoute,
-  AppSettingsRoute: AppSettingsRoute,
   AppIndexRoute: AppIndexRoute,
   AppAnnouncementsIdRoute: AppAnnouncementsIdRoute,
   AppBlogIdRoute: AppBlogIdRoute,
