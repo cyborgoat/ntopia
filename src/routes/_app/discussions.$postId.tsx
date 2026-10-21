@@ -10,6 +10,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
+import { Divider } from "@/components/detail-page";
 import { Markdown } from "@/components/markdown";
 import { MarkdownEditor, type MarkdownEditorHandle } from "@/components/markdown-editor";
 import { uploadImage } from "@/components/image-upload";
@@ -27,12 +28,29 @@ export const Route = createFileRoute("/_app/discussions/$postId")({
 
 type Vote = 1 | -1 | 0;
 
+// Filled arrow = the current user's vote; outlined = not voted.
 function VoteBar({ score, mine, onVote }: { score: number; mine: Vote; onVote: (v: Vote) => void }) {
+  const arrow = (dir: 1 | -1) => {
+    const active = mine === dir;
+    const Icon = dir === 1 ? ArrowBigUp : ArrowBigDown;
+    return (
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        aria-label={dir === 1 ? "Upvote" : "Downvote"}
+        aria-pressed={active}
+        className={active ? "text-primary" : "text-muted-foreground"}
+        onClick={() => onVote(active ? 0 : dir)}
+      >
+        <Icon className={active ? "fill-current" : undefined} />
+      </Button>
+    );
+  };
   return (
     <div className="flex items-center gap-1 text-sm">
-      <Button variant="ghost" size="icon-sm" className={mine === 1 ? "text-foreground" : "text-muted-foreground"} onClick={() => onVote(mine === 1 ? 0 : 1)}><ArrowBigUp /></Button>
-      <span className="w-5 text-center tabular-nums">{score}</span>
-      <Button variant="ghost" size="icon-sm" className={mine === -1 ? "text-foreground" : "text-muted-foreground"} onClick={() => onVote(mine === -1 ? 0 : -1)}><ArrowBigDown /></Button>
+      {arrow(1)}
+      <span className={`w-5 text-center tabular-nums ${mine !== 0 ? "font-medium text-primary" : ""}`}>{score}</span>
+      {arrow(-1)}
     </div>
   );
 }
@@ -48,8 +66,8 @@ function VoteMenuItems({
 }) {
   return (
     <>
-      <ContextMenuItem onClick={() => onVote(1)}><ArrowBigUp /> Upvote</ContextMenuItem>
-      <ContextMenuItem onClick={() => onVote(-1)}><ArrowBigDown /> Downvote</ContextMenuItem>
+      <ContextMenuItem onClick={() => onVote(1)}><ArrowBigUp className={mine === 1 ? "fill-current" : undefined} /> Upvote</ContextMenuItem>
+      <ContextMenuItem onClick={() => onVote(-1)}><ArrowBigDown className={mine === -1 ? "fill-current" : undefined} /> Downvote</ContextMenuItem>
       <ContextMenuItem disabled={mine === 0} onClick={() => onVote(0)}><Undo2 /> Clear vote</ContextMenuItem>
       {onReply && (
         <>
@@ -117,7 +135,7 @@ function Thread() {
     <>
       <ContextMenu>
         <ContextMenuTrigger className="block">
-          <article className="space-y-3 rounded-lg border p-5">
+          <article className="space-y-3">
             <h1 className="text-lg font-semibold tracking-tight">{post.title}</h1>
             <p className="text-xs text-muted-foreground">{post.author.fullName} · {new Date(post.createdAt).toLocaleString()}</p>
             <Markdown>{post.content}</Markdown>
@@ -129,13 +147,14 @@ function Thread() {
         </ContextMenuContent>
       </ContextMenu>
 
-      <h2 className="mb-3 mt-8 text-sm font-medium">{post.comments.length} comments</h2>
-      <div className="space-y-4">
+      <Divider />
+      <h2 className="mb-4 text-sm font-medium">{post.comments.length} comments</h2>
+      <div className="space-y-6">
         {post.comments.map((c) => (
           <div key={c.id} className="space-y-3">
             <ContextMenu>
               <ContextMenuTrigger className="block">
-                <div className="rounded-lg border p-4">
+                <div>
                   <p className="mb-1 text-xs text-muted-foreground">{c.author.fullName} · {new Date(c.createdAt).toLocaleString()}</p>
                   <Markdown>{c.content}</Markdown>
                   <div className="mt-2 flex items-center gap-2">
@@ -151,7 +170,7 @@ function Thread() {
             {c.replies.map((r) => (
               <ContextMenu key={r.id}>
                 <ContextMenuTrigger className="block">
-                  <div className="ml-8 rounded-lg border bg-muted/30 p-4">
+                  <div className="ml-8">
                     <p className="mb-1 text-xs text-muted-foreground">{r.author.fullName} · {new Date(r.createdAt).toLocaleString()}</p>
                     <Markdown>{r.content}</Markdown>
                     <div className="mt-2"><VoteBar score={r.score} mine={r.myVote} onVote={(v) => voteComment(r.id, v)} /></div>
@@ -166,7 +185,8 @@ function Thread() {
         ))}
       </div>
 
-      <div className="mt-6 space-y-2">
+      <Divider />
+      <div className="space-y-2">
         {replyTo && (
           <p className="text-xs text-muted-foreground">
             Replying to a comment · <button className="underline" onClick={() => setReplyTo(null)}>cancel</button>

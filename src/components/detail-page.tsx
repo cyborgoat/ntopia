@@ -6,6 +6,11 @@ import { Empty } from "@/components/page-header";
 import { usePageCrumbs, usePageTitle } from "@/components/page-chrome";
 import { useAuth } from "@/lib/auth";
 
+/** Hairline between a page's main content and a secondary section. */
+export function Divider() {
+  return <hr className="my-6 border-border/60" />;
+}
+
 /**
  * Shared frame for a single Team Orbit item: breadcrumbs
  * (Home / Section / item), loading and not-found states, admin delete.
@@ -52,10 +57,11 @@ export function DetailPage({
     );
   }
   return (
-    <article className="space-y-4">
+    <article className="space-y-5">
       {children}
       {isAdmin && onDelete && (
-        <div className="border-t pt-4">
+        <div>
+          <Divider />
           <Button
             variant="outline"
             size="sm"
