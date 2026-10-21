@@ -1,3 +1,4 @@
+import { DateChip } from "@/components/date-chip";
 import { useState } from "react";
 import { ListPagination, PAGE_SIZE } from "@/components/list-pagination";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
@@ -19,7 +20,7 @@ import { ImageUploadButton } from "@/components/image-upload";
 import { Empty, PageHeader } from "@/components/page-header";
 import { RequireAuth } from "@/components/require-auth";
 import { useAuth } from "@/lib/auth";
-import { assetUrl, errorMessage, orbit } from "@/lib/orbit";
+import { errorMessage, orbit } from "@/lib/orbit";
 import { formatDateTime } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/events/")({
@@ -99,11 +100,13 @@ function Events() {
                   params={{ id: ev.id }}
                   className="flex overflow-hidden rounded-lg border transition-colors hover:bg-muted/50"
                 >
-                  {ev.coverImageUrl && <img src={assetUrl(ev.coverImageUrl)} alt="" className="w-28 shrink-0 object-cover" />}
-                  <div className="min-w-0 flex-1 p-4">
-                    <h2 className={`truncate font-medium ${isAdmin ? "pr-10" : ""}`}>{ev.title}</h2>
-                    <p className="mt-1 text-sm text-muted-foreground">{formatDateTime(ev.startAt)}</p>
-                    <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground"><MapPin className="size-3.5 shrink-0" /><span className="truncate">{ev.location}</span></p>
+                  <div className="flex min-w-0 flex-1 items-center gap-4 p-4">
+                    <DateChip iso={ev.startAt} className="w-12 py-1" />
+                    <div className="min-w-0 flex-1">
+                      <h2 className={`truncate font-medium ${isAdmin ? "pr-10" : ""}`}>{ev.title}</h2>
+                      <p className="mt-1 text-sm text-muted-foreground">{formatDateTime(ev.startAt)}</p>
+                      <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground"><MapPin className="size-3.5 shrink-0" /><span className="truncate">{ev.location}</span></p>
+                    </div>
                   </div>
                 </Link>
                 {isAdmin && (

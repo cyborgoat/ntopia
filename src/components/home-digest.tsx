@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCheck, MapPin, MessageSquare, ThumbsUp } from "lucide-react";
+import { DateChip } from "@/components/date-chip";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -125,10 +126,7 @@ export function HomeDigest() {
             const d = new Date(e.startAt);
             return (
               <Link key={e.id} to="/events/$id" params={{ id: e.id }} className={rowCls}>
-                <span className="flex w-9 shrink-0 flex-col items-center rounded-md bg-muted py-0.5 leading-tight">
-                  <span className="text-[10px] uppercase text-muted-foreground">{d.toLocaleDateString([], { month: "short" })}</span>
-                  <span className="text-sm font-semibold tabular-nums">{d.getDate()}</span>
-                </span>
+                <DateChip iso={e.startAt} />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate">{e.title}</span>
                   <span className="flex items-center gap-1 truncate text-xs text-muted-foreground">
