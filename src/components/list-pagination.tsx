@@ -8,7 +8,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 
-export const PAGE_SIZE = 10;
+export const PAGE_SIZE = 8;
 
 // Page numbers to show: first, last, and a window around the current page.
 function pageList(page: number, pages: number): (number | "gap")[] {
@@ -36,7 +36,7 @@ export function ListPagination({
   if (pages <= 1) return null;
 
   return (
-    <Pagination className="pt-6">
+    <Pagination className="sticky bottom-0 z-10 -mb-8 mt-4 bg-background/90 pt-3 pb-4 backdrop-blur-sm">
       <PaginationContent>
         <PaginationItem>
           <PaginationPrevious disabled={page <= 1} onClick={() => onPageChange(page - 1)} />
