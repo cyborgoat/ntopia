@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { DetailPage } from "@/components/detail-page";
-import { CommentThread } from "@/components/comments";
 import { RequireAuth } from "@/components/require-auth";
 import { orbit } from "@/lib/orbit";
 
@@ -38,7 +37,6 @@ function AnnouncementDetail() {
           <h1 className="text-xl font-semibold tracking-tight">{data.title}</h1>
           <p className="text-xs text-muted-foreground">{data.author.fullName} · {new Date(data.createdAt).toLocaleString()}</p>
           <p className="whitespace-pre-wrap text-sm">{data.description}</p>
-          <CommentThread resourceType="announcement" resourceId={id} />
         </>
       )}
     </DetailPage>
