@@ -12,7 +12,7 @@ import {
 import { Divider } from "@/components/detail-page";
 import { Markdown } from "@/components/markdown";
 import { MarkdownEditor, type MarkdownEditorHandle } from "@/components/markdown-editor";
-import { uploadImage } from "@/components/image-upload";
+import { releaseStagedImages, stageImage, uploadStagedImages } from "@/components/image-upload";
 import { errorMessage, imagePreviewUrl, orbit } from "@/lib/orbit";
 
 export type Vote = 1 | -1 | 0;
@@ -97,10 +97,17 @@ export function CommentThread({
   async function send() {
     if (!text.trim()) return;
     setError("");
+    let content: string;
+    try {
+      content = await uploadStagedImages(text);
+    } catch (e) {
+      return setError(errorMessage(e));
+    }
     const { error } = await orbit.POST("/api/comments", {
-      body: { resourceType, resourceId, content: text, ...(replyTo ? { parentId: replyTo } : {}) },
+      body: { resourceType, resourceId, content, ...(replyTo ? { parentId: replyTo } : {}) },
     });
     if (error) return setError(errorMessage(error));
+    releaseStagedImages(text);
     setText("");
     setReplyTo(null);
     refresh();
@@ -175,7 +182,7 @@ export function CommentThread({
             value={text}
             onChange={setText}
             onSubmit={() => void send()}
-            imageUploadHandler={uploadImage}
+            imageUploadHandler={stageImage}
             imagePreviewHandler={imagePreviewUrl}
           />
         </div>

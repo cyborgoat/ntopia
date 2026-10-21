@@ -5,7 +5,7 @@ import { ArrowLeft, ImagePlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MarkdownEditor } from "@/components/markdown-editor";
-import { uploadImage } from "@/components/image-upload";
+import { releaseStagedImages, stageImage, uploadImage, uploadStagedImages } from "@/components/image-upload";
 import { usePageCrumbs, usePageTitle } from "@/components/page-chrome";
 import { assetUrl, imagePreviewUrl } from "@/lib/orbit";
 
@@ -53,10 +53,11 @@ export function PostComposer({
     try {
       await onPublish({
         title: title.trim(),
-        content,
+        content: await uploadStagedImages(content),
         tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
         coverImageUrl: cover,
       });
+      releaseStagedImages(content);
       published.current = true;
       await navigate({ to: backTo });
     } catch (e) {
@@ -130,7 +131,7 @@ export function PostComposer({
         value={content}
         onChange={setContent}
         placeholder="Write your post… Markdown shortcuts like #, -, > and ``` work as you type."
-        imageUploadHandler={uploadImage}
+        imageUploadHandler={stageImage}
         imagePreviewHandler={imagePreviewUrl}
       />
     </div>
