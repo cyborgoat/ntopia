@@ -25,7 +25,6 @@ import { Route as AppDiscussionsPostIdRouteImport } from './routes/_app/discussi
 import { Route as AppDiscussionsNewRouteImport } from './routes/_app/discussions.new'
 import { Route as AppEventsIndexRouteImport } from './routes/_app/events.index'
 import { Route as AppEventsIdRouteImport } from './routes/_app/events.$id'
-import { Route as AppGadgetsIndexRouteImport } from './routes/_app/gadgets.index'
 import { Route as AppGadgetsEmailRouteImport } from './routes/_app/gadgets.email'
 import { Route as AppNewsIndexRouteImport } from './routes/_app/news.index'
 import { Route as AppNewsIdRouteImport } from './routes/_app/news.$id'
@@ -110,11 +109,6 @@ const AppEventsIdRoute = AppEventsIdRouteImport.update({
   path: '/events/$id',
   getParentRoute: () => AppRoute,
 } as any)
-const AppGadgetsIndexRoute = AppGadgetsIndexRouteImport.update({
-  id: '/gadgets/',
-  path: '/gadgets/',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppGadgetsEmailRoute = AppGadgetsEmailRouteImport.update({
   id: '/gadgets/email',
   path: '/gadgets/email',
@@ -155,7 +149,6 @@ export interface FileRoutesByFullPath {
   '/blog/': typeof AppBlogIndexRoute
   '/discussions/': typeof AppDiscussionsIndexRoute
   '/events/': typeof AppEventsIndexRoute
-  '/gadgets/': typeof AppGadgetsIndexRoute
   '/news/': typeof AppNewsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -177,7 +170,6 @@ export interface FileRoutesByTo {
   '/blog': typeof AppBlogIndexRoute
   '/discussions': typeof AppDiscussionsIndexRoute
   '/events': typeof AppEventsIndexRoute
-  '/gadgets': typeof AppGadgetsIndexRoute
   '/news': typeof AppNewsIndexRoute
 }
 export interface FileRoutesById {
@@ -201,7 +193,6 @@ export interface FileRoutesById {
   '/_app/blog/': typeof AppBlogIndexRoute
   '/_app/discussions/': typeof AppDiscussionsIndexRoute
   '/_app/events/': typeof AppEventsIndexRoute
-  '/_app/gadgets/': typeof AppGadgetsIndexRoute
   '/_app/news/': typeof AppNewsIndexRoute
 }
 export interface FileRouteTypes {
@@ -225,7 +216,6 @@ export interface FileRouteTypes {
     | '/blog/'
     | '/discussions/'
     | '/events/'
-    | '/gadgets/'
     | '/news/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -247,7 +237,6 @@ export interface FileRouteTypes {
     | '/blog'
     | '/discussions'
     | '/events'
-    | '/gadgets'
     | '/news'
   id:
     | '__root__'
@@ -270,7 +259,6 @@ export interface FileRouteTypes {
     | '/_app/blog/'
     | '/_app/discussions/'
     | '/_app/events/'
-    | '/_app/gadgets/'
     | '/_app/news/'
   fileRoutesById: FileRoutesById
 }
@@ -394,13 +382,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppEventsIdRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/gadgets/': {
-      id: '/_app/gadgets/'
-      path: '/gadgets'
-      fullPath: '/gadgets/'
-      preLoaderRoute: typeof AppGadgetsIndexRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/_app/gadgets/email': {
       id: '/_app/gadgets/email'
       path: '/gadgets/email'
@@ -449,7 +430,6 @@ interface AppRouteChildren {
   AppBlogIndexRoute: typeof AppBlogIndexRoute
   AppDiscussionsIndexRoute: typeof AppDiscussionsIndexRoute
   AppEventsIndexRoute: typeof AppEventsIndexRoute
-  AppGadgetsIndexRoute: typeof AppGadgetsIndexRoute
   AppNewsIndexRoute: typeof AppNewsIndexRoute
 }
 
@@ -470,7 +450,6 @@ const AppRouteChildren: AppRouteChildren = {
   AppBlogIndexRoute: AppBlogIndexRoute,
   AppDiscussionsIndexRoute: AppDiscussionsIndexRoute,
   AppEventsIndexRoute: AppEventsIndexRoute,
-  AppGadgetsIndexRoute: AppGadgetsIndexRoute,
   AppNewsIndexRoute: AppNewsIndexRoute,
 }
 

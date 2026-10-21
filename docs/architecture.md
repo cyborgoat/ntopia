@@ -95,7 +95,7 @@ File routes under `src/routes/`; generated tree in `src/routeTree.gen.ts`.
 |------|--------|--------|
 | Public | `/login`, `/register` | Outside the shell; login can “Continue without signing in” |
 | Shell | `/_app` → `AppShell` | Pathless layout; URLs stay `/`, `/gadgets`, … |
-| Local | `/`, `/gadgets`, `/gadgets/email`, `/todo`, `/settings` | No Orbit API required |
+| Local | `/`, `/gadgets/email`, `/todo`, `/settings` | No Orbit API required |
 | Orbit | `/announcements`, `/events`, `/news`, `/news/new`, `/blog`, `/blog/new`, `/discussions/*`, `/notifications`; detail pages `/announcements/$id`, `/events/$id`, `/news/$id`, `/blog/$id` | Behind `RequireAuth`; `*/new` composers are full-bleed (`FULL_BLEED` in `app-shell.tsx`) |
 
 ## Key libraries (`src/lib/`)

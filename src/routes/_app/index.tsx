@@ -2,7 +2,6 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { PageHeader } from "@/components/page-header";
 import { SignInNotice } from "@/components/sign-in-notice";
-import { GadgetGrid } from "@/components/gadget-grid";
 import { useAuth } from "@/lib/auth";
 import { orbit } from "@/lib/orbit";
 
@@ -25,7 +24,6 @@ function GuestHome() {
     <>
       <PageHeader title="Home" />
       <SignInNotice>Local tools work offline. Sign in to use Team Orbit: announcements, events, news and discussions.</SignInNotice>
-      <GadgetGrid />
     </>
   );
 }

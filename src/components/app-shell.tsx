@@ -2,7 +2,7 @@ import { Fragment, useEffect, useRef, useState } from "react";
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Bell, BookOpen, CalendarDays, ChevronsUpDown, Home, KeyRound, ListTodo, LogIn, LogOut, Megaphone, MessagesSquare, Newspaper, Server, Toolbox, UserRound,
+  Bell, BookOpen, CalendarDays, ChevronRight, ChevronsUpDown, Home, KeyRound, ListTodo, LogIn, LogOut, Megaphone, MessagesSquare, Newspaper, Server, Toolbox, UserRound,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -27,6 +27,9 @@ import {
   SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarProvider,
   SidebarRail,
   SidebarSeparator,
@@ -39,6 +42,8 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { gadgets } from "@/gadgets/registry";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SettingsDialog, type SettingsPanel } from "@/components/settings-dialogs";
 import { PageChromeProvider, usePageChrome } from "@/components/page-chrome";
@@ -49,7 +54,6 @@ import { useNotificationsSocket } from "@/lib/realtime";
 const localNav = [
   { to: "/", label: "Home", icon: Home },
   { to: "/todo", label: "Todo", icon: ListTodo },
-  { to: "/gadgets", label: "Gadgets", icon: Toolbox },
 ] as const;
 
 const orbitNav = [
@@ -87,6 +91,53 @@ function NavItems({
           </SidebarMenuItem>
         );
       })}
+    </SidebarMenu>
+  );
+}
+
+/** "Gadgets" parent item that expands in place to list each gadget; each entry opens the gadget directly. */
+function GadgetsMenu({ pathname }: { pathname: string }) {
+  const { state, setOpen } = useSidebar();
+  const inGadget = pathname.startsWith("/gadgets");
+  const [open, setOpenGroup] = useState(inGadget);
+  useEffect(() => {
+    if (inGadget) setOpenGroup(true);
+  }, [inGadget]);
+
+  return (
+    <SidebarMenu>
+      <Collapsible
+        render={<SidebarMenuItem />}
+        open={open}
+        onOpenChange={(next) => {
+          // In the icon rail there is no room for the sub-list: expand the sidebar and show it.
+          if (state === "collapsed") {
+            setOpen(true);
+            setOpenGroup(true);
+          } else {
+            setOpenGroup(next);
+          }
+        }}
+        className="group/collapsible"
+      >
+        <CollapsibleTrigger render={<SidebarMenuButton tooltip="Gadgets" isActive={inGadget && !open} />}>
+          <Toolbox />
+          <span>Gadgets</span>
+          <ChevronRight className="ml-auto transition-transform group-data-[open]/collapsible:rotate-90" />
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <SidebarMenuSub>
+            {gadgets.map((g) => (
+              <SidebarMenuSubItem key={g.id}>
+                <SidebarMenuSubButton render={<Link to={g.to} />} isActive={pathname === g.to || pathname.startsWith(`${g.to}/`)}>
+                  <g.icon />
+                  <span>{g.name}</span>
+                </SidebarMenuSubButton>
+              </SidebarMenuSubItem>
+            ))}
+          </SidebarMenuSub>
+        </CollapsibleContent>
+      </Collapsible>
     </SidebarMenu>
   );
 }
@@ -190,6 +241,7 @@ export function AppShell() {
             <SidebarGroup>
               <SidebarGroupContent>
                 <NavItems items={localNav} pathname={pathname} />
+                <GadgetsMenu pathname={pathname} />
               </SidebarGroupContent>
             </SidebarGroup>
 

@@ -1,6 +1,6 @@
 # Gadgets
 
-Gadgets are **local tools** that run inside NTOPIA without Team Orbit. They appear on `/gadgets` and (for guests) on the home hub.
+Gadgets are **local tools** that run inside NTOPIA without Team Orbit. They appear as a collapsible "Gadgets" menu in the sidebar; each entry opens the gadget directly (there is no gadget list page).
 
 ## Built-in
 
