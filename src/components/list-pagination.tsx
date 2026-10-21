@@ -36,7 +36,7 @@ export function ListPagination({
   if (pages <= 1) return null;
 
   return (
-    <Pagination className="sticky bottom-0 z-10 -mb-8 mt-4 bg-background/90 pt-3 pb-4 backdrop-blur-sm">
+    <Pagination className="sticky bottom-0 z-10 -mb-8 mt-auto bg-background/90 pt-5 pb-4 backdrop-blur-sm">
       <PaginationContent>
         <PaginationItem>
           <PaginationPrevious disabled={page <= 1} onClick={() => onPageChange(page - 1)} />

@@ -342,7 +342,7 @@ export function AppShell() {
                   : "flex-1 overflow-auto"
               }
             >
-              <div className={fullBleed ? "h-full min-h-0" : "mx-auto max-w-4xl px-8 pt-4 pb-8"}>
+              <div className={fullBleed ? "h-full min-h-0" : "mx-auto flex min-h-full max-w-4xl flex-col px-8 pt-4 pb-8"}>
                 <Outlet />
               </div>
             </div>
