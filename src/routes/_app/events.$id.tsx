@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CalendarDays, MapPin } from "lucide-react";
 import { DetailPage } from "@/components/detail-page";
+import { CommentThread } from "@/components/comments";
 import { RequireAuth } from "@/components/require-auth";
 import { assetUrl, orbit } from "@/lib/orbit";
 import { formatDateTime } from "@/lib/utils";
@@ -44,6 +45,7 @@ function EventDetail() {
             <p className="flex items-center gap-1.5"><MapPin className="size-4" />{data.location}</p>
           </div>
           <p className="whitespace-pre-wrap text-sm">{data.description}</p>
+          <CommentThread resourceType="event" resourceId={id} />
         </>
       )}
     </DetailPage>

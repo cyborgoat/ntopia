@@ -12,6 +12,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
+import { CommentThread } from "@/components/comments";
 import { DetailPage } from "@/components/detail-page";
 import { Markdown } from "@/components/markdown";
 import { ListPagination, PAGE_SIZE } from "@/components/list-pagination";
@@ -152,6 +153,7 @@ export function FeedPostDetail({ kind, id }: { kind: Kind; id: string }) {
           {data.tags.length > 0 && (
             <div className="flex flex-wrap gap-1.5">{data.tags.map((t) => <Badge key={t} variant="secondary">{t}</Badge>)}</div>
           )}
+          <CommentThread resourceType={kind === "/news" ? "news" : "blog"} resourceId={id} />
         </>
       )}
     </DetailPage>
