@@ -5,6 +5,7 @@ import { RouterProvider, createHashHistory, createRouter } from "@tanstack/react
 import { routeTree } from "./routeTree.gen";
 import { AuthProvider } from "@/lib/auth";
 import { TODO_STORAGE_KEY } from "@/features/todo/store";
+import { HOME_SEEN_KEY } from "@/components/home-digest";
 import { STORAGE_KEYS } from "@/lib/orbit";
 import { initStorage } from "@/lib/storage";
 import "@mdxeditor/editor/style.css";
@@ -21,7 +22,7 @@ declare module "@tanstack/react-router" {
   }
 }
 
-initStorage([...STORAGE_KEYS, TODO_STORAGE_KEY]).then(() => {
+initStorage([...STORAGE_KEYS, TODO_STORAGE_KEY, HOME_SEEN_KEY]).then(() => {
   ReactDOM.createRoot(document.getElementById("root")!).render(
     <React.StrictMode>
       <QueryClientProvider client={queryClient}>

@@ -126,6 +126,10 @@ Gadgets are small local tools. Register one in `src/gadgets/registry.ts` and add
 - Scratch workspace under app data: `email/work/`, `email/out/`, branding JSON, pasted images in `work/assets/pasted/`.
 - Sidecar: `pnpm sidecar` downloads portable Node into `src-tauri/binaries/` and copies mdmailer into `src-tauri/resources/mdmailer/`. The app shells out to `node …/cli.js` for live `preview` and generate (HTML / EML / PNG).
 
+### Home (`/`)
+
+Greeting plus two columns: the **Today** panel (`src/features/todo/today-panel.tsx`: overdue and due-today tasks, quick add; works offline) and, when signed in, the Team Orbit digest (`src/components/home-digest.tsx`: unread notifications, announcements, upcoming events, latest news/blog posts, discussions). Guests see the sign-in banner in place of the digest. Items newer than the previous visit get a dot (`homeLastSeen` storage key).
+
 ### Todo list (`/todo`)
 
 A dedicated sidebar feature, not a gadget.

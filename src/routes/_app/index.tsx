@@ -1,64 +1,48 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { HomeDigest } from "@/components/home-digest";
 import { PageHeader } from "@/components/page-header";
 import { SignInNotice } from "@/components/sign-in-notice";
+import { TodayPanel } from "@/features/todo/today-panel";
+import { useNow } from "@/features/todo/use-now";
 import { useAuth } from "@/lib/auth";
 import { orbit } from "@/lib/orbit";
 
 export const Route = createFileRoute("/_app/")({ component: Home });
 
-function Section({ title, to, children }: { title: string; to: string; children: React.ReactNode }) {
-  return (
-    <section className="rounded-lg border p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-sm font-medium">{title}</h2>
-        <Link to={to} className="text-xs text-muted-foreground hover:text-foreground">View all</Link>
-      </div>
-      <div className="space-y-2 text-sm">{children}</div>
-    </section>
-  );
-}
-
-function GuestHome() {
-  return (
-    <>
-      <PageHeader title="Home" />
-      <SignInNotice>Local tools work offline. Sign in to use Team Orbit: announcements, events, news and discussions.</SignInNotice>
-    </>
-  );
-}
-
-function SignedInHome() {
-  const ann = useQuery({ queryKey: ["announcements", "home"], queryFn: async () => (await orbit.GET("/api/announcements", { params: { query: { limit: 3 } } })).data });
-  const ev = useQuery({ queryKey: ["events", "home"], queryFn: async () => (await orbit.GET("/api/events", { params: { query: { limit: 3 } } })).data });
-  const news = useQuery({ queryKey: ["news", "home"], queryFn: async () => (await orbit.GET("/api/news", { params: { query: { limit: 3 } } })).data });
-  const forum = useQuery({ queryKey: ["forum-posts", "home"], queryFn: async () => (await orbit.GET("/api/forum-posts", { params: { query: { limit: 3 } } })).data });
-  const muted = <span className="text-muted-foreground">Nothing yet.</span>;
-
-  return (
-    <>
-      <PageHeader title="Home" />
-      <div className="grid gap-4 md:grid-cols-2">
-        <Section title="Announcements" to="/announcements">
-          {ann.data?.items.length ? ann.data.items.map((a) => <div key={a.id} className="truncate">{a.title}</div>) : muted}
-        </Section>
-        <Section title="Upcoming events" to="/events">
-          {ev.data?.items.length ? ev.data.items.map((e) => (
-            <div key={e.id} className="flex justify-between gap-2"><span className="truncate">{e.title}</span><span className="shrink-0 text-muted-foreground">{new Date(e.startAt).toLocaleDateString()}</span></div>
-          )) : muted}
-        </Section>
-        <Section title="News" to="/news">
-          {news.data?.items.length ? news.data.items.map((n) => <div key={n.id} className="truncate">{n.title}</div>) : muted}
-        </Section>
-        <Section title="Discussions" to="/discussions">
-          {forum.data?.items.length ? forum.data.items.map((p) => <div key={p.id} className="truncate">{p.title}</div>) : muted}
-        </Section>
-      </div>
-    </>
-  );
+function greeting(hour: number) {
+  return hour < 5 ? "Good evening" : hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
 }
 
 function Home() {
-  const { token } = useAuth();
-  return token ? <SignedInHome /> : <GuestHome />;
+  const { token, user } = useAuth();
+  const now = useNow();
+  const unread = useQuery({
+    queryKey: ["notifications", "unread"],
+    queryFn: async () => (await orbit.GET("/api/notifications", { params: { query: { limit: 100 } } })).data,
+    enabled: !!token,
+  });
+  const unreadCount = unread.data?.items.filter((n) => !n.read).length ?? 0;
+  const first = user?.fullName.split(" ")[0];
+
+  return (
+    <>
+      <PageHeader title="Home" />
+      <div className="space-y-10 pb-6">
+        <div>
+          <h2 className="text-2xl font-semibold tracking-tight">{greeting(now.getHours())}{first ? `, ${first}` : ""}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {now.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
+            {token && unreadCount > 0 && ` · ${unreadCount} unread`}
+          </p>
+        </div>
+        <TodayPanel />
+        {token ? (
+          <HomeDigest />
+        ) : (
+          <SignInNotice>Local tools work offline. Sign in to see announcements, events, news and discussions from Team Orbit.</SignInNotice>
+        )}
+      </div>
+    </>
+  );
 }

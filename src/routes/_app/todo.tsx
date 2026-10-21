@@ -24,19 +24,10 @@ import {
   updateTodo,
   type TodoItem,
 } from "@/features/todo/store";
+import { useNow } from "@/features/todo/use-now";
 import { TodoDialog } from "@/features/todo/todo-dialog";
 
 export const Route = createFileRoute("/_app/todo")({ component: TodoPage });
-
-/** Current time, refreshed each minute so groups roll over at midnight. */
-function useNow() {
-  const [now, setNow] = useState(() => new Date());
-  useEffect(() => {
-    const id = window.setInterval(() => setNow(new Date()), 60_000);
-    return () => window.clearInterval(id);
-  }, []);
-  return now;
-}
 
 function TodoPage() {
   const [items, setItems] = useState<TodoItem[]>(() => listTodos());
