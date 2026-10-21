@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/context-menu";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { FeedCard } from "@/components/feed-card";
 import { ListPagination, PAGE_SIZE } from "@/components/list-pagination";
 import { Empty, PageHeader } from "@/components/page-header";
 import { RequireAuth } from "@/components/require-auth";
@@ -51,22 +52,25 @@ function Discussions() {
         }
       />
       <Input placeholder="Search threads…" value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} className="mb-4" />
-      <div className="divide-y rounded-lg border">
+      <div className="space-y-2">
         {data?.items.length === 0 && <Empty>No threads yet. Start one!</Empty>}
         {data?.items.map((p) => (
           <ContextMenu key={p.id}>
             <ContextMenuTrigger className="block w-full">
-              <Link to="/discussions/$postId" params={{ postId: p.id }} className="flex items-center gap-4 p-4 transition-colors hover:bg-muted/50">
-                <div className="min-w-0 flex-1">
-                  <div className="truncate font-medium">{p.title}</div>
-                  <div className="mt-0.5 truncate text-sm text-muted-foreground">{p.content}</div>
-                  <div className="mt-1 text-xs text-muted-foreground">{p.author.fullName} · {new Date(p.createdAt).toLocaleDateString()}</div>
-                </div>
-                <div className="flex shrink-0 items-center gap-3 text-sm text-muted-foreground">
-                  <span className="flex items-center gap-1"><ArrowBigUp className="size-4" />{p.score}</span>
-                  <span className="flex items-center gap-1"><MessageSquare className="size-4" />{p.commentCount}</span>
-                </div>
-              </Link>
+              <FeedCard
+                to="/discussions/$postId"
+                params={{ postId: p.id }}
+                title={p.title}
+                author={p.author.fullName}
+                createdAt={p.createdAt}
+                content={p.content}
+                aside={
+                  <>
+                    <span className="flex items-center gap-1"><ArrowBigUp className="size-4" />{p.score}</span>
+                    <span className="flex items-center gap-1"><MessageSquare className="size-4" />{p.commentCount}</span>
+                  </>
+                }
+              />
             </ContextMenuTrigger>
             <ContextMenuContent>
               <ContextMenuItem onClick={() => void navigate({ to: "/discussions/$postId", params: { postId: p.id } })}>

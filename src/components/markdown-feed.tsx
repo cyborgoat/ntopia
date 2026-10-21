@@ -13,6 +13,7 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import { CommentThread } from "@/components/comments";
+import { FeedCard } from "@/components/feed-card";
 import { DetailPage } from "@/components/detail-page";
 import { Markdown } from "@/components/markdown";
 import { ListPagination, PAGE_SIZE } from "@/components/list-pagination";
@@ -20,7 +21,6 @@ import { Empty, PageHeader } from "@/components/page-header";
 import { PostComposer, type PostDraft } from "@/components/post-composer";
 import { useAuth } from "@/lib/auth";
 import { assetUrl, errorMessage, orbit } from "@/lib/orbit";
-import { excerpt } from "@/lib/utils";
 
 type Kind = "/news" | "/blog-posts";
 
@@ -77,31 +77,26 @@ export function MarkdownFeed({ kind, title }: { kind: Kind; title: string }) {
           )
         }
       />
-      <div className="space-y-4">
+      <div className="space-y-2">
         {data?.items.length === 0 && <Empty>Nothing here yet.</Empty>}
         {data?.items.map((p) => (
           <ContextMenu key={p.id}>
             <ContextMenuTrigger className="block">
-              <div className="relative">
-                <Link
-                  to={feed.detailTo}
-                  params={{ id: p.id }}
-                  className="flex overflow-hidden rounded-lg border transition-colors hover:bg-muted/50"
-                >
-                  {p.coverImageUrl && <img src={assetUrl(p.coverImageUrl)} alt="" className="w-32 shrink-0 object-cover" />}
-                  <div className="min-w-0 flex-1 space-y-1.5 p-4">
-                    <h2 className={`truncate font-semibold tracking-tight ${isAdmin ? "pr-10" : ""}`}>{p.title}</h2>
-                    <p className="text-xs text-muted-foreground">{p.author.fullName} · {new Date(p.createdAt).toLocaleDateString()}</p>
-                    <p className="line-clamp-2 text-sm text-muted-foreground">{excerpt(p.content)}</p>
-                    {p.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5">{p.tags.map((t) => <Badge key={t} variant="secondary">{t}</Badge>)}</div>
-                    )}
-                  </div>
-                </Link>
-                {isAdmin && (
-                  <Button variant="ghost" size="icon-sm" className="absolute top-3 right-3" onClick={() => del.mutate(p.id)} aria-label="Delete"><Trash2 /></Button>
-                )}
-              </div>
+              <FeedCard
+                to={feed.detailTo}
+                params={{ id: p.id }}
+                title={p.title}
+                author={p.author.fullName}
+                createdAt={p.createdAt}
+                content={p.content}
+                leading={p.coverImageUrl ? <img src={assetUrl(p.coverImageUrl)} alt="" className="w-24 shrink-0 object-cover" /> : undefined}
+                footer={p.tags.length > 0 ? (
+                  <div className="flex flex-wrap gap-1">{p.tags.map((t) => <Badge key={t} variant="secondary">{t}</Badge>)}</div>
+                ) : undefined}
+                action={isAdmin ? (
+                  <Button variant="ghost" size="icon-xs" onClick={() => del.mutate(p.id)} aria-label="Delete"><Trash2 /></Button>
+                ) : undefined}
+              />
             </ContextMenuTrigger>
             <ContextMenuContent>
               <ContextMenuItem

@@ -8,7 +8,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 
-export const PAGE_SIZE = 8;
+export const PAGE_SIZE = 5;
 
 // Page numbers to show: first, last, and a window around the current page.
 function pageList(page: number, pages: number): (number | "gap")[] {
