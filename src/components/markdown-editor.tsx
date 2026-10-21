@@ -2,13 +2,57 @@ import { useIsDark } from "@/hooks/use-is-dark";
 import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import {
   BlockTypeSelect, BoldItalicUnderlineToggles, ChangeCodeMirrorLanguage, CodeToggle, ConditionalContents,
-  CreateLink, DiffSourceToggleWrapper, InsertCodeBlock, InsertImage, InsertTable, InsertThematicBreak,
+  CreateLink, DiffSourceToggleWrapper, InsertCodeBlock, InsertTable, InsertThematicBreak,
   ListsToggle, MDXEditor, Separator, StrikeThroughSupSubToggles, UndoRedo,
   codeBlockPlugin, codeMirrorPlugin, diffSourcePlugin, headingsPlugin, imagePlugin, linkDialogPlugin,
   linkPlugin, listsPlugin, markdownShortcutPlugin, quotePlugin, tablePlugin, thematicBreakPlugin, toolbarPlugin,
   type MDXEditorMethods,
 } from "@mdxeditor/editor";
+import { toast } from "sonner";
+import { ImagePlus } from "lucide-react";
+import { open } from "@tauri-apps/plugin-dialog";
+import { readFile } from "@tauri-apps/plugin-fs";
+import { Button } from "@/components/ui/button";
+import { isTauri } from "@/lib/storage";
 import { cn } from "@/lib/utils";
+
+const IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "gif", "webp", "svg", "bmp", "avif"];
+const MIME: Record<string, string> = { svg: "image/svg+xml", jpg: "image/jpeg" };
+
+/** Opens the OS file explorer and returns the chosen images as Files. */
+async function pickImages(): Promise<File[]> {
+  if (isTauri()) {
+    const picked = await open({
+      multiple: true,
+      filters: [{ name: "Images", extensions: IMAGE_EXTENSIONS }],
+    });
+    const paths = picked ? (Array.isArray(picked) ? picked : [picked]) : [];
+    return Promise.all(
+      paths.map(async (path) => {
+        const name = path.split(/[\\/]/).pop() ?? "image";
+        const ext = name.split(".").pop()?.toLowerCase() ?? "png";
+        return new File([await readFile(path)], name, { type: MIME[ext] ?? `image/${ext}` });
+      }),
+    );
+  }
+  return new Promise((resolve) => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.multiple = true;
+    input.onchange = () => resolve([...(input.files ?? [])]);
+    input.oncancel = () => resolve([]);
+    input.click();
+  });
+}
+
+function ImageButton({ onPick }: { onPick: () => void }) {
+  return (
+    <Button type="button" variant="ghost" size="icon-sm" title="Insert image from files" aria-label="Insert image" onClick={onPick}>
+      <ImagePlus />
+    </Button>
+  );
+}
 
 const CODE_BLOCK_LANGUAGES = {
   txt: "Plain text", js: "JavaScript", ts: "TypeScript", tsx: "TypeScript (React)",
@@ -58,7 +102,7 @@ function forwardTableWheel(wrapper: HTMLElement, event: WheelEvent) {
   }
 }
 
-function FullToolbar({ images }: { images: boolean }) {
+function FullToolbar({ onPickImage }: { onPickImage?: () => void }) {
   return (
     <DiffSourceToggleWrapper options={["rich-text", "source"]}>
       <ConditionalContents
@@ -78,7 +122,7 @@ function FullToolbar({ images }: { images: boolean }) {
                 <ListsToggle />
                 <Separator />
                 <CreateLink />
-                {images && <InsertImage />}
+                {onPickImage && <ImageButton onPick={onPickImage} />}
                 <InsertTable />
                 <InsertThematicBreak />
                 <InsertCodeBlock />
@@ -91,7 +135,7 @@ function FullToolbar({ images }: { images: boolean }) {
   );
 }
 
-function CompactToolbar({ images }: { images: boolean }) {
+function CompactToolbar({ onPickImage }: { onPickImage?: () => void }) {
   return (
     <>
       <BoldItalicUnderlineToggles options={["Bold", "Italic"]} />
@@ -100,7 +144,7 @@ function CompactToolbar({ images }: { images: boolean }) {
       <ListsToggle options={["bullet", "number"]} />
       <Separator />
       <CreateLink />
-      {images && <InsertImage />}
+      {onPickImage && <ImageButton onPick={onPickImage} />}
     </>
   );
 }
@@ -153,6 +197,40 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, Props>(function M
     };
   }, []);
 
+  const uploadRef = useRef(imageUploadHandler);
+  uploadRef.current = imageUploadHandler;
+
+  async function insertFiles(files: File[]) {
+    const upload = uploadRef.current;
+    if (!upload) return;
+    for (const file of files) {
+      try {
+        const url = await upload(file);
+        editorRef.current?.insertMarkdown(`![${file.name.replace(/\.[^.]+$/, "")}](${url})`);
+      } catch (err) {
+        toast.error(`Couldn't upload ${file.name}: ${err instanceof Error ? err.message : "unknown error"}`);
+      }
+    }
+  }
+  const insertFromFiles = async () => insertFiles(await pickImages());
+  const insertRef = useRef(insertFiles);
+  insertRef.current = insertFiles;
+
+  // Pasted images (clipboard files or screenshots) are uploaded and inserted at the caret.
+  useEffect(() => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
+    const onPaste = (e: ClipboardEvent) => {
+      const files = [...(e.clipboardData?.files ?? [])].filter((f) => f.type.startsWith("image/"));
+      if (!files.length || !uploadRef.current) return;
+      e.preventDefault();
+      e.stopPropagation();
+      void insertRef.current(files.map((f, i) => (f.name && f.name !== "image.png" ? f : new File([f], `pasted-${Date.now()}-${i}.${f.type.split("/")[1] || "png"}`, { type: f.type }))));
+    };
+    wrapper.addEventListener("paste", onPaste, true);
+    return () => wrapper.removeEventListener("paste", onPaste, true);
+  }, []);
+
   // Plugins are read once on mount, so handlers must be stable for the editor's lifetime.
   const images = !!imageUploadHandler;
   const plugins = useRef([
@@ -169,7 +247,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, Props>(function M
     markdownShortcutPlugin(),
     diffSourcePlugin({ viewMode: "rich-text" }),
     toolbarPlugin({
-      toolbarContents: () => (variant === "compact" ? <CompactToolbar images={images} /> : <FullToolbar images={images} />),
+      toolbarContents: () => (variant === "compact" ? <CompactToolbar onPickImage={images ? insertFromFiles : undefined} /> : <FullToolbar onPickImage={images ? insertFromFiles : undefined} />),
       toolbarClassName: "md-editor-toolbar",
     }),
   ]).current;
