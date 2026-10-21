@@ -1,6 +1,7 @@
 import { useState } from "react";
+import { ListPagination, PAGE_SIZE } from "@/components/list-pagination";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Copy, ExternalLink, MapPin, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -37,9 +38,11 @@ function Events() {
   const navigate = useNavigate();
   const [f, setF] = useState(blank);
   const set = (k: keyof typeof blank) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setF({ ...f, [k]: e.target.value });
+  const [page, setPage] = useState(1);
   const { data } = useQuery({
-    queryKey: ["events"],
-    queryFn: async () => (await orbit.GET("/api/events", { params: { query: { limit: 50 } } })).data,
+    queryKey: ["events", page],
+    queryFn: async () => (await orbit.GET("/api/events", { params: { query: { page, limit: PAGE_SIZE } } })).data,
+    placeholderData: keepPreviousData,
   });
   const del = useMutation({
     mutationFn: (id: string) => orbit.DELETE("/api/events/{id}", { params: { path: { id } } }),
@@ -127,6 +130,7 @@ function Events() {
           </ContextMenu>
         ))}
       </div>
+      <ListPagination page={page} total={data?.total} onPageChange={setPage} />
     </>
   );
 }

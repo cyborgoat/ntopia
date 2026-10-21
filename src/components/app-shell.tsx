@@ -1,10 +1,19 @@
-import { Fragment, useEffect, useRef } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Bell, BookOpen, CalendarDays, Home, LogIn, Megaphone, MessagesSquare, Newspaper, Settings, Toolbox,
+  Bell, BookOpen, CalendarDays, ChevronsUpDown, Home, KeyRound, LogIn, LogOut, Megaphone, MessagesSquare, Newspaper, Server, Toolbox, UserRound,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Sidebar,
   SidebarContent,
@@ -31,6 +40,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { SettingsDialog, type SettingsPanel } from "@/components/settings-dialogs";
 import { PageChromeProvider, usePageChrome } from "@/components/page-chrome";
 import { useAuth } from "@/lib/auth";
 import { orbit } from "@/lib/orbit";
@@ -148,7 +158,8 @@ function InsetHeader({ fullBleed }: { fullBleed: boolean }) {
 }
 
 export function AppShell() {
-  const { user, token } = useAuth();
+  const { user, token, logout } = useAuth();
+  const [panel, setPanel] = useState<SettingsPanel | null>(null);
   useNotificationsSocket();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const fullBleed = FULL_BLEED.some((p) => pathname === p || pathname.startsWith(`${p}/`));
@@ -207,38 +218,61 @@ export function AppShell() {
                   {unread > 0 && <SidebarMenuBadge>{unread}</SidebarMenuBadge>}
                 </SidebarMenuItem>
               )}
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  render={<Link to="/settings" />}
-                  isActive={pathname.startsWith("/settings")}
-                  tooltip="Settings"
-                >
-                  <Settings />
-                  <span>Settings</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
               {token ? (
                 user && (
                   <SidebarMenuItem>
-                    <SidebarMenuButton size="lg" className="pointer-events-none" tooltip={user.fullName}>
-                      <Avatar className="size-8">
-                        <AvatarImage src={user.avatarUrl} alt="" />
-                        <AvatarFallback className="text-xs">{user.fullName.slice(0, 1)}</AvatarFallback>
-                      </Avatar>
-                      <div className="grid min-w-0 flex-1 text-left text-xs leading-tight">
-                        <span className="truncate font-medium">{user.fullName}</span>
-                        <span className="truncate text-muted-foreground">{user.role.toLowerCase()}</span>
-                      </div>
-                    </SidebarMenuButton>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger render={<SidebarMenuButton size="lg" tooltip={user.fullName} />}>
+                        <Avatar className="size-8">
+                          <AvatarImage src={user.avatarUrl} alt="" />
+                          <AvatarFallback className="text-xs">{user.fullName.slice(0, 1)}</AvatarFallback>
+                        </Avatar>
+                        <div className="grid min-w-0 flex-1 text-left text-xs leading-tight">
+                          <span className="truncate font-medium">{user.fullName}</span>
+                          <span className="truncate text-muted-foreground">{user.role.toLowerCase()}</span>
+                        </div>
+                        <ChevronsUpDown className="ml-auto size-4 text-muted-foreground" />
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent side="top" align="start" className="min-w-56">
+                        <DropdownMenuGroup>
+                          <DropdownMenuLabel className="flex items-center gap-2">
+                            <Avatar className="size-8">
+                              <AvatarImage src={user.avatarUrl} alt="" />
+                              <AvatarFallback className="text-xs">{user.fullName.slice(0, 1)}</AvatarFallback>
+                            </Avatar>
+                            <div className="grid min-w-0 text-left text-xs leading-tight">
+                              <span className="truncate font-medium text-foreground">{user.fullName}</span>
+                              <span className="truncate">@{user.username}</span>
+                            </div>
+                          </DropdownMenuLabel>
+                        </DropdownMenuGroup>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuGroup>
+                          <DropdownMenuItem onClick={() => setPanel("profile")}><UserRound /> Profile</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setPanel("password")}><KeyRound /> Password</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setPanel("server")}><Server /> Server</DropdownMenuItem>
+                        </DropdownMenuGroup>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem variant="destructive" onClick={logout}><LogOut /> Sign out</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </SidebarMenuItem>
                 )
               ) : (
-                <SidebarMenuItem>
-                  <SidebarMenuButton render={<Link to="/login" />} tooltip="Sign in">
-                    <LogIn />
-                    <span>Sign in</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                <>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton onClick={() => setPanel("server")} tooltip="Server">
+                      <Server />
+                      <span>Server</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton render={<Link to="/login" />} tooltip="Sign in">
+                      <LogIn />
+                      <span>Sign in</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </>
               )}
             </SidebarMenu>
           </SidebarFooter>
@@ -261,6 +295,7 @@ export function AppShell() {
             </div>
           </SidebarInset>
         </PageChromeProvider>
+        <SettingsDialog panel={panel} onClose={() => setPanel(null)} />
       </SidebarProvider>
     </TooltipProvider>
   );
