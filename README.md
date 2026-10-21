@@ -22,7 +22,7 @@ pnpm install
 pnpm tauri:dev        # prepares the mdmailer sidecar, then launches the app
 ```
 
-You can use Home and Gadgets immediately without signing in. To unlock Team Orbit features, sign in with your username (or email) and password at your Team Orbit server URL on the login screen. Enter the server origin only, such as `https://orbit.example.com`; the client adds `/api` itself. Dev builds default to `http://localhost:3000`; set `VITE_DEFAULT_SERVER` to preset another URL. USER accounts are read/discuss only; ADMIN/SUPERUSER can publish.
+You can use Home and Gadgets immediately without signing in. To unlock Team Orbit features, sign in with your username (or email) and password at your Team Orbit server URL on the login screen. Enter the server origin only, such as `https://orbit.example.com`; the client adds `/api` itself. Dev builds default to `http://localhost:3000`; set `VITE_DEFAULT_SERVER` to preset another URL. Any member can write blog posts and start discussions; only ADMIN/SUPERUSER can publish announcements, events and news.
 
 ## Gadgets
 

@@ -46,6 +46,9 @@ const FEED = {
   },
 } as const;
 
+/** Blog is open to every member; news is admin-only. */
+const canPublish = (kind: Kind, isAdmin: boolean) => kind === "/blog-posts" || isAdmin;
+
 /** News and blog posts share one shape, so they share one page. */
 export function MarkdownFeed({ kind, title }: { kind: Kind; title: string }) {
   const { isAdmin } = useAuth();
@@ -67,7 +70,7 @@ export function MarkdownFeed({ kind, title }: { kind: Kind; title: string }) {
         title={title}
         crumbs={[{ label: "Home", to: "/" }, { label: title }]}
         actions={
-          isAdmin && (
+          canPublish(kind, isAdmin) && (
             <Button size="sm" render={<Link to={feed.newTo} />}>
               <Plus /> New
             </Button>
@@ -160,11 +163,11 @@ export function FeedPostDetail({ kind, id }: { kind: Kind; id: string }) {
   );
 }
 
-/** Full-page composer for a new news or blog post (admins only). */
+/** Full-page composer for a new news (admins only) or blog (any member) post. */
 export function NewFeedPost({ kind, title }: { kind: Kind; title: string }) {
   const { isAdmin } = useAuth();
   const qc = useQueryClient();
-  if (!isAdmin) return <Empty>Only admins can publish {title.toLowerCase()} posts.</Empty>;
+  if (!canPublish(kind, isAdmin)) return <Empty>Only admins can publish {title.toLowerCase()} posts.</Empty>;
   return (
     <PostComposer
       pageTitle={`New ${title.toLowerCase()} post`}
