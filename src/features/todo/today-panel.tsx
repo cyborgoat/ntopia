@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { dueLabel, groupTodos } from "./group";
 import { TODO_REMINDER_EVENT } from "./reminders";
-import { addTodo, listTodos, toggleTodo, URGENCY_CLASS, URGENCY_LABEL, type TodoItem } from "./store";
+import { TodoDialog } from "./todo-dialog";
+import { addTodo, listTodos, toggleTodo, updateTodo, URGENCY_CLASS, URGENCY_LABEL, type TodoItem } from "./store";
 import { toDateKey } from "./dates";
 import { useNow } from "./use-now";
 
@@ -14,6 +15,8 @@ import { useNow } from "./use-now";
 export function TodayPanel() {
   const [items, setItems] = useState<TodoItem[]>(() => listTodos());
   const [title, setTitle] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const editing = items.find((t) => t.id === editingId);
   const now = useNow();
 
   useEffect(() => {
@@ -38,37 +41,39 @@ export function TodayPanel() {
   };
 
   return (
-    <section className="flex flex-col rounded-2xl border bg-card p-6 shadow-xs sm:p-8">
-      <div className="mb-5 flex items-end justify-between gap-4">
+    <section className="flex flex-col rounded-2xl border bg-card p-4 shadow-xs sm:p-5">
+      <div className="mb-3 flex items-end justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-semibold tracking-tight">Today</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <h2 className="text-lg font-semibold tracking-tight">Today</h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">
             {openToday === 0 ? "Nothing on your plate." : `${openToday} ${openToday === 1 ? "task" : "tasks"} to do${overdueCount ? `, ${overdueCount} overdue` : ""}`}
           </p>
         </div>
-        <Link to="/todo" className="flex shrink-0 items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-          Open Todo <ArrowRight className="size-4" />
+        <Link to="/todo" className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+          Open Todo <ArrowRight className="size-3.5" />
         </Link>
       </div>
 
-      <div className="min-h-20 flex-1">
+      <div className="min-h-12 flex-1">
         {focus.map((s, i) => (
-          <div key={s.id} className={i > 0 ? "mt-4 border-t border-border/40 pt-4" : undefined}>
+          <div key={s.id} className={i > 0 ? "mt-2 border-t border-border/40 pt-2" : undefined}>
             {s.id === "overdue" && <p className="mb-1 px-2 text-xs font-medium uppercase tracking-wide text-destructive">Overdue</p>}
             {s.id === "today" && focus.length > 1 && <p className="mb-1 px-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Today</p>}
             <ul>
               {s.items.map((t) => (
-                <li key={t.id} className="flex h-10 items-center gap-3 rounded-lg px-2 hover:bg-muted/60">
+                <li key={t.id} className="flex h-8 items-center gap-2.5 rounded-lg px-2 hover:bg-muted/60">
                   <input
                     type="checkbox"
                     checked={t.done}
                     onChange={() => setItems(toggleTodo(t.id))}
-                    className="size-4 shrink-0 accent-foreground"
+                    className="size-3.5 shrink-0 accent-foreground"
                     aria-label="Mark complete"
                   />
-                  {t.flagged && <Flag className="size-3.5 shrink-0 fill-amber-500 text-amber-500" aria-label="Flagged" />}
-                  <span className="min-w-0 flex-1 truncate text-base">{t.title}</span>
-                  <span className="flex shrink-0 items-center gap-2.5 text-sm text-muted-foreground">
+                  <button type="button" onClick={() => setEditingId(t.id)} className="flex min-w-0 flex-1 items-center gap-2.5 self-stretch text-left">
+                    {t.flagged && <Flag className="size-3 shrink-0 fill-amber-500 text-amber-500" aria-label="Flagged" />}
+                    <span className="min-w-0 flex-1 truncate text-sm">{t.title}</span>
+                  </button>
+                  <span className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
                     {t.urgency && t.urgency !== "none" && (
                       <Badge variant="outline" className={`h-4 px-1.5 text-[10px] ${URGENCY_CLASS[t.urgency]}`}>
                         {URGENCY_LABEL[t.urgency]}
@@ -87,18 +92,18 @@ export function TodayPanel() {
           </div>
         ))}
         {focus.length === 0 && (
-          <p className="px-2 py-2 text-base text-muted-foreground">
+          <p className="px-2 py-1 text-sm text-muted-foreground">
             You're clear for today.
             {next?.dueDate && <> Next up: <span className="text-foreground">{next.title}</span> · {dueLabel(next.dueDate, next.dueTime, now)}</>}
           </p>
         )}
         {coming.length > 0 && focus.length > 0 && (
-          <div className="mt-4 border-t border-border/40 pt-4">
+          <div className="mt-2 border-t border-border/40 pt-2">
             <p className="mb-1 px-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Coming up</p>
             <ul>
               {coming.map((t) => (
-                <li key={t.id} className="flex h-9 items-center gap-3 rounded-lg px-2 text-sm text-muted-foreground">
-                  <span className="min-w-0 flex-1 truncate">{t.title}</span>
+                <li key={t.id} className="flex h-7 items-center gap-2.5 rounded-lg px-2 text-xs text-muted-foreground hover:bg-muted/60">
+                  <button type="button" onClick={() => setEditingId(t.id)} className="min-w-0 flex-1 self-stretch truncate text-left">{t.title}</button>
                   {t.dueDate && <span className="shrink-0 tabular-nums">{dueLabel(t.dueDate, t.dueTime, now)}</span>}
                 </li>
               ))}
@@ -107,10 +112,19 @@ export function TodayPanel() {
         )}
       </div>
 
-      <form onSubmit={add} className="mt-6 flex items-center gap-2">
-        <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Add a task for today…" className="h-10 text-base" />
-        <Button type="submit" size="icon" className="size-10" disabled={!title.trim()} aria-label="Add task"><Plus /></Button>
+      <form onSubmit={add} className="mt-3 flex items-center gap-2">
+        <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Add a task for today…" className="h-8 text-sm" />
+        <Button type="submit" size="icon" className="size-8" disabled={!title.trim()} aria-label="Add task"><Plus /></Button>
       </form>
+
+      {editing && (
+        <TodoDialog
+          key={editing.id}
+          todo={editing}
+          onSave={(patch) => setItems(updateTodo(editing.id, patch))}
+          onClose={() => setEditingId(null)}
+        />
+      )}
     </section>
   );
 }
