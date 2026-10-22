@@ -6,7 +6,7 @@ import { routeTree } from "./routeTree.gen";
 import { AuthProvider } from "@/lib/auth";
 import { TODO_STORAGE_KEY } from "@/features/todo/store";
 import { HOME_SEEN_KEY } from "@/components/home-digest";
-import { STORAGE_KEYS } from "@/lib/orbit";
+import { STORAGE_KEYS, resetOrbit } from "@/lib/orbit";
 import { initStorage } from "@/lib/storage";
 import "@mdxeditor/editor/style.css";
 import "./index.css";
@@ -23,6 +23,8 @@ declare module "@tanstack/react-router" {
 }
 
 initStorage([...STORAGE_KEYS, TODO_STORAGE_KEY, HOME_SEEN_KEY]).then(() => {
+  // The client was built at import time, before storage loaded: rebuild it with the saved server URL.
+  resetOrbit();
   ReactDOM.createRoot(document.getElementById("root")!).render(
     <React.StrictMode>
       <QueryClientProvider client={queryClient}>

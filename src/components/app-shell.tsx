@@ -210,7 +210,7 @@ function InsetHeader({ fullBleed }: { fullBleed: boolean }) {
 }
 
 export function AppShell() {
-  const { user, token, logout } = useAuth();
+  const { user, token, logout, loading, unreachable } = useAuth();
   const [panel, setPanel] = useState<SettingsPanel | null>(null);
   useNotificationsSocket();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -272,7 +272,7 @@ export function AppShell() {
                 </SidebarMenuItem>
               )}
               {token ? (
-                user && (
+                user ? (
                   <SidebarMenuItem>
                     <DropdownMenu>
                       <DropdownMenuTrigger render={<SidebarMenuButton size="lg" tooltip={user.fullName} />}>
@@ -310,6 +310,24 @@ export function AppShell() {
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </SidebarMenuItem>
+                ) : (
+                  // Signed in but the profile didn't load (server unreachable): always leave a way out.
+                  !loading && (
+                    <>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton onClick={() => setPanel("server")} tooltip="Can't reach the server">
+                          <Server />
+                          <span>{unreachable ? "Can't reach server" : "Server"}</span>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton onClick={logout} tooltip="Sign out">
+                          <LogOut />
+                          <span>Sign out</span>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    </>
+                  )
                 )
               ) : (
                 <>

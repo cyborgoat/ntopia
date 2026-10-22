@@ -8,6 +8,8 @@ type AuthValue = {
   user: User | null;
   token: string | null;
   loading: boolean;
+  /** The stored session could not be verified because the server did not answer. */
+  unreachable: boolean;
   isAdmin: boolean;
   login: (identifier: string, password: string) => Promise<void>;
   register: (p: components["schemas"]["RegisterDto"]) => Promise<void>;
@@ -21,6 +23,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setTokenState] = useState<string | null>(getToken() ?? null);
   const [loading, setLoading] = useState(!!getToken());
+  const [unreachable, setUnreachable] = useState(false);
 
   const logout = useCallback(() => {
     void setToken(null);
@@ -42,10 +45,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const { data, response } = await orbit.GET("/api/auth/me");
         if (cancelled) return;
+        setUnreachable(false);
         if (data) setUser(data);
         else if (response.status === 401) logout();
       } catch {
-        /* offline / unreachable — keep token for the next successful check */
+        // offline / unreachable — keep token for the next successful check
+        if (!cancelled) setUnreachable(true);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -60,6 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user,
       token,
       loading,
+      unreachable,
       isAdmin: user?.role === "ADMIN" || user?.role === "SUPERUSER",
       setUser,
       logout,
@@ -77,7 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (error) throw new Error(errorMessage(error, response));
       },
     }),
-    [user, token, loading, logout],
+    [user, token, loading, unreachable, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
