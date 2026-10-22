@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { AvatarSettings } from "@/components/avatar-settings";
 import { Field } from "@/components/form-dialog";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { useAuthDialog } from "@/components/auth-dialog";
 import { useAuth } from "@/lib/auth";
 import { applyServerUrl, errorMessage, getServerUrl, orbit } from "@/lib/orbit";
 
@@ -76,6 +76,7 @@ function PasswordSection() {
 
 function ServerSection() {
   const { user, logout } = useAuth();
+  const openAuth = useAuthDialog();
   const [server, setServer] = useState(getServerUrl());
 
   return (
@@ -90,7 +91,7 @@ function ServerSection() {
         ) : (
           <>
             <Button size="sm" variant="outline" onClick={() => { void applyServerUrl(server); toast.success("Server URL saved"); }}>Save</Button>
-            <Button size="sm" render={<Link to="/login" />}>Sign in</Button>
+            <Button size="sm" onClick={() => openAuth("login")}>Sign in</Button>
           </>
         )}
       </div>

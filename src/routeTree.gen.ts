@@ -10,8 +10,6 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/_app'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as RegisterRouteImport } from './routes/register'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppNotificationsRouteImport } from './routes/_app/notifications'
 import { Route as AppTodoRouteImport } from './routes/_app/todo'
@@ -35,16 +33,6 @@ import { Route as AppNewsNewRouteImport } from './routes/_app/news.new'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RegisterRoute = RegisterRouteImport.update({
-  id: '/register',
-  path: '/register',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppIndexRoute = AppIndexRouteImport.update({
@@ -150,8 +138,6 @@ const AppNewsNewRoute = AppNewsNewRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
-  '/login': typeof LoginRoute
-  '/register': typeof RegisterRoute
   '/notifications': typeof AppNotificationsRoute
   '/todo': typeof AppTodoRoute
   '/announcements/$id': typeof AppAnnouncementsIdRoute
@@ -173,8 +159,6 @@ export interface FileRoutesByFullPath {
   '/news/': typeof AppNewsIndexRoute
 }
 export interface FileRoutesByTo {
-  '/login': typeof LoginRoute
-  '/register': typeof RegisterRoute
   '/notifications': typeof AppNotificationsRoute
   '/todo': typeof AppTodoRoute
   '/': typeof AppIndexRoute
@@ -199,8 +183,6 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
-  '/login': typeof LoginRoute
-  '/register': typeof RegisterRoute
   '/_app/notifications': typeof AppNotificationsRoute
   '/_app/todo': typeof AppTodoRoute
   '/_app/': typeof AppIndexRoute
@@ -226,8 +208,6 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/login'
-    | '/register'
     | '/notifications'
     | '/todo'
     | '/announcements/$id'
@@ -249,8 +229,6 @@ export interface FileRouteTypes {
     | '/news/'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/login'
-    | '/register'
     | '/notifications'
     | '/todo'
     | '/'
@@ -274,8 +252,6 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/_app'
-    | '/login'
-    | '/register'
     | '/_app/notifications'
     | '/_app/todo'
     | '/_app/'
@@ -300,8 +276,6 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
-  LoginRoute: typeof LoginRoute
-  RegisterRoute: typeof RegisterRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -311,20 +285,6 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof AppRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/register': {
-      id: '/register'
-      path: '/register'
-      fullPath: '/register'
-      preLoaderRoute: typeof RegisterRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app/': {
@@ -520,8 +480,6 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
-  LoginRoute: LoginRoute,
-  RegisterRoute: RegisterRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

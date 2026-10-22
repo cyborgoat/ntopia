@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider, createHashHistory, createRouter } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
 import { AuthProvider } from "@/lib/auth";
+import { AuthDialogProvider } from "@/components/auth-dialog";
 import { TODO_STORAGE_KEY } from "@/features/todo/store";
 import { LINKS_STORAGE_KEY } from "@/gadgets/links/store";
 import { NOTES_STORAGE_KEY } from "@/gadgets/notes/store";
@@ -31,7 +32,9 @@ initStorage([...STORAGE_KEYS, TODO_STORAGE_KEY, HOME_SEEN_KEY, NOTES_STORAGE_KEY
     <React.StrictMode>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <RouterProvider router={router} />
+          <AuthDialogProvider>
+            <RouterProvider router={router} />
+          </AuthDialogProvider>
         </AuthProvider>
       </QueryClientProvider>
     </React.StrictMode>,

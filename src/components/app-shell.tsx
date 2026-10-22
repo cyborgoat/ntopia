@@ -48,6 +48,7 @@ import { gadgets } from "@/gadgets/registry";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SettingsDialog, type SettingsPanel } from "@/components/settings-dialogs";
 import { PageChromeProvider, usePageChrome } from "@/components/page-chrome";
+import { useAuthDialog } from "@/components/auth-dialog";
 import { useAuth } from "@/lib/auth";
 import { orbit } from "@/lib/orbit";
 import { useNotificationsSocket } from "@/lib/realtime";
@@ -235,6 +236,7 @@ function InsetHeader({ fullBleed }: { fullBleed: boolean }) {
 
 export function AppShell() {
   const { user, token, logout, loading, unreachable } = useAuth();
+  const openAuth = useAuthDialog();
   const [panel, setPanel] = useState<SettingsPanel | null>(null);
   useNotificationsSocket();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -356,7 +358,7 @@ export function AppShell() {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
-                    <SidebarMenuButton render={<Link to="/login" />} tooltip="Sign in">
+                    <SidebarMenuButton onClick={() => openAuth("login")} tooltip="Sign in">
                       <LogIn />
                       <span>Sign in</span>
                     </SidebarMenuButton>
