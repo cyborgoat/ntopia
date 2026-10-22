@@ -159,14 +159,15 @@ function TodoPage() {
           </ContextMenu>
         ) : (
           <ContextMenu>
-            <ContextMenuTrigger className="block space-y-3">
+            <ContextMenuTrigger className="block">
               {!sections.some((s) => s.id === "today") && (
                 <p className="px-2 text-xs text-muted-foreground">Nothing due today.</p>
               )}
-              {sections.map((s) => {
+              {sections.map((s, i) => {
                 const collapsed = isCollapsed(s.id);
                 return (
-                  <section key={s.id}>
+                  // A faint rule between groups keeps them reading as one list.
+                  <section key={s.id} className={i > 0 ? "mt-3 border-t border-border/40 pt-3" : undefined}>
                     <button
                       type="button"
                       aria-expanded={!collapsed}

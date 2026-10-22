@@ -50,10 +50,11 @@ export function TodayPanel() {
         </Link>
       </div>
 
-      <div className="min-h-20 flex-1 space-y-5">
-        {focus.map((s) => (
-          <div key={s.id}>
+      <div className="min-h-20 flex-1">
+        {focus.map((s, i) => (
+          <div key={s.id} className={i > 0 ? "mt-4 border-t border-border/40 pt-4" : undefined}>
             {s.id === "overdue" && <p className="mb-1 px-2 text-xs font-medium uppercase tracking-wide text-destructive">Overdue</p>}
+            {s.id === "today" && focus.length > 1 && <p className="mb-1 px-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Today</p>}
             <ul>
               {s.items.map((t) => (
                 <li key={t.id} className="flex h-10 items-center gap-3 rounded-lg px-2 hover:bg-muted/60">
@@ -85,7 +86,7 @@ export function TodayPanel() {
           </p>
         )}
         {coming.length > 0 && focus.length > 0 && (
-          <div>
+          <div className="mt-4 border-t border-border/40 pt-4">
             <p className="mb-1 px-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Coming up</p>
             <ul>
               {coming.map((t) => (
