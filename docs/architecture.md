@@ -95,7 +95,7 @@ File routes under `src/routes/`; generated tree in `src/routeTree.gen.ts`.
 |------|--------|--------|
 | Public | `/login`, `/register` | Outside the shell; login can “Continue without signing in” |
 | Shell | `/_app` → `AppShell` | Pathless layout; URLs stay `/`, `/gadgets`, … |
-| Local | `/`, `/gadgets/email`, `/todo`, `/settings` | No Orbit API required |
+| Local | `/`, `/gadgets/email`, `/gadgets/notes`, `/gadgets/links`, `/gadgets/timer`, `/todo`, `/settings` | No Orbit API required |
 | Orbit | `/announcements`, `/events`, `/news`, `/news/new`, `/blog`, `/blog/new`, `/discussions/*`, `/notifications`; detail pages `/announcements/$id`, `/events/$id`, `/news/$id`, `/blog/$id`, `/discussions/$postId` | Behind `RequireAuth`; `*/new` composers are full-bleed (`FULL_BLEED` in `app-shell.tsx`) |
 
 ### Orbit feature notes (`@goatcheese/teamorbit-client` ≥ 0.2.3)
@@ -121,7 +121,9 @@ File routes under `src/routes/`; generated tree in `src/routeTree.gen.ts`.
 
 ## Gadgets
 
-Gadgets are small local tools. Register one in `src/gadgets/registry.ts` and add `src/routes/_app/gadgets.<id>.tsx`.
+Gadgets are small local tools under the Gadgets sidebar menu. Register one in `src/gadgets/registry.ts` and add `src/routes/_app/gadgets.<id>.tsx`. First-class local features (Todo) stay in `src/features/` with their own nav item — see [gadgets.md](./gadgets.md).
+
+Built-ins: **email** (sidecar), **notes** (`gadget-notes` store with folders + trash, Markdown editor, full-bleed resizable sidebar), **links** (`gadget-links` store + system browser), **timer** (in-session countdown).
 
 ### Email composer (`/gadgets/email`)
 

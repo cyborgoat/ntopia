@@ -5,6 +5,8 @@ import { RouterProvider, createHashHistory, createRouter } from "@tanstack/react
 import { routeTree } from "./routeTree.gen";
 import { AuthProvider } from "@/lib/auth";
 import { TODO_STORAGE_KEY } from "@/features/todo/store";
+import { LINKS_STORAGE_KEY } from "@/gadgets/links/store";
+import { NOTES_STORAGE_KEY } from "@/gadgets/notes/store";
 import { HOME_SEEN_KEY } from "@/components/home-digest";
 import { STORAGE_KEYS, resetOrbit } from "@/lib/orbit";
 import { initStorage } from "@/lib/storage";
@@ -22,7 +24,7 @@ declare module "@tanstack/react-router" {
   }
 }
 
-initStorage([...STORAGE_KEYS, TODO_STORAGE_KEY, HOME_SEEN_KEY]).then(() => {
+initStorage([...STORAGE_KEYS, TODO_STORAGE_KEY, HOME_SEEN_KEY, NOTES_STORAGE_KEY, LINKS_STORAGE_KEY]).then(() => {
   // The client was built at import time, before storage loaded: rebuild it with the saved server URL.
   resetOrbit();
   ReactDOM.createRoot(document.getElementById("root")!).render(

@@ -64,7 +64,7 @@ const orbitNav = [
   { to: "/discussions", label: "Discussions", icon: MessagesSquare },
 ] as const;
 
-const FULL_BLEED = ["/gadgets/email", "/todo", "/blog/new", "/news/new", "/discussions/new"];
+const FULL_BLEED = ["/gadgets/email", "/gadgets/notes", "/todo", "/blog/new", "/news/new", "/discussions/new"];
 const MARK = "text-[1.65rem] font-semibold tracking-[-0.06em]";
 
 function NavItems({

@@ -1,6 +1,6 @@
 # NTOPIA
 
-Desktop team hub: optional Team Orbit sign-in for announcements, events, news, blog, discussions, and live notifications — plus **local gadgets** (email composer, todo list) that work offline without an account.
+Desktop team hub: optional Team Orbit sign-in for announcements, events, news, blog, discussions, and live notifications — plus **local gadgets** (email, notes, links, timer) and a Todo feature that work offline without an account.
 
 Built with **Tauri v2**, **React + TanStack Router/Query**, **Tailwind v4 + shadcn/ui**.
 
@@ -32,9 +32,21 @@ One-shot composer — pick a template, set subject/type/theme/hosts/agenda in th
 
 mdmailer needs native modules (sharp) and Puppeteer, so it can't be compiled into a single binary. `pnpm sidecar` (`sidecar/mdmailer/build.mjs`) downloads a portable Node runtime into `src-tauri/binaries/` (Tauri `externalBin`) and copies mdmailer + `node_modules` into `src-tauri/resources/mdmailer/`. The app runs `node …/cli.js preview` for live preview and generate for export/PNG against a scratch file in app-data. Puppeteer downloads Chrome on first PNG render if none is found. Run `pnpm sidecar` before `pnpm tauri build`.
 
+### Notes (`/gadgets/notes`)
+
+Scratch Markdown notes on this device (`plugin-store`), with folders, trash, and a resizable sidebar.
+
+### Links (`/gadgets/links`)
+
+Local bookmark shelf for runbooks and dashboards; opens in the system browser.
+
+### Timer (`/gadgets/timer`)
+
+Focus / break countdown with 25 / 5 / 15 presets or a custom hours–minutes–seconds duration. Session-only; nothing persisted.
+
 ### Todo (`/todo`, sidebar)
 
-Local checklist stored on this device via `plugin-store` / localStorage. No server required.
+Local checklist stored on this device via `plugin-store` / localStorage. No server required. Not a gadget — first-class sidebar feature.
 
 ## Layout
 

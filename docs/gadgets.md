@@ -2,11 +2,16 @@
 
 Gadgets are **local tools** that run inside NTOPIA without Team Orbit. They appear as a collapsible "Gadgets" menu in the sidebar; each entry opens the gadget directly (there is no gadget list page).
 
+**Gadgets vs features:** First-class local features (e.g. Todo at `/todo`) are **not** gadgets. Put those under `src/features/` with their own top-level sidebar entry. Gadgets nest under the Gadgets menu and register in `src/gadgets/registry.ts`.
+
 ## Built-in
 
 | Id | Route | Storage | Notes |
 |----|--------|---------|--------|
-| `email` | `/gadgets/email` | App data `email/` + mdmailer sidecar | Markdown → branded HTML / EML / PNG; live preview |
+| `email` | `/gadgets/email` | App data `email/` + mdmailer sidecar | Markdown → branded HTML / EML / PNG; live preview. Sidecar details in [architecture.md](./architecture.md#gadgets). |
+| `notes` | `/gadgets/notes` | `plugin-store` key `gadget-notes` | Scratch Markdown notes with folders, soft-delete trash, resizable sidebar |
+| `links` | `/gadgets/links` | `plugin-store` key `gadget-links` | Local bookmark shelf; opens in the system browser |
+| `timer` | `/gadgets/timer` | session only (no persist) | Focus countdown with presets and custom h/m/s |
 
 ## Adding a gadget
 
@@ -16,17 +21,17 @@ Gadgets are **local tools** that run inside NTOPIA without Team Orbit. They appe
 
 ```ts
 {
-  id: "notes",
-  name: "Notes",
-  description: "…",
-  icon: StickyNote,
-  to: "/gadgets/notes",
+  id: "example",
+  name: "Example",
+  description: "Illustrative registry shape — replace with a real gadget.",
+  icon: Wrench,
+  to: "/gadgets/example",
 }
 ```
 
 4. Let the TanStack Router plugin regenerate `src/routeTree.gen.ts` (or update it to match existing gadget routes), then restart `pnpm tauri:dev` if needed.
-
-If the UI needs the full content pane (like the email composer), add its path to `FULL_BLEED` in `src/components/app-shell.tsx`.
+5. **Shell layout:** Entering any `/gadgets/<id>` auto-collapses the sidebar (`AutoCollapseForGadgets` in [`app-shell.tsx`](../src/components/app-shell.tsx)). If the UI needs the full content pane (no `max-w-4xl` column), add its path to `FULL_BLEED` in the same file (see email and notes).
+6. **Tauri capabilities:** If the gadget needs filesystem, dialogs, shell, opener URLs, etc., extend [`src-tauri/capabilities/default.json`](../src-tauri/capabilities/default.json). Missing scopes often look fine in the browser but fail in the desktop build.
 
 ## Persistence choices
 
