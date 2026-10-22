@@ -147,3 +147,4 @@ src-tauri/target
 src-tauri/binaries
 src-tauri/gen
 src-tauri/resources
+.DS_Store
