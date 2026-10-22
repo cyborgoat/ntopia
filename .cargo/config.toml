@@ -1,0 +1,3 @@
+# Give macOS development launches a real LaunchServices application identity.
+[target.'cfg(target_os = "macos")']
+runner = "./scripts/macos-dev-runner.sh"

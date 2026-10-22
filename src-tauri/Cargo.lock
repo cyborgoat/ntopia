@@ -2294,6 +2294,7 @@ dependencies = [
 name = "ntopia"
 version = "0.1.0"
 dependencies = [
+ "libc",
  "tauri",
  "tauri-build",
  "tauri-plugin-dialog",

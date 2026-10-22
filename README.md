@@ -22,6 +22,8 @@ pnpm install
 pnpm tauri:dev        # prepares the mdmailer sidecar, then launches the app
 ```
 
+On macOS, development automatically launches **NTOPIA Dev.app** through LaunchServices so it has a Dock icon and receives keyboard input, including when started from a terminal or editor. The app bundle is generated beside the Cargo executable under `src-tauri/target/`; Vite hot reload and Rust rebuilds still work. Closing the app or stopping the dev command ends that instance. The development app uses the same local data as NTOPIA.
+
 You can use Home and Gadgets immediately without signing in. To unlock Team Orbit features, sign in with your username (or email) and password at your Team Orbit server URL on the login screen. Enter the server origin only, such as `https://orbit.example.com`; the client adds `/api` itself. Dev builds default to `http://localhost:3000`; set `VITE_DEFAULT_SERVER` to preset another URL. Any member can write blog posts and start discussions; only ADMIN/SUPERUSER can publish announcements, events and news.
 
 ## Gadgets
