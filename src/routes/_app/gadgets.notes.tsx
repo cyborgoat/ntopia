@@ -5,7 +5,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Copy,
+  Folder as FolderIcon,
+  FolderOpen,
   FolderPlus,
+  GripVertical,
   Loader2,
   Pencil,
   Plus,
@@ -78,7 +81,6 @@ const LAYOUT_KEY = "ntopia.notes.layout";
 const COLLAPSE_KEY = "ntopia.notes.sidebar-collapsed";
 const DEFAULT_LAYOUT = { sidebar: 24, editor: 76 };
 const AUTOSAVE_MS = 500;
-const NOTE_DRAG_TYPE = "application/x-ntopia-note";
 
 type SaveStatus = "saved" | "saving" | "unsaved";
 
@@ -202,7 +204,7 @@ function NotesGadget() {
   const [selectedId, setSelectedId] = useState<string | null>(() => listActiveNotes()[0]?.id ?? null);
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem(COLLAPSE_KEY) === "1");
   const [layout, setLayout] = useState(loadLayout);
-  const [openFolders, setOpenFolders] = useState<string[]>(() => ["unfiled", ...listFolders().map((f) => f.id)]);
+  const [openFolders, setOpenFolders] = useState<string[]>(() => listFolders().map((f) => f.id));
   const [renamingFolderId, setRenamingFolderId] = useState<string | null>(null);
   const [renamingNoteId, setRenamingNoteId] = useState<string | null>(null);
   const [trashOpen, setTrashOpen] = useState(false);
@@ -230,26 +232,89 @@ function NotesGadget() {
   }, [selectedId]);
   useEffect(() => () => void pruneEmptyNotes(), []);
 
-  const [dragOverId, setDragOverId] = useState<string | null>(null);
-  const dropOnFolder = (e: React.DragEvent, folderId: string | null) => {
-    e.preventDefault();
-    setDragOverId(null);
-    const noteId = e.dataTransfer.getData(NOTE_DRAG_TYPE);
-    if (!noteId) return;
-    const note = state.notes.find((n) => n.id === noteId);
-    if (!note || (note.folderId ?? null) === folderId) return;
-    moveNote(noteId, folderId);
-    refresh();
-    const key = folderId ?? "unfiled";
-    if (!openFolders.includes(key)) setOpenFolders((v) => [...v, key]);
+  // Pointer-based drag & drop: native HTML5 drags are intercepted by the Tauri webview.
+  const [drag, setDrag] = useState<{ noteId: string; title: string; x: number; y: number } | null>(null);
+  const [dropTarget, setDropTarget] = useState<string | null>(null);
+  const justDragged = useRef(false);
+  const stopDrag = useRef<(() => void) | null>(null);
+  useEffect(() => () => stopDrag.current?.(), []);
+
+  const startNoteDrag = (e: React.PointerEvent, n: Note) => {
+    if (e.button !== 0) return;
+    stopDrag.current?.();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    let active = false;
+    let lastTarget: string | null = null;
+    let expandTimer: ReturnType<typeof setTimeout> | undefined;
+    const targetAt = (x: number, y: number) =>
+      document.elementFromPoint(x, y)?.closest<HTMLElement>("[data-drop]")?.dataset.drop ?? null;
+
+    const cleanup = () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", cleanup);
+      window.removeEventListener("keydown", onKey);
+      document.body.classList.remove("select-none", "cursor-grabbing");
+      clearTimeout(expandTimer);
+      stopDrag.current = null;
+      setDrag(null);
+      setDropTarget(null);
+    };
+    function onMove(ev: PointerEvent) {
+      if (!active) {
+        if (Math.hypot(ev.clientX - startX, ev.clientY - startY) < 5) return;
+        active = true;
+        document.body.classList.add("select-none", "cursor-grabbing");
+      }
+      const target = targetAt(ev.clientX, ev.clientY);
+      setDrag({ noteId: n.id, title: displayTitle(n), x: ev.clientX, y: ev.clientY });
+      setDropTarget(target);
+      if (target !== lastTarget) {
+        lastTarget = target;
+        clearTimeout(expandTimer);
+        if (target && target !== "root") {
+          expandTimer = setTimeout(
+            () => setOpenFolders((v) => (v.includes(target) ? v : [...v, target])),
+            500,
+          );
+        }
+      }
+    }
+    function onUp(ev: PointerEvent) {
+      if (active) {
+        justDragged.current = true;
+        setTimeout(() => { justDragged.current = false; }, 0);
+        const target = targetAt(ev.clientX, ev.clientY);
+        if (target && target !== (n.folderId ?? "root")) {
+          const folderId = target === "root" ? null : target;
+          moveNote(n.id, folderId);
+          refresh();
+          if (folderId) setOpenFolders((v) => (v.includes(folderId) ? v : [...v, folderId]));
+          const name = folderId ? folders.find((f) => f.id === folderId)?.name : null;
+          toast.success(name ? `Moved to ${name}` : "Moved to top level");
+        }
+      }
+      cleanup();
+    }
+    function onKey(ev: KeyboardEvent) {
+      if (ev.key === "Escape") cleanup();
+    }
+    stopDrag.current = cleanup;
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", cleanup);
+    window.addEventListener("keydown", onKey);
   };
+
+  const rootNotes = active.filter((n) => !n.folderId);
+  const draggedNote = drag ? active.find((n) => n.id === drag.noteId) : undefined;
 
   const createNote = (folderId: string | null = null) => {
     const n = addNote({ folderId });
     refresh();
     setSelectedId(n.id);
-    const key = folderId ?? "unfiled";
-    if (!openFolders.includes(key)) setOpenFolders((v) => [...v, key]);
+    if (folderId && !openFolders.includes(folderId)) setOpenFolders((v) => [...v, folderId]);
   };
 
   const createFolder = () => {
@@ -305,17 +370,13 @@ function NotesGadget() {
           ) : (
             <button
               type="button"
-              draggable
-              onDragStart={(e) => {
-                e.dataTransfer.setData(NOTE_DRAG_TYPE, n.id);
-                e.dataTransfer.effectAllowed = "move";
-              }}
-              onDragEnd={() => setDragOverId(null)}
-              onClick={() => setSelectedId(n.id)}
+              onPointerDown={(e) => startNoteDrag(e, n)}
+              onClick={() => { if (!justDragged.current) setSelectedId(n.id); }}
               onDoubleClick={() => setRenamingNoteId(n.id)}
               className={cn(
-                "flex h-9 w-full flex-col justify-center rounded-md px-2 text-left transition-colors hover:bg-muted/60",
+                "flex h-9 w-full cursor-grab flex-col justify-center rounded-md px-2 text-left transition-colors hover:bg-muted/60",
                 n.id === selectedId && "bg-muted",
+                drag?.noteId === n.id && "opacity-50",
               )}
             >
               <span className="block truncate text-sm leading-tight font-medium">{displayTitle(n)}</span>
@@ -346,7 +407,7 @@ function NotesGadget() {
               ))}
               {n.folderId && (
                 <ContextMenuItem onClick={() => { moveNote(n.id, null); refresh(); }}>
-                  Move to Unfiled
+                  Move to top level
                 </ContextMenuItem>
               )}
             </>
@@ -360,11 +421,13 @@ function NotesGadget() {
     </li>
   );
 
-  const folderSection = (folder: NoteFolder | null) => {
-    const id = folder?.id ?? "unfiled";
-    const label = folder?.name ?? "Unfiled";
-    const notes = active.filter((n) => (folder ? n.folderId === folder.id : n.folderId == null));
-    const renaming = !!folder && renamingFolderId === folder.id;
+  const folderSection = (folder: NoteFolder) => {
+    const id = folder.id;
+    const label = folder.name;
+    const notes = active.filter((n) => n.folderId === folder.id);
+    const isOpen = openFolders.includes(id);
+    const FolderGlyph = isOpen ? FolderOpen : FolderIcon;
+    const renaming = renamingFolderId === folder.id;
     const actionClass =
       "opacity-0 transition-opacity group-hover/folder:opacity-100 group-focus-within/folder:opacity-100";
     const header = (
@@ -384,8 +447,9 @@ function NotesGadget() {
         ) : (
           <AccordionTrigger
             className="min-w-0 flex-1 items-center px-2 py-0 hover:no-underline"
-            onDoubleClick={folder ? () => setRenamingFolderId(folder.id) : undefined}
+            onDoubleClick={() => setRenamingFolderId(folder.id)}
           >
+            <FolderGlyph className="mr-1.5 size-4 shrink-0 text-muted-foreground" />
             <span className="truncate">{label}</span>
             <span className="ml-1.5 text-xs font-normal text-muted-foreground tabular-nums">{notes.length}</span>
           </AccordionTrigger>
@@ -396,24 +460,22 @@ function NotesGadget() {
               type="button"
               variant="ghost"
               size="icon-xs"
-              aria-label={folder ? "New note in folder" : "New unfiled note"}
-              onClick={() => createNote(folder?.id ?? null)}
+              aria-label="New note in folder"
+              onClick={() => createNote(folder.id)}
             >
               <Plus />
             </Button>
-            {folder && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-xs"
-                aria-label="Delete folder"
-                onClick={() =>
-                  setConfirm({ kind: "delete-folder", folderId: folder.id, name: folder.name, noteCount: notes.length })
-                }
-              >
-                <Trash2 />
-              </Button>
-            )}
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-xs"
+              aria-label="Delete folder"
+              onClick={() =>
+                setConfirm({ kind: "delete-folder", folderId: folder.id, name: folder.name, noteCount: notes.length })
+              }
+            >
+              <Trash2 />
+            </Button>
           </div>
         )}
       </div>
@@ -422,21 +484,14 @@ function NotesGadget() {
       <AccordionItem
         key={id}
         value={id}
-        className={cn("rounded-md border-b-0 transition-colors", dragOverId === id && "bg-primary/10 ring-1 ring-primary/40")}
-        onDragOver={(e) => {
-          if (!e.dataTransfer.types.includes(NOTE_DRAG_TYPE)) return;
-          e.preventDefault();
-          e.dataTransfer.dropEffect = "move";
-          if (dragOverId !== id) setDragOverId(id);
-        }}
-        onDragLeave={(e) => {
-          if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragOverId(null);
-        }}
-        onDrop={(e) => dropOnFolder(e, folder?.id ?? null)}
+        data-drop={id}
+        className={cn(
+          "rounded-md border-b-0 transition-colors",
+          drag && dropTarget === id && "bg-primary/10 ring-1 ring-primary/40",
+        )}
       >
-        {folder ? (
-          <ContextMenu>
-            <ContextMenuTrigger className="block w-full">{header}</ContextMenuTrigger>
+        <ContextMenu>
+          <ContextMenuTrigger className="block w-full">{header}</ContextMenuTrigger>
             <ContextMenuContent>
               <ContextMenuItem onClick={() => setRenamingFolderId(folder.id)}>
                 <Pencil /> Rename
@@ -450,15 +505,12 @@ function NotesGadget() {
                 <Trash2 /> Delete folder
               </ContextMenuItem>
             </ContextMenuContent>
-          </ContextMenu>
-        ) : (
-          header
-        )}
+        </ContextMenu>
         <AccordionContent className="pb-1">
           {notes.length === 0 ? (
-            <p className="px-2 py-1 text-xs text-muted-foreground">Empty</p>
+            <p className="py-1 pr-2 pl-6 text-xs text-muted-foreground">Empty — drag notes here</p>
           ) : (
-            <ul className="space-y-0.5">{notes.map((n) => noteRow(n))}</ul>
+            <ul className="space-y-0.5 pl-4">{notes.map((n) => noteRow(n))}</ul>
           )}
         </AccordionContent>
       </AccordionItem>
@@ -479,11 +531,27 @@ function NotesGadget() {
           New folder
         </Button>
       </div>
-      <div className="min-h-0 flex-1 overflow-auto p-1.5">
-        <Accordion multiple value={openFolders} onValueChange={setOpenFolders}>
-          {folders.map((f) => folderSection(f))}
-          {folderSection(null)}
-        </Accordion>
+      <div data-drop="root" className="min-h-0 flex-1 overflow-auto p-1.5">
+        {draggedNote?.folderId && (
+          <div
+            className={cn(
+              "mb-1.5 rounded-md border border-dashed px-2 py-2 text-center text-xs text-muted-foreground transition-colors",
+              dropTarget === "root" && "border-primary/40 bg-primary/10 text-foreground",
+            )}
+          >
+            Drop here to move to top level
+          </div>
+        )}
+        {rootNotes.length > 0 && <ul className="space-y-0.5">{rootNotes.map((n) => noteRow(n))}</ul>}
+        {rootNotes.length > 0 && folders.length > 0 && <div className="my-1.5 h-px bg-border" />}
+        {folders.length > 0 && (
+          <Accordion multiple value={openFolders} onValueChange={setOpenFolders}>
+            {folders.map((f) => folderSection(f))}
+          </Accordion>
+        )}
+        {rootNotes.length === 0 && folders.length === 0 && (
+          <p className="px-2 py-4 text-xs text-muted-foreground">No notes yet. Create one with New, or add a folder.</p>
+        )}
       </div>
       <div className="border-t p-1.5">
         <Button
@@ -577,6 +645,16 @@ function NotesGadget() {
         )}
       </div>
 
+      {drag && (
+        <div
+          className="pointer-events-none fixed z-50 flex max-w-48 items-center gap-1.5 rounded-md border bg-background px-2 py-1 text-sm shadow-md"
+          style={{ left: drag.x + 12, top: drag.y + 12 }}
+        >
+          <GripVertical className="size-3.5 shrink-0 text-muted-foreground" />
+          <span className="truncate">{drag.title}</span>
+        </div>
+      )}
+
       <Dialog open={trashOpen} onOpenChange={setTrashOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -650,7 +728,7 @@ function NotesGadget() {
                 `“${confirm.title}” will be permanently deleted. This cannot be undone.`}
               {confirm?.kind === "delete-folder" &&
                 (confirm.noteCount > 0
-                  ? `Delete "${confirm.name}"? Its ${confirm.noteCount} ${confirm.noteCount === 1 ? "note" : "notes"} will move to Unfiled.`
+                  ? `Delete "${confirm.name}"? Its ${confirm.noteCount} ${confirm.noteCount === 1 ? "note" : "notes"} will move to the top level.`
                   : `Delete empty folder "${confirm.name}"?`)}
             </AlertDialogDescription>
           </AlertDialogHeader>
