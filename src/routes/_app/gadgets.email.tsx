@@ -5,7 +5,7 @@ import { open, save } from "@tauri-apps/plugin-dialog";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
 import { join } from "@tauri-apps/api/path";
 import { openPath } from "@tauri-apps/plugin-opener";
-import { ChevronDown, Copy, Download, Eye, EyeOff, FileText, FolderOpen, ImagePlus, ListChecks, Mail, Palette, PenLine, Upload, X } from "lucide-react";
+import { ChevronDown, Copy, Download, Eye, EyeOff, FileText, FolderOpen, ImagePlus, ListChecks, Loader2, Mail, Palette, PenLine, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -427,7 +427,11 @@ function Composer() {
               <section className="flex h-full min-h-0 flex-col">
                 <div className="flex h-10 items-center justify-between gap-2 border-b px-4">
                   <span className="text-sm font-medium">Preview <span className="font-normal text-muted-foreground">· Details + Message</span></span>
-                  {busy && <span className="text-xs text-muted-foreground">Rendering…</span>}
+                  {busy && (
+                    <span className="flex items-center gap-1.5 text-xs text-muted-foreground" role="status">
+                      <Loader2 className="size-3.5 animate-spin" /> Rendering…
+                    </span>
+                  )}
                 </div>
                 <div className="relative min-h-0 flex-1 overflow-auto bg-muted/40">
                   {error && (
@@ -437,8 +441,11 @@ function Composer() {
                     </div>
                   )}
                   {html && <iframe title="Email preview" sandbox="" srcDoc={html} className="h-full w-full bg-white" />}
-                  {!html && !busy && !error && (
-                    <p className="p-6 text-sm text-muted-foreground">{previewUrl ? "Rendering preview…" : "Starting live preview…"}</p>
+                  {!html && !error && (
+                    <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-sm text-muted-foreground" role="status">
+                      <Loader2 className="size-6 animate-spin" />
+                      <p>{previewUrl ? "Rendering preview…" : "Starting live preview…"}</p>
+                    </div>
                   )}
                 </div>
               </section>
