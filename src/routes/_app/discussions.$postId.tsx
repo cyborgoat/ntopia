@@ -2,8 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { CommentThread, VoteBar, VoteMenuItems, type Vote } from "@/components/comments";
+import { DetailPage } from "@/components/detail-page";
 import { Markdown } from "@/components/markdown";
-import { usePageCrumbs, usePageTitle } from "@/components/page-chrome";
 import { RequireAuth } from "@/components/require-auth";
 import { orbit } from "@/lib/orbit";
 
@@ -20,15 +20,10 @@ function Thread() {
   const qc = useQueryClient();
   const key = ["forum-post", id];
 
-  const { data: post } = useQuery({
+  const { data: post, isPending } = useQuery({
     queryKey: key,
-    queryFn: async () => (await orbit.GET("/api/forum-posts/{id}", { params: { path: { id } } })).data,
+    queryFn: async () => (await orbit.GET("/api/forum-posts/{id}", { params: { path: { id } } })).data ?? null,
   });
-
-  usePageTitle("Discussions");
-  usePageCrumbs([{ label: "Home", to: "/" }, { label: "Discussions", to: "/discussions" }, { label: post?.title ?? "…" }]);
-
-  if (!post) return <p className="text-sm text-muted-foreground">Loading…</p>;
 
   const votePost = async (value: Vote) => {
     await orbit.PUT("/api/forum-posts/{id}/vote", { params: { path: { id } }, body: { value } });
@@ -36,22 +31,32 @@ function Thread() {
   };
 
   return (
-    <>
-      <ContextMenu>
-        <ContextMenuTrigger className="block">
-          <article className="space-y-3">
-            <h1 className="text-lg font-semibold tracking-tight">{post.title}</h1>
-            <p className="text-xs text-muted-foreground">{post.author.fullName} · {new Date(post.createdAt).toLocaleString()}</p>
-            <Markdown>{post.content}</Markdown>
-            <VoteBar score={post.score} mine={post.myVote} onVote={votePost} />
-          </article>
-        </ContextMenuTrigger>
-        <ContextMenuContent>
-          <VoteMenuItems mine={post.myVote} onVote={(v) => void votePost(v)} />
-        </ContextMenuContent>
-      </ContextMenu>
-
-      <CommentThread resourceType="forum" resourceId={id} />
-    </>
+    <DetailPage
+      section={{ label: "Discussions", to: "/discussions" }}
+      itemTitle={post?.title}
+      loading={isPending}
+      notFound={!post}
+    >
+      {post && (
+        <>
+          <ContextMenu>
+            <ContextMenuTrigger className="block">
+              <div className="space-y-5">
+                <h1 className="text-xl font-semibold tracking-tight">{post.title}</h1>
+                <p className="text-xs text-muted-foreground">
+                  {post.author.fullName} · {new Date(post.createdAt).toLocaleString()} · {post.viewCount} {post.viewCount === 1 ? "view" : "views"}
+                </p>
+                <Markdown>{post.content}</Markdown>
+                <VoteBar score={post.score} mine={post.myVote} onVote={votePost} />
+              </div>
+            </ContextMenuTrigger>
+            <ContextMenuContent>
+              <VoteMenuItems mine={post.myVote} onVote={(v) => void votePost(v)} />
+            </ContextMenuContent>
+          </ContextMenu>
+          <CommentThread resourceType="forum" resourceId={id} />
+        </>
+      )}
+    </DetailPage>
   );
 }

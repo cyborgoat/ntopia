@@ -52,24 +52,26 @@ const rowCls = "flex min-w-0 items-center gap-3 rounded-md px-2 py-1.5 hover:bg-
 function Notifications() {
   const qc = useQueryClient();
   const { data } = useQuery({
-    queryKey: ["notifications", "unread"],
-    queryFn: async () => (await orbit.GET("/api/notifications", { params: { query: { limit: 100 } } })).data,
+    queryKey: ["notifications", "unread", "digest"],
+    queryFn: async () =>
+      (await orbit.GET("/api/notifications", { params: { query: { status: "unread", page: 1, limit: 3 } } })).data,
   });
   const markAll = useMutation({
     mutationFn: () => orbit.POST("/api/notifications/read-all"),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["notifications"] }),
   });
-  const unread = data?.items.filter((n) => !n.read) ?? [];
-  if (unread.length === 0) return null;
+  const unread = data?.items ?? [];
+  const total = data?.total ?? 0;
+  if (total === 0) return null;
 
   return (
     <section className="rounded-xl border border-primary/20 bg-primary/5 p-5">
       <div className="mb-2 flex items-center justify-between">
-        <h2 className="text-sm font-medium">{unread.length} unread {unread.length === 1 ? "notification" : "notifications"}</h2>
+        <h2 className="text-sm font-medium">{total} unread {total === 1 ? "notification" : "notifications"}</h2>
         <Button variant="ghost" size="xs" disabled={markAll.isPending} onClick={() => markAll.mutate()}><CheckCheck /> Mark all read</Button>
       </div>
       <ul className="space-y-0.5 text-sm">
-        {unread.slice(0, 3).map((n) => {
+        {unread.map((n) => {
           const { icon: Icon, link } = notificationTarget(n);
           const inner = (
             <>

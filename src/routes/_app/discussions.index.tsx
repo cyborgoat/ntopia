@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { ArrowBigUp, Copy, ExternalLink, MessageSquare, Plus } from "lucide-react";
+import { ArrowBigUp, Copy, ExternalLink, Eye, MessageSquare, Plus } from "lucide-react";
 import { toast } from "sonner";
 import {
   ContextMenu,
@@ -68,6 +68,7 @@ function Discussions() {
                   <>
                     <span className="flex items-center gap-1"><ArrowBigUp className="size-4" />{p.score}</span>
                     <span className="flex items-center gap-1"><MessageSquare className="size-4" />{p.commentCount}</span>
+                    <span className="flex items-center gap-1"><Eye className="size-4" />{p.viewCount}</span>
                   </>
                 }
               />

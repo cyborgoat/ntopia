@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, CheckCheck, ExternalLink, Trash2 } from "lucide-react";
+import { Check, CheckCheck, ExternalLink, Mail, MailOpen, RotateCcw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,20 +27,51 @@ export const Route = createFileRoute("/_app/notifications")({
   ),
 });
 
+type Status = "unread" | "read" | "dismissed";
+
+const TABS: { value: Status; label: string }[] = [
+  { value: "unread", label: "Unread" },
+  { value: "read", label: "Read" },
+  { value: "dismissed", label: "Dismissed" },
+];
+
 function Notifications() {
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const [status, setStatus] = useState<Status>("unread");
   const [page, setPage] = useState(1);
   const { data } = useQuery({
-    queryKey: ["notifications", "all", page],
-    queryFn: async () => (await orbit.GET("/api/notifications", { params: { query: { page, limit: PAGE_SIZE } } })).data,
+    queryKey: ["notifications", status, page],
+    queryFn: async () =>
+      (await orbit.GET("/api/notifications", { params: { query: { status, page, limit: PAGE_SIZE } } })).data,
     placeholderData: keepPreviousData,
   });
   const refresh = () => qc.invalidateQueries({ queryKey: ["notifications"] });
 
+  const setTab = (next: Status) => {
+    setStatus(next);
+    setPage(1);
+  };
+
   const markRead = useMutation({
     mutationFn: (id: string) => orbit.POST("/api/notifications/{id}/read", { params: { path: { id } } }),
     onSuccess: refresh,
+  });
+  const markUnread = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await orbit.DELETE("/api/notifications/{id}/read", { params: { path: { id } } });
+      if (error) throw new Error(errorMessage(error));
+    },
+    onSuccess: refresh,
+    onError: (e) => toast.error(e.message),
+  });
+  const restore = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await orbit.POST("/api/notifications/{id}/restore", { params: { path: { id } } });
+      if (error) throw new Error(errorMessage(error));
+    },
+    onSuccess: refresh,
+    onError: (e) => toast.error(e.message),
   });
   const markAll = useMutation({
     mutationFn: async () => {
@@ -57,7 +88,6 @@ function Notifications() {
       if (error) throw new Error(errorMessage(error));
     },
     onSuccess: () => {
-      // Deleting the last row of the last page would leave an empty page behind.
       if (page > 1 && data?.items.length === 1) setPage(page - 1);
       void refresh();
     },
@@ -66,78 +96,110 @@ function Notifications() {
 
   type Item = NonNullable<typeof data>["items"][number];
   const open = (n: Item) => {
-    if (!n.read) markRead.mutate(n.id);
+    if (status === "unread") markRead.mutate(n.id);
     const { link } = notificationTarget(n);
     if (link) void navigate(link as never);
   };
 
   const items = data?.items ?? [];
-  const unread = items.filter((n) => !n.read);
-  const read = items.filter((n) => n.read);
-
-  const row = (n: Item) => {
-    const { icon: Icon, link } = notificationTarget(n);
-    return (
-      <ContextMenu key={n.id}>
-        <ContextMenuTrigger className="block w-full">
-          <div className="group/row relative">
-            <button
-              type="button"
-              onClick={() => open(n)}
-              className={cn("flex w-full items-start gap-3 p-4 pr-24 text-left transition-colors hover:bg-muted/50", !link && n.read && "cursor-default")}
-            >
-              <span className={cn("mt-2 size-2 shrink-0 rounded-full", n.read ? "bg-transparent" : "bg-foreground")} />
-              <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-              <div className="min-w-0 flex-1">
-                <div className={cn("text-sm", !n.read && "font-medium")}>{n.title}</div>
-                <div className="text-sm text-muted-foreground">{n.body}</div>
-                <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
-                  {new Date(n.createdAt).toLocaleString()}
-                  {n.audience === "DIRECTED" && <Badge variant="secondary">For you</Badge>}
-                </div>
-              </div>
-            </button>
-            <div className="absolute top-3 right-3 flex gap-1 opacity-0 transition-opacity group-hover/row:opacity-100 group-focus-within/row:opacity-100">
-              {!n.read && (
-                <Button variant="ghost" size="icon-sm" aria-label="Mark as read" onClick={() => markRead.mutate(n.id)}><Check /></Button>
-              )}
-              <Button variant="ghost" size="icon-sm" aria-label="Delete" onClick={() => remove.mutate(n.id)}><Trash2 /></Button>
-            </div>
-          </div>
-        </ContextMenuTrigger>
-        <ContextMenuContent>
-          <ContextMenuItem disabled={!link} onClick={() => open(n)}><ExternalLink /> Open</ContextMenuItem>
-          <ContextMenuItem disabled={n.read} onClick={() => markRead.mutate(n.id)}><Check /> Mark as read</ContextMenuItem>
-          <ContextMenuSeparator />
-          <ContextMenuItem variant="destructive" onClick={() => remove.mutate(n.id)}><Trash2 /> Delete</ContextMenuItem>
-        </ContextMenuContent>
-      </ContextMenu>
-    );
-  };
-
-  const group = (label: string, list: Item[]) =>
-    list.length > 0 && (
-      <section className="space-y-2">
-        <h2 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{label} · {list.length}</h2>
-        <div className="divide-y overflow-hidden rounded-lg border">{list.map(row)}</div>
-      </section>
-    );
+  const emptyCopy =
+    status === "unread" ? "You're all caught up."
+    : status === "read" ? "No read notifications."
+    : "No dismissed notifications.";
 
   return (
     <>
       <PageHeader
         title="Notifications"
         actions={
-          <Button size="sm" variant="outline" disabled={markAll.isPending} onClick={() => markAll.mutate()}>
-            <CheckCheck /> Mark all as read
-          </Button>
+          status === "unread" ? (
+            <Button size="sm" variant="outline" disabled={markAll.isPending} onClick={() => markAll.mutate()}>
+              <CheckCheck /> Mark all as read
+            </Button>
+          ) : undefined
         }
       />
-      <div className="space-y-6">
-        {data && items.length === 0 && <Empty>You're all caught up.</Empty>}
-        {data && items.length > 0 && unread.length === 0 && page === 1 && <Empty>No unread notifications.</Empty>}
-        {group("Unread", unread)}
-        {group("Read", read)}
+      <div className="mb-4 flex gap-1 rounded-lg border p-1">
+        {TABS.map((t) => (
+          <button
+            key={t.value}
+            type="button"
+            onClick={() => setTab(t.value)}
+            className={cn(
+              "flex-1 rounded-md px-3 py-1.5 text-sm transition-colors",
+              status === t.value ? "bg-muted font-medium text-foreground" : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+      <div className="divide-y overflow-hidden rounded-lg border">
+        {data && items.length === 0 && (
+          <div className="p-6"><Empty>{emptyCopy}</Empty></div>
+        )}
+        {items.map((n) => {
+          const { icon: Icon, link } = notificationTarget(n);
+          return (
+            <ContextMenu key={n.id}>
+              <ContextMenuTrigger className="block w-full">
+                <div className="group/row relative">
+                  <button
+                    type="button"
+                    onClick={() => open(n)}
+                    className={cn(
+                      "flex w-full items-start gap-3 p-4 pr-24 text-left transition-colors hover:bg-muted/50",
+                      !link && status !== "unread" && "cursor-default",
+                    )}
+                  >
+                    <span className={cn("mt-2 size-2 shrink-0 rounded-full", status === "unread" ? "bg-foreground" : "bg-transparent")} />
+                    <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                    <div className="min-w-0 flex-1">
+                      <div className={cn("text-sm", status === "unread" && "font-medium")}>{n.title}</div>
+                      <div className="text-sm text-muted-foreground">{n.body}</div>
+                      <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                        {new Date(n.createdAt).toLocaleString()}
+                        {n.audience === "DIRECTED" && <Badge variant="secondary">For you</Badge>}
+                      </div>
+                    </div>
+                  </button>
+                  <div className="absolute top-3 right-3 flex gap-1 opacity-0 transition-opacity group-hover/row:opacity-100 group-focus-within/row:opacity-100">
+                    {status === "unread" && (
+                      <Button variant="ghost" size="icon-sm" aria-label="Mark as read" onClick={() => markRead.mutate(n.id)}><Check /></Button>
+                    )}
+                    {status === "read" && (
+                      <Button variant="ghost" size="icon-sm" aria-label="Mark as unread" onClick={() => markUnread.mutate(n.id)}><Mail /></Button>
+                    )}
+                    {status === "dismissed" && (
+                      <Button variant="ghost" size="icon-sm" aria-label="Restore" onClick={() => restore.mutate(n.id)}><RotateCcw /></Button>
+                    )}
+                    {status !== "dismissed" && (
+                      <Button variant="ghost" size="icon-sm" aria-label="Dismiss" onClick={() => remove.mutate(n.id)}><Trash2 /></Button>
+                    )}
+                  </div>
+                </div>
+              </ContextMenuTrigger>
+              <ContextMenuContent>
+                <ContextMenuItem disabled={!link} onClick={() => open(n)}><ExternalLink /> Open</ContextMenuItem>
+                {status === "unread" && (
+                  <ContextMenuItem onClick={() => markRead.mutate(n.id)}><Check /> Mark as read</ContextMenuItem>
+                )}
+                {status === "read" && (
+                  <ContextMenuItem onClick={() => markUnread.mutate(n.id)}><MailOpen /> Mark as unread</ContextMenuItem>
+                )}
+                {status === "dismissed" && (
+                  <ContextMenuItem onClick={() => restore.mutate(n.id)}><RotateCcw /> Restore</ContextMenuItem>
+                )}
+                {status !== "dismissed" && (
+                  <>
+                    <ContextMenuSeparator />
+                    <ContextMenuItem variant="destructive" onClick={() => remove.mutate(n.id)}><Trash2 /> Dismiss</ContextMenuItem>
+                  </>
+                )}
+              </ContextMenuContent>
+            </ContextMenu>
+          );
+        })}
       </div>
       <ListPagination page={page} total={data?.total} onPageChange={setPage} />
     </>

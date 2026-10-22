@@ -21,8 +21,8 @@ importers:
         specifier: ^5.3.0
         version: 5.3.0
       '@goatcheese/teamorbit-client':
-        specifier: ^0.2.0
-        version: 0.2.0
+        specifier: ^0.2.3
+        version: 0.2.3
       '@mdxeditor/editor':
         specifier: ^4.3.3
         version: 4.3.3(@codemirror/language@6.13.1)(@lezer/highlight@1.2.5)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(typescript@6.0.3)(yjs@13.6.33)
@@ -446,8 +446,8 @@ packages:
   '@fontsource-variable/geist@5.3.0':
     resolution: {integrity: sha512-j0m+vLQuG5XAYoHtGCVu0spvlGreR3EzpECUVzkFmI1mTVnAO38l/NEPDCFgZ177JxzYJCLSmTQibIiYPilGrA==}
 
-  '@goatcheese/teamorbit-client@0.2.0':
-    resolution: {integrity: sha512-SmBouDH5bKxJssC9fhAU2+70YzUwby+42BbEF1CfEYRNJ4NCB9zm1z/vILxSkRQCv2gBgWyK1xWWl0gU9MPB8Q==}
+  '@goatcheese/teamorbit-client@0.2.3':
+    resolution: {integrity: sha512-uz3IvP1YPLBL08jpdxZU2Bba3geh+3Il0mTKawwSRN2/LmZVP99V8lVDG9SzN3bQhQ5Q8svHd70Yg7WHqzzYNA==}
     engines: {node: '>=18'}
 
   '@hono/node-server@2.1.5':
@@ -4153,7 +4153,7 @@ snapshots:
 
   '@fontsource-variable/geist@5.3.0': {}
 
-  '@goatcheese/teamorbit-client@0.2.0':
+  '@goatcheese/teamorbit-client@0.2.3':
     dependencies:
       openapi-fetch: 0.13.8
 

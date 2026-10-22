@@ -23,7 +23,7 @@ export function DetailPage({
   onDelete,
   children,
 }: {
-  section: { label: string; to: "/announcements" | "/events" | "/news" | "/blog" };
+  section: { label: string; to: "/announcements" | "/events" | "/news" | "/blog" | "/discussions" };
   itemTitle?: string;
   loading: boolean;
   notFound: boolean;

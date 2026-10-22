@@ -87,7 +87,7 @@ Sidebar (`src/components/app-shell.tsx`):
 
 ## Routes
 
-List pages show summary cards that link to a detail page. Pages register breadcrumbs into the shell header with `usePageCrumbs` (`src/components/page-chrome.tsx`); `DetailPage` (`src/components/detail-page.tsx`) provides the shared detail frame.
+List pages use shared [`FeedCard`](../src/components/feed-card.tsx) rows (title `text-sm font-semibold`, meta `text-xs`, `space-y-2` stack) and link into [`DetailPage`](../src/components/detail-page.tsx) (`text-xl` title, `space-y-5`). Announcements, events, news, blog, and discussions share that chrome; create stays type-specific (`FormDialog` for short structured types, `PostComposer` for Markdown). Pages register breadcrumbs into the shell header with `usePageCrumbs` (`src/components/page-chrome.tsx`).
 
 File routes under `src/routes/`; generated tree in `src/routeTree.gen.ts`.
 
@@ -96,7 +96,13 @@ File routes under `src/routes/`; generated tree in `src/routeTree.gen.ts`.
 | Public | `/login`, `/register` | Outside the shell; login can “Continue without signing in” |
 | Shell | `/_app` → `AppShell` | Pathless layout; URLs stay `/`, `/gadgets`, … |
 | Local | `/`, `/gadgets/email`, `/todo`, `/settings` | No Orbit API required |
-| Orbit | `/announcements`, `/events`, `/news`, `/news/new`, `/blog`, `/blog/new`, `/discussions/*`, `/notifications`; detail pages `/announcements/$id`, `/events/$id`, `/news/$id`, `/blog/$id` | Behind `RequireAuth`; `*/new` composers are full-bleed (`FULL_BLEED` in `app-shell.tsx`) |
+| Orbit | `/announcements`, `/events`, `/news`, `/news/new`, `/blog`, `/blog/new`, `/discussions/*`, `/notifications`; detail pages `/announcements/$id`, `/events/$id`, `/news/$id`, `/blog/$id`, `/discussions/$postId` | Behind `RequireAuth`; `*/new` composers are full-bleed (`FULL_BLEED` in `app-shell.tsx`) |
+
+### Orbit feature notes (`@goatcheese/teamorbit-client` ≥ 0.2.3)
+
+- **Events:** create supports `audience` `GLOBAL` \| `INVITE_ONLY` plus `recipientIds` via [`UserPicker`](../src/components/user-picker.tsx); detail shows invitees.
+- **Notifications:** list filters with `status=unread|read|dismissed`; mark unread (`DELETE …/read`), restore dismissed, mark-all-read, dismiss. Unread badges use `status=unread` + `total`.
+- **Views:** news, blog, and forum detail (and discussion list) surface `viewCount`.
 
 ## Key libraries (`src/lib/`)
 
@@ -147,7 +153,7 @@ Desktop right-click menus use shadcn [`context-menu`](https://ui.shadcn.com/docs
 |---------|---------|
 | Todo rows / list | Edit, toggle, flag, delete; focus add / clear completed |
 | Email editor & preview | Open in Mail, export formats, copy HTML |
-| Notifications | Mark as read |
+| Notifications | Open; mark read / unread / restore / dismiss (by tab) |
 | Announcements / events / news / blog | Copy title; Delete if `isAdmin` |
 | Discussion threads | Open, copy link |
 | Discussion post / comments | Vote, reply |

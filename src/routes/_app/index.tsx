@@ -19,10 +19,11 @@ function Home() {
   const now = useNow();
   const unread = useQuery({
     queryKey: ["notifications", "unread"],
-    queryFn: async () => (await orbit.GET("/api/notifications", { params: { query: { limit: 100 } } })).data,
+    queryFn: async () =>
+      (await orbit.GET("/api/notifications", { params: { query: { status: "unread", limit: 1 } } })).data,
     enabled: !!token,
   });
-  const unreadCount = unread.data?.items.filter((n) => !n.read).length ?? 0;
+  const unreadCount = unread.data?.total ?? 0;
   const first = user?.fullName.split(" ")[0];
 
   return (

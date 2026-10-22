@@ -81,7 +81,7 @@ export function MarkdownFeed({ kind, title }: { kind: Kind; title: string }) {
         {data?.items.length === 0 && <Empty>Nothing here yet.</Empty>}
         {data?.items.map((p) => (
           <ContextMenu key={p.id}>
-            <ContextMenuTrigger className="block">
+            <ContextMenuTrigger className="block w-full">
               <FeedCard
                 to={feed.detailTo}
                 params={{ id: p.id }}
@@ -146,7 +146,9 @@ export function FeedPostDetail({ kind, id }: { kind: Kind; id: string }) {
         <>
           {data.coverImageUrl && <img src={assetUrl(data.coverImageUrl)} alt="" className="h-56 w-full rounded-lg object-cover" />}
           <h1 className="text-xl font-semibold tracking-tight">{data.title}</h1>
-          <p className="text-xs text-muted-foreground">{data.author.fullName} · {new Date(data.createdAt).toLocaleString()}</p>
+          <p className="text-xs text-muted-foreground">
+            {data.author.fullName} · {new Date(data.createdAt).toLocaleString()} · {data.viewCount} {data.viewCount === 1 ? "view" : "views"}
+          </p>
           <Markdown>{data.content}</Markdown>
           {data.tags.length > 0 && (
             <div className="flex flex-wrap gap-1.5">{data.tags.map((t) => <Badge key={t} variant="secondary">{t}</Badge>)}</div>

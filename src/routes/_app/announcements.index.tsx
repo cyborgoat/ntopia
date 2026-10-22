@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ListPagination, PAGE_SIZE } from "@/components/list-pagination";
-import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Copy, ExternalLink, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/context-menu";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { FeedCard } from "@/components/feed-card";
 import { Field, FormDialog } from "@/components/form-dialog";
 import { Empty, PageHeader } from "@/components/page-header";
 import { RequireAuth } from "@/components/require-auth";
@@ -67,27 +68,24 @@ function Announcements() {
           )
         }
       />
-      <div className="space-y-3">
+      <div className="space-y-2">
         {data?.items.length === 0 && <Empty>No announcements yet.</Empty>}
         {data?.items.map((a) => (
           <ContextMenu key={a.id}>
-            <ContextMenuTrigger className="block">
-              <div className="relative">
-                <Link
-                  to="/announcements/$id"
-                  params={{ id: a.id }}
-                  className="block rounded-lg border p-4 transition-colors hover:bg-muted/50"
-                >
-                  <h2 className={`font-medium ${isAdmin ? "pr-10" : ""}`}>{a.title}</h2>
-                  <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{a.description}</p>
-                  <p className="mt-3 text-xs text-muted-foreground">{a.author.fullName} · {new Date(a.createdAt).toLocaleString()}</p>
-                </Link>
-                {isAdmin && (
-                  <Button variant="ghost" size="icon-sm" className="absolute top-3 right-3" onClick={() => del.mutate(a.id)} aria-label="Delete">
+            <ContextMenuTrigger className="block w-full">
+              <FeedCard
+                to="/announcements/$id"
+                params={{ id: a.id }}
+                title={a.title}
+                author={a.author.fullName}
+                createdAt={a.createdAt}
+                content={a.description}
+                action={isAdmin ? (
+                  <Button variant="ghost" size="icon-xs" onClick={() => del.mutate(a.id)} aria-label="Delete">
                     <Trash2 />
                   </Button>
-                )}
-              </div>
+                ) : undefined}
+              />
             </ContextMenuTrigger>
             <ContextMenuContent>
               <ContextMenuItem onClick={() => void navigate({ to: "/announcements/$id", params: { id: a.id } })}>

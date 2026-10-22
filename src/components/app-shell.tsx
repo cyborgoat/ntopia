@@ -174,14 +174,18 @@ function AutoCollapseForGadgets({ pathname }: { pathname: string }) {
   return null;
 }
 
+/** Same content column as the shell outlet so titles and feed cards share one width. */
+const CONTENT_COL = "mx-auto w-full max-w-4xl px-8";
+
 function InsetHeader({ fullBleed }: { fullBleed: boolean }) {
   const { title, crumbs, setSlot } = usePageChrome();
   const label = title ?? (fullBleed ? "Email composer" : null);
+  const col = fullBleed ? "w-full px-4" : CONTENT_COL;
 
   return (
     <header className="flex shrink-0 flex-col gap-2 pt-2">
       {crumbs && crumbs.length > 0 && (
-        <Breadcrumb className="px-4">
+        <Breadcrumb className={col}>
           <BreadcrumbList>
             {crumbs.map((c, i) => (
               <Fragment key={i}>
@@ -198,7 +202,7 @@ function InsetHeader({ fullBleed }: { fullBleed: boolean }) {
           </BreadcrumbList>
         </Breadcrumb>
       )}
-      <div className="flex h-12 items-center gap-3 px-4">
+      <div className={`flex h-12 items-center gap-3 ${col}`}>
         {label && (
           <h1 className={`min-w-0 truncate ${MARK}`}>{label}</h1>
         )}
@@ -218,10 +222,11 @@ export function AppShell() {
 
   const { data } = useQuery({
     queryKey: ["notifications", "unread"],
-    queryFn: async () => (await orbit.GET("/api/notifications", { params: { query: { limit: 100 } } })).data,
+    queryFn: async () =>
+      (await orbit.GET("/api/notifications", { params: { query: { status: "unread", limit: 1 } } })).data,
     enabled: !!token,
   });
-  const unread = data?.items.filter((n) => !n.read).length ?? 0;
+  const unread = data?.total ?? 0;
 
   return (
     <TooltipProvider>
@@ -360,7 +365,7 @@ export function AppShell() {
                   : "flex-1 overflow-auto"
               }
             >
-              <div className={fullBleed ? "h-full min-h-0" : "mx-auto flex min-h-full max-w-4xl flex-col px-8 pt-4 pb-8"}>
+              <div className={fullBleed ? "h-full min-h-0" : `${CONTENT_COL} flex min-h-full flex-col pt-4 pb-8`}>
                 <Outlet />
               </div>
             </div>
