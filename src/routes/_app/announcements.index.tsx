@@ -10,16 +10,11 @@ import { FeedCard } from "@/components/feed-card";
 import { FeedItemMenu, useDeleteMutation } from "@/components/feed-item-menu";
 import { Field, FormDialog } from "@/components/form-dialog";
 import { Empty, PageHeader } from "@/components/page-header";
-import { RequireAuth } from "@/components/require-auth";
 import { useAuth } from "@/lib/auth";
 import { orbit, unwrap } from "@/lib/orbit";
 
 export const Route = createFileRoute("/_app/announcements/")({
-  component: () => (
-    <RequireAuth>
-      <Announcements />
-    </RequireAuth>
-  ),
+  component: Announcements,
 });
 
 function Announcements() {

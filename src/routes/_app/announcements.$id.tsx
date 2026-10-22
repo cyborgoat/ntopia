@@ -2,15 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Byline, DetailPage, DetailTitle } from "@/components/detail-page";
 import { useDeleteMutation } from "@/components/feed-item-menu";
-import { RequireAuth } from "@/components/require-auth";
 import { orbit } from "@/lib/orbit";
 
 export const Route = createFileRoute("/_app/announcements/$id")({
-  component: () => (
-    <RequireAuth>
-      <AnnouncementDetail />
-    </RequireAuth>
-  ),
+  component: AnnouncementDetail,
 });
 
 function AnnouncementDetail() {

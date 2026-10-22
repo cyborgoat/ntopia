@@ -1,6 +1,7 @@
-import { getItem, setItem } from "@/lib/storage";
+import { createStore, newId, nowIso } from "@/lib/create-store";
 
-export const TODO_STORAGE_KEY = "todos";
+const store = createStore<TodoItem[]>("todos", () => []);
+export const TODO_STORAGE_KEY = store.key;
 
 export type Remind = "none" | "at" | "10m" | "1h" | "1d";
 
@@ -67,11 +68,11 @@ export type TodoInput = Partial<
 > & { title: string };
 
 export function listTodos(): TodoItem[] {
-  return getItem<TodoItem[]>(TODO_STORAGE_KEY) ?? [];
+  return store.read();
 }
 
 function persist(items: TodoItem[]) {
-  setItem(TODO_STORAGE_KEY, items);
+  void store.save(items);
 }
 
 /** Drops empty optional fields so stored items stay small. */
@@ -106,9 +107,9 @@ export function addTodo(input: TodoInput): TodoItem {
   const title = input.title.trim();
   if (!title) throw new Error("Title is required");
   const item: TodoItem = {
-    id: crypto.randomUUID(),
+    id: newId(),
     done: false,
-    createdAt: new Date().toISOString(),
+    createdAt: nowIso(),
     ...clean(input),
     title,
   };

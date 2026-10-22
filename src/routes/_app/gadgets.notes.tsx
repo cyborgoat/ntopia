@@ -1,18 +1,13 @@
-import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import {
-  Check,
-  ChevronLeft,
-  ChevronRight,
   Copy,
   Folder as FolderIcon,
   FolderOpen,
   FolderPlus,
   GripVertical,
-  Loader2,
   Pencil,
   Plus,
-  RotateCcw,
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -23,16 +18,6 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
   ContextMenu,
@@ -41,17 +26,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
-import { MarkdownEditor } from "@/components/markdown-editor";
 import { Empty, PageHeader } from "@/components/page-header";
 import {
   addFolder,
@@ -70,10 +45,15 @@ import {
   restoreNote,
   trashNote,
   updateNote,
-  updateNoteAndWait,
   type Note,
   type NoteFolder,
 } from "@/gadgets/notes/store";
+import { ConfirmDialog, type Confirm } from "@/gadgets/notes/confirm-dialog";
+import { TrashDialog } from "@/gadgets/notes/trash-dialog";
+import { NoteEditor } from "@/gadgets/notes/note-editor";
+import { useNoteDrag } from "@/gadgets/notes/use-note-drag";
+import { InlineRename } from "@/components/inline-rename";
+import { SidebarPill } from "@/components/sidebar-pill";
 import { cn, copyText, formatDateTime } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/gadgets/notes")({ component: NotesGadget });
@@ -81,106 +61,6 @@ export const Route = createFileRoute("/_app/gadgets/notes")({ component: NotesGa
 const LAYOUT_KEY = "ntopia.notes.layout";
 const COLLAPSE_KEY = "ntopia.notes.sidebar-collapsed";
 const DEFAULT_LAYOUT = { sidebar: 24, editor: 76 };
-const AUTOSAVE_MS = 500;
-
-type SaveStatus = "saved" | "saving" | "unsaved";
-
-function SaveIndicator({ status }: { status: SaveStatus }) {
-  return (
-    <span
-      className={cn(
-        "flex shrink-0 items-center gap-1 text-xs text-muted-foreground tabular-nums",
-        status === "unsaved" && "text-amber-700 dark:text-amber-400",
-      )}
-      aria-live="polite"
-    >
-      {status === "saving" && <><Loader2 className="size-3 animate-spin" /> Saving…</>}
-      {status === "saved" && <><Check className="size-3" /> Saved</>}
-      {status === "unsaved" && "Unsaved"}
-    </span>
-  );
-}
-
-function SidebarPill({
-  collapsed,
-  onToggle,
-  className,
-}: {
-  collapsed: boolean;
-  onToggle: () => void;
-  className?: string;
-}) {
-  const Icon = collapsed ? ChevronRight : ChevronLeft;
-  return (
-    <button
-      type="button"
-      aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-      onPointerDown={(e) => e.stopPropagation()}
-      onClick={onToggle}
-      className={cn(
-        "z-10 flex h-10 w-4 items-center justify-center rounded-full border bg-background text-muted-foreground shadow-xs transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-hidden",
-        className,
-      )}
-    >
-      <Icon className="size-3" />
-    </button>
-  );
-}
-
-/** Text input that replaces a label in place. Enter/blur commit, Escape cancels. */
-function InlineRename({
-  value,
-  onCommit,
-  onCancel,
-  className,
-}: {
-  value: string;
-  onCommit: (next: string) => void;
-  onCancel: () => void;
-  className?: string;
-}) {
-  const ref = useRef<HTMLInputElement>(null);
-  const done = useRef(false);
-
-  useEffect(() => {
-    // Defer so a closing context menu does not steal focus back.
-    const t = setTimeout(() => {
-      ref.current?.focus();
-      ref.current?.select();
-    }, 50);
-    return () => clearTimeout(t);
-  }, []);
-
-  const finish = (commit: boolean, next?: string) => {
-    if (done.current) return;
-    done.current = true;
-    if (commit) onCommit(next ?? value);
-    else onCancel();
-  };
-
-  return (
-    <Input
-      ref={ref}
-      defaultValue={value}
-      aria-label="Rename"
-      className={cn("h-6 min-w-0 flex-1 px-1.5 text-sm", className)}
-      onBlur={(e) => finish(true, e.target.value)}
-      onClick={(e) => e.stopPropagation()}
-      onDoubleClick={(e) => e.stopPropagation()}
-      onKeyDown={(e) => {
-        e.stopPropagation();
-        if (e.key === "Enter") finish(true, e.currentTarget.value);
-        if (e.key === "Escape") finish(false);
-      }}
-    />
-  );
-}
-
-type Confirm =
-  | { kind: "empty-trash" }
-  | { kind: "purge"; noteId: string; title: string }
-  | { kind: "delete-folder"; folderId: string; name: string; noteCount: number }
-  | null;
 
 function NotesGadget() {
   const [tick, setTick] = useState(0);
@@ -213,80 +93,15 @@ function NotesGadget() {
   }, [selectedId]);
   useEffect(() => () => void pruneEmptyNotes(), []);
 
-  // Pointer-based drag & drop: native HTML5 drags are intercepted by the Tauri webview.
-  const [drag, setDrag] = useState<{ noteId: string; title: string; x: number; y: number } | null>(null);
-  const [dropTarget, setDropTarget] = useState<string | null>(null);
-  const justDragged = useRef(false);
-  const stopDrag = useRef<(() => void) | null>(null);
-  useEffect(() => () => stopDrag.current?.(), []);
-
-  const startNoteDrag = (e: React.PointerEvent, n: Note) => {
-    if (e.button !== 0) return;
-    stopDrag.current?.();
-    const startX = e.clientX;
-    const startY = e.clientY;
-    let active = false;
-    let lastTarget: string | null = null;
-    let expandTimer: ReturnType<typeof setTimeout> | undefined;
-    const targetAt = (x: number, y: number) =>
-      document.elementFromPoint(x, y)?.closest<HTMLElement>("[data-drop]")?.dataset.drop ?? null;
-
-    const cleanup = () => {
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-      window.removeEventListener("pointercancel", cleanup);
-      window.removeEventListener("keydown", onKey);
-      document.body.classList.remove("select-none", "cursor-grabbing");
-      clearTimeout(expandTimer);
-      stopDrag.current = null;
-      setDrag(null);
-      setDropTarget(null);
-    };
-    function onMove(ev: PointerEvent) {
-      if (!active) {
-        if (Math.hypot(ev.clientX - startX, ev.clientY - startY) < 5) return;
-        active = true;
-        document.body.classList.add("select-none", "cursor-grabbing");
-      }
-      const target = targetAt(ev.clientX, ev.clientY);
-      setDrag({ noteId: n.id, title: displayTitle(n), x: ev.clientX, y: ev.clientY });
-      setDropTarget(target);
-      if (target !== lastTarget) {
-        lastTarget = target;
-        clearTimeout(expandTimer);
-        if (target && target !== "root") {
-          expandTimer = setTimeout(
-            () => setOpenFolders((v) => (v.includes(target) ? v : [...v, target])),
-            500,
-          );
-        }
-      }
-    }
-    function onUp(ev: PointerEvent) {
-      if (active) {
-        justDragged.current = true;
-        setTimeout(() => { justDragged.current = false; }, 0);
-        const target = targetAt(ev.clientX, ev.clientY);
-        if (target && target !== (n.folderId ?? "root")) {
-          const folderId = target === "root" ? null : target;
-          moveNote(n.id, folderId);
-          refresh();
-          if (folderId) setOpenFolders((v) => (v.includes(folderId) ? v : [...v, folderId]));
-          const name = folderId ? folders.find((f) => f.id === folderId)?.name : null;
-          toast.success(name ? `Moved to ${name}` : "Moved to top level");
-        }
-      }
-      cleanup();
-    }
-    function onKey(ev: KeyboardEvent) {
-      if (ev.key === "Escape") cleanup();
-    }
-    stopDrag.current = cleanup;
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
-    window.addEventListener("pointercancel", cleanup);
-    window.addEventListener("keydown", onKey);
-  };
+  const openFolder = (id: string) => setOpenFolders((v) => (v.includes(id) ? v : [...v, id]));
+  const { drag, dropTarget, justDragged, startNoteDrag } = useNoteDrag({
+    folders,
+    onMoved: (folderId) => {
+      refresh();
+      if (folderId) openFolder(folderId);
+    },
+    onHoverFolder: openFolder,
+  });
 
   const rootNotes = active.filter((n) => !n.folderId);
   const draggedNote = drag ? active.find((n) => n.id === drag.noteId) : undefined;
@@ -629,191 +444,22 @@ function NotesGadget() {
         </div>
       )}
 
-      <Dialog open={trashOpen} onOpenChange={setTrashOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Trash</DialogTitle>
-            <DialogDescription>
-              {trashed.length === 0
-                ? "Trash is empty."
-                : `${trashed.length} ${trashed.length === 1 ? "note" : "notes"} in trash. Restore or delete them for good.`}
-            </DialogDescription>
-          </DialogHeader>
-          {trashed.length > 0 && (
-            <ul className="max-h-72 space-y-0.5 overflow-auto">
-              {trashed.map((n) => (
-                <li key={n.id} className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-muted/60">
-                  <div className="min-w-0 flex-1">
-                    <span className="block truncate text-sm leading-tight font-medium">{displayTitle(n)}</span>
-                    <span className="block truncate text-[11px] leading-tight text-muted-foreground">
-                      Deleted {formatDateTime(n.deletedAt ?? n.updatedAt)}
-                    </span>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label="Restore"
-                    onClick={() => { restoreNote(n.id); refresh(); toast.success("Restored"); }}
-                  >
-                    <RotateCcw />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label="Delete forever"
-                    onClick={() => setConfirm({ kind: "purge", noteId: n.id, title: displayTitle(n) })}
-                  >
-                    <Trash2 />
-                  </Button>
-                </li>
-              ))}
-            </ul>
-          )}
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setTrashOpen(false)}>
-              Close
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              disabled={trashed.length === 0}
-              onClick={() => setConfirm({ kind: "empty-trash" })}
-            >
-              Empty trash
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <TrashDialog
+        open={trashOpen}
+        onOpenChange={setTrashOpen}
+        trashed={trashed}
+        onRestore={(n) => { restoreNote(n.id); refresh(); toast.success("Restored"); }}
+        onPurge={(n) => setConfirm({ kind: "purge", noteId: n.id, title: displayTitle(n) })}
+        onEmpty={() => setConfirm({ kind: "empty-trash" })}
+      />
 
-      <AlertDialog open={!!confirm} onOpenChange={(open) => !open && setConfirm(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {confirm?.kind === "empty-trash" && "Empty trash?"}
-              {confirm?.kind === "purge" && "Delete forever?"}
-              {confirm?.kind === "delete-folder" && "Delete folder?"}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {confirm?.kind === "empty-trash" &&
-                `Permanently delete ${trashed.length} ${trashed.length === 1 ? "note" : "notes"}. This cannot be undone.`}
-              {confirm?.kind === "purge" &&
-                `“${confirm.title}” will be permanently deleted. This cannot be undone.`}
-              {confirm?.kind === "delete-folder" &&
-                (confirm.noteCount > 0
-                  ? `Delete "${confirm.name}"? Its ${confirm.noteCount} ${confirm.noteCount === 1 ? "note" : "notes"} will move to the top level.`
-                  : `Delete empty folder "${confirm.name}"?`)}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              variant={confirm?.kind === "delete-folder" ? "default" : "destructive"}
-              onClick={runConfirm}
-            >
-              {confirm?.kind === "empty-trash" && "Empty trash"}
-              {confirm?.kind === "purge" && "Delete forever"}
-              {confirm?.kind === "delete-folder" && "Delete folder"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDialog
+        confirm={confirm}
+        trashedCount={trashed.length}
+        onCancel={() => setConfirm(null)}
+        onConfirm={runConfirm}
+      />
     </div>
   );
 }
 
-function NoteEditor({
-  note,
-  onRefresh,
-  onTrash,
-}: {
-  note: Note;
-  onRefresh: () => void;
-  onTrash: () => void;
-}) {
-  const [title, setTitle] = useState(note.title);
-  const [content, setContent] = useState(note.content);
-  const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const gen = useRef(0);
-
-  const flush = useEffectEvent(async (nextTitle: string, nextContent: string) => {
-    const token = ++gen.current;
-    setSaveStatus("saving");
-    try {
-      await updateNoteAndWait(note.id, { title: nextTitle, content: nextContent });
-      if (token !== gen.current) return;
-      setSaveStatus("saved");
-      onRefresh();
-    } catch {
-      if (token !== gen.current) return;
-      setSaveStatus("unsaved");
-      toast.error("Could not save note");
-    }
-  });
-
-  const scheduleSave = (nextTitle: string, nextContent: string) => {
-    setSaveStatus("unsaved");
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => {
-      timer.current = null;
-      void flush(nextTitle, nextContent);
-    }, AUTOSAVE_MS);
-  };
-
-  const latest = useRef({ title, content });
-  latest.current = { title, content };
-  useEffect(() => () => {
-    // Persist a pending edit so switching notes never drops typed text.
-    if (timer.current) {
-      clearTimeout(timer.current);
-      updateNote(note.id, latest.current);
-    }
-  }, [note.id]);
-
-  return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex items-center gap-2 border-b px-3 py-2">
-        <Input
-          value={title}
-          placeholder="Untitled"
-          onChange={(e) => {
-            const next = e.target.value;
-            setTitle(next);
-            scheduleSave(next, content);
-          }}
-          onBlur={() => {
-            if (timer.current) clearTimeout(timer.current);
-            void (async () => {
-              await flush(title, content);
-              finalizeTitle(note.id);
-              const finalized = loadState().notes.find((n) => n.id === note.id);
-              if (finalized) setTitle(finalized.title);
-              onRefresh();
-            })();
-          }}
-          className="h-8 border-0 bg-transparent px-1 text-base font-semibold shadow-none focus-visible:ring-0"
-          aria-label="Note title"
-        />
-        <SaveIndicator status={saveStatus} />
-        <Button type="button" variant="ghost" size="icon-sm" aria-label="Move to trash" onClick={onTrash}>
-          <Trash2 />
-        </Button>
-      </div>
-      <div className="min-h-0 flex-1">
-        <MarkdownEditor
-          fillHeight
-          variant="full"
-          value={content}
-          onChange={(next) => {
-            setContent(next);
-            scheduleSave(title, next);
-          }}
-          placeholder="Write a scratch note…"
-          className="h-full rounded-none border-0"
-        />
-      </div>
-    </div>
-  );
-}

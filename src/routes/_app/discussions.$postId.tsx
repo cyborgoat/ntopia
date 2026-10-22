@@ -4,15 +4,10 @@ import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/component
 import { CommentThread, VoteBar, VoteMenuItems, type Vote } from "@/components/comments";
 import { Byline, DetailPage, DetailTitle } from "@/components/detail-page";
 import { Markdown } from "@/components/markdown";
-import { RequireAuth } from "@/components/require-auth";
 import { orbit } from "@/lib/orbit";
 
 export const Route = createFileRoute("/_app/discussions/$postId")({
-  component: () => (
-    <RequireAuth>
-      <Thread />
-    </RequireAuth>
-  ),
+  component: Thread,
 });
 
 function Thread() {

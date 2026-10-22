@@ -1,6 +1,8 @@
-import { getItem, setItem } from "@/lib/storage";
+import { getItem } from "@/lib/storage";
+import { createStore, newId, nowIso } from "@/lib/create-store";
 
-export const NOTES_STORAGE_KEY = "gadget-notes";
+const store = createStore<NotesState>("gadget-notes", () => ({ folders: [], notes: [] }));
+export const NOTES_STORAGE_KEY = store.key;
 
 export type NoteFolder = {
   id: string;
@@ -66,7 +68,7 @@ export function loadState(): NotesState {
 }
 
 function persist(state: NotesState): Promise<void> {
-  return setItem(NOTES_STORAGE_KEY, state);
+  return store.save(state);
 }
 
 function write(mutator: (state: NotesState) => NotesState): NotesState {
@@ -88,7 +90,7 @@ function applyNotePatch(
         ...n,
         ...(patch.title !== undefined ? { title: patch.title } : {}),
         ...(patch.content !== undefined ? { content: patch.content } : {}),
-        updatedAt: new Date().toISOString(),
+        updatedAt: nowIso(),
       };
     }),
   };
@@ -114,9 +116,9 @@ export function listActiveNotes(): Note[] {
 
 export function addFolder(name = "New folder"): NoteFolder {
   const folder: NoteFolder = {
-    id: crypto.randomUUID(),
+    id: newId(),
     name: name.trim() || "New folder",
-    createdAt: new Date().toISOString(),
+    createdAt: nowIso(),
   };
   write((s) => ({ ...s, folders: [...s.folders, folder] }));
   return folder;
@@ -139,9 +141,9 @@ export function deleteFolder(id: string): NotesState {
 }
 
 export function addNote(opts?: { folderId?: string | null; title?: string }): Note {
-  const now = new Date().toISOString();
+  const now = nowIso();
   const note: Note = {
-    id: crypto.randomUUID(),
+    id: newId(),
     title: opts?.title ?? "",
     content: "",
     folderId: opts?.folderId ?? null,
@@ -164,7 +166,7 @@ export function finalizeTitle(id: string): NotesState {
     notes: s.notes.map((n) => {
       if (n.id !== id) return n;
       if (n.title.trim() || !n.content.trim()) return n;
-      return { ...n, title: "Untitled", updatedAt: new Date().toISOString() };
+      return { ...n, title: "Untitled", updatedAt: nowIso() };
     }),
   }));
 }
@@ -173,13 +175,13 @@ export function moveNote(id: string, folderId: string | null): NotesState {
   return write((s) => ({
     ...s,
     notes: s.notes.map((n) =>
-      n.id === id ? { ...n, folderId, updatedAt: new Date().toISOString() } : n,
+      n.id === id ? { ...n, folderId, updatedAt: nowIso() } : n,
     ),
   }));
 }
 
 export function trashNote(id: string): NotesState {
-  const now = new Date().toISOString();
+  const now = nowIso();
   return write((s) => ({
     ...s,
     notes: s.notes.map((n) => (n.id === id ? { ...n, deletedAt: now } : n)),
@@ -192,7 +194,7 @@ export function restoreNote(id: string): NotesState {
     notes: s.notes.map((n) => {
       if (n.id !== id) return n;
       const { deletedAt: _, ...rest } = n;
-      return { ...rest, updatedAt: new Date().toISOString() };
+      return { ...rest, updatedAt: nowIso() };
     }),
   }));
 }

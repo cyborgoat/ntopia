@@ -1,4 +1,5 @@
 import { Fragment, type MouseEvent, useEffect, useState } from "react";
+import { RequireAuth } from "@/components/require-auth";
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -64,6 +65,8 @@ const orbitNav = [
   { to: "/discussions", label: "Discussions", icon: MessagesSquare },
 ] as const;
 
+/** Team Orbit areas: guests see a sign-in prompt here instead of failing API calls. */
+const ORBIT_PATHS = [...orbitNav.map((n) => n.to), "/notifications"];
 const FULL_BLEED = ["/gadgets/email", "/gadgets/notes", "/todo", "/blog/new", "/news/new", "/discussions/new"];
 const MARK = "text-[1.65rem] font-semibold tracking-[-0.06em]";
 
@@ -235,6 +238,7 @@ export function AppShell() {
   const [panel, setPanel] = useState<SettingsPanel | null>(null);
   useNotificationsSocket();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const needsAuth = ORBIT_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
   const fullBleed = FULL_BLEED.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 
   const { data } = useQuery({
@@ -375,7 +379,7 @@ export function AppShell() {
               }
             >
               <div className={fullBleed ? "h-full min-h-0" : `${CONTENT_COL} flex min-h-full flex-col pt-4 pb-8`}>
-                <Outlet />
+                {needsAuth ? <RequireAuth><Outlet /></RequireAuth> : <Outlet />}
               </div>
             </div>
           </SidebarInset>

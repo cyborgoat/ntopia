@@ -1,6 +1,7 @@
-import { getItem, setItem } from "@/lib/storage";
+import { createStore, newId, nowIso } from "@/lib/create-store";
 
-export const LINKS_STORAGE_KEY = "gadget-links";
+const store = createStore<ShelfLink[]>("gadget-links", () => []);
+export const LINKS_STORAGE_KEY = store.key;
 
 export type ShelfLink = {
   id: string;
@@ -10,11 +11,11 @@ export type ShelfLink = {
 };
 
 export function listLinks(): ShelfLink[] {
-  return getItem<ShelfLink[]>(LINKS_STORAGE_KEY) ?? [];
+  return store.read();
 }
 
 function persist(items: ShelfLink[]) {
-  void setItem(LINKS_STORAGE_KEY, items);
+  void store.save(items);
 }
 
 function normalizeUrl(raw: string): string {
@@ -29,10 +30,10 @@ export function addLink(input: { title: string; url: string }): ShelfLink {
   if (!url) throw new Error("URL is required");
   const title = input.title.trim() || url;
   const link: ShelfLink = {
-    id: crypto.randomUUID(),
+    id: newId(),
     title,
     url,
-    createdAt: new Date().toISOString(),
+    createdAt: nowIso(),
   };
   persist([link, ...listLinks()]);
   return link;

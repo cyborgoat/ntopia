@@ -14,18 +14,13 @@ import { FeedItemMenu, useDeleteMutation } from "@/components/feed-item-menu";
 import { Field, FormDialog } from "@/components/form-dialog";
 import { ImageUploadButton } from "@/components/image-upload";
 import { Empty, PageHeader } from "@/components/page-header";
-import { RequireAuth } from "@/components/require-auth";
 import { UserPicker, type PickedUser } from "@/components/user-picker";
 import { useAuth } from "@/lib/auth";
 import { orbit, unwrap } from "@/lib/orbit";
 import { formatDateTime } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/events/")({
-  component: () => (
-    <RequireAuth>
-      <Events />
-    </RequireAuth>
-  ),
+  component: Events,
 });
 
 type Audience = "GLOBAL" | "INVITE_ONLY";

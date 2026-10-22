@@ -14,17 +14,12 @@ import {
 } from "@/components/ui/context-menu";
 import { ListPagination, PAGE_SIZE } from "@/components/list-pagination";
 import { Empty, PageHeader } from "@/components/page-header";
-import { RequireAuth } from "@/components/require-auth";
 import { notificationTarget } from "@/lib/notification-link";
 import { orbit, unwrap } from "@/lib/orbit";
 import { cn, formatDateTime } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/notifications")({
-  component: () => (
-    <RequireAuth>
-      <Notifications />
-    </RequireAuth>
-  ),
+  component: Notifications,
 });
 
 type Status = "unread" | "read";

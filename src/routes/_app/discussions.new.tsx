@@ -1,15 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { PostComposer } from "@/components/post-composer";
-import { RequireAuth } from "@/components/require-auth";
 import { orbit, unwrap } from "@/lib/orbit";
 
 export const Route = createFileRoute("/_app/discussions/new")({
-  component: () => (
-    <RequireAuth>
-      <NewThread />
-    </RequireAuth>
-  ),
+  component: NewThread,
 });
 
 function NewThread() {

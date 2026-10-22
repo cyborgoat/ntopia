@@ -1,18 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { cn, toMessage, copyText } from "@/lib/utils";
 import { usePanelLayout, usePersistedChoice, usePersistedFlag } from "@/lib/prefs";
 import { createFileRoute } from "@tanstack/react-router";
-import { open, save } from "@tauri-apps/plugin-dialog";
-import { writeTextFile } from "@tauri-apps/plugin-fs";
-import { join } from "@tauri-apps/api/path";
-import { openPath } from "@tauri-apps/plugin-opener";
-import { ChevronDown, Copy, Download, Eye, EyeOff, FileText, FolderOpen, ImagePlus, ListChecks, Loader2, Mail, Palette, PenLine, Upload, X } from "lucide-react";
+import { ChevronDown, Copy, Download, Eye, EyeOff, FileText, FolderOpen, ListChecks, Loader2, Mail, PenLine, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import {
   ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger,
 } from "@/components/ui/context-menu";
@@ -20,10 +14,12 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
-import { Field } from "@/components/form-dialog";
 import { isTauri } from "@/lib/storage";
 import { DetailsPanel } from "@/gadgets/email/details-panel";
 import { SourceEditor } from "@/gadgets/email/source-editor";
+import { Branding } from "@/gadgets/email/branding-dialog";
+import { useEmailExport } from "@/gadgets/email/use-email-export";
+import { useLivePreview } from "@/gadgets/email/use-live-preview";
 import { TemplateGallery, TemplatePicker } from "@/gadgets/email/template-picker";
 import { joinDoc, splitDoc, type Frontmatter } from "@/gadgets/email/frontmatter";
 import { loadDraft, saveDraft } from "@/gadgets/email/draft";
@@ -42,12 +38,6 @@ const DEFAULT_LAYOUT = { editor: 50, preview: 50 };
 type Tab = "details" | "message";
 const TABS = ["details", "message"] as const;
 
-function exportBasename(meta: Frontmatter) {
-  const title = meta.title;
-  const raw = String(title ?? "email").trim() || "email";
-  return raw.replace(/[^\w\- ]+/g, "").replace(/\s+/g, "-").slice(0, 64) || "email";
-}
-
 function EmailGadget() {
   if (!isTauri()) {
     return <p className="text-sm text-muted-foreground">The email composer needs the desktop app (run with <code>pnpm tauri:dev</code>).</p>;
@@ -62,23 +52,15 @@ function Composer() {
   const [meta, setMeta] = useState<Frontmatter>(saved?.meta ?? BLANK_META);
   const [body, setBody] = useState(saved?.body ?? BLANK_BODY);
   const doc = useMemo(() => joinDoc(meta, body), [meta, body]);
-  const docRef = useRef(doc);
-  docRef.current = doc;
   // The document as last loaded (blank or a template); anything else counts as an unsaved edit.
   const [baseline, setBaseline] = useState(saved?.baseline ?? joinDoc(BLANK_META, BLANK_BODY));
-  const [ready, setReady] = useState(false);
-  const [html, setHtml] = useState("");
   const [showPreview, setShowPreview] = usePersistedFlag(PREVIEW_KEY, true);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
+  const { html, busy, error, previewUrl, retry: retryPreview, reset: resetPreviewOutput, setError } = useLivePreview(started, doc);
   const [templates, setTemplates] = useState<string[]>([]);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const versionRef = useRef(0);
   const [layout, saveLayout] = usePanelLayout(LAYOUT_KEY, DEFAULT_LAYOUT);
 
   const togglePreview = () => setShowPreview((v) => !v);
 
-  const [attempt, setAttempt] = useState(0);
   const [tab, setTab] = usePersistedChoice<Tab>(TAB_KEY, TABS, "details");
   const [hintDismissed, setHintDismissed] = usePersistedFlag(HINT_KEY, false);
 
@@ -96,80 +78,17 @@ function Composer() {
   }, [started, meta, body, baseline]);
 
   useEffect(() => {
-    if (!started) return;
-    let cancelled = false;
-    setError("");
-    mm.acquirePreview(docRef.current, { keepImages: true })
-      .then(({ url }) => {
-        if (cancelled) return;
-        setPreviewUrl(url);
-        setReady(true);
-      })
-      .catch((e) => {
-        if (!cancelled) setError(toMessage(e));
-      });
-    return () => {
-      cancelled = true;
-      mm.releasePreview();
-    };
-  }, [attempt, started]);
-
-  useEffect(() => {
     mm.listTemplates().then(setTemplates).catch(() => {});
   }, []);
-
-  async function retryPreview() {
-    setReady(false);
-    setPreviewUrl(null);
-    await mm.resetPreview();
-    setAttempt((n) => n + 1);
-  }
-
-  useEffect(() => {
-    if (!previewUrl) return;
-    let stopped = false;
-    const tick = async () => {
-      try {
-        const state = await mm.fetchPreviewState(previewUrl, versionRef.current);
-        if (stopped) return;
-        setBusy(state.updating);
-        if (state.error) setError(state.error);
-        else if (state.html !== undefined) {
-          setHtml(state.html);
-          versionRef.current = state.version;
-          setError("");
-        } else if (!state.updating) {
-          setError("");
-        }
-      } catch (e) {
-        if (!stopped) setError(toMessage(e));
-      }
-      if (!stopped) timer = setTimeout(tick, 500);
-    };
-    let timer = setTimeout(tick, 0);
-    return () => {
-      stopped = true;
-      clearTimeout(timer);
-    };
-  }, [previewUrl]);
-
-  useEffect(() => {
-    if (!ready) return;
-    const t = setTimeout(() => {
-      void mm.writeWorking(doc).catch((e) => setError(toMessage(e)));
-    }, 400);
-    return () => clearTimeout(t);
-  }, [doc, ready]);
 
   async function startDraft(data: Frontmatter, nextBody: string) {
     await mm.clearPastedImages();
     setMeta(data);
     setBody(nextBody);
     setBaseline(joinDoc(data, nextBody));
-    setHtml("");
+    resetPreviewOutput();
     await mm.writeWorking(joinDoc(data, nextBody));
     setStarted(true);
-    setError("");
   }
 
   async function loadTemplate(t: string) {
@@ -183,49 +102,7 @@ function Composer() {
     }
   }
 
-  const base = exportBasename(meta);
-
-  async function exportMd() {
-    try {
-      const target = await save({ defaultPath: `${base}.md`, filters: [{ name: "Markdown", extensions: ["md"] }] });
-      if (target) {
-        await writeTextFile(target, doc);
-        toast.success("Saved Markdown");
-      }
-    } catch (e) { toast.error(toMessage(e)); }
-  }
-
-  async function exportOne(format: mm.Format) {
-    try {
-      const r = await mm.render([format]);
-      const target = await save({ defaultPath: `${base}.${format}`, filters: [{ name: format.toUpperCase(), extensions: [format] }] });
-      if (target) {
-        await mm.exportTo(r.paths[format]!, target);
-        toast.success(`Saved ${format.toUpperCase()}`);
-      }
-    } catch (e) { toast.error(toMessage(e)); }
-  }
-
-  async function exportAll() {
-    try {
-      const dir = await open({ directory: true, title: "Export to folder" });
-      if (!dir || Array.isArray(dir)) return;
-      await writeTextFile(await join(dir, `${base}.md`), doc);
-      const r = await mm.render(["html", "eml", "png"]);
-      for (const f of ["html", "eml", "png"] as const) {
-        await mm.exportTo(r.paths[f]!, await join(dir, `${base}.${f}`));
-      }
-      toast.success("Exported Markdown, HTML, EML and PNG");
-    } catch (e) { toast.error(toMessage(e)); }
-  }
-
-  async function openInMail() {
-    try {
-      const r = await mm.render(["eml"]);
-      await openPath(r.paths.eml!);
-    } catch (e) { toast.error(toMessage(e)); }
-  }
-
+  const { exportMd, exportOne, exportAll, openInMail } = useEmailExport(meta, doc);
   const copyHtml = () => copyText(html, "HTML");
 
   const exportMenuItems = (
@@ -414,70 +291,3 @@ function SegmentButton({ active, onClick, hint, children }: { active: boolean; o
 }
 
 /** Logo tile: the preview itself is the button (click to choose a new file), like an avatar upload. */
-function LogoPicker({ name, onPick, onReset }: { name: string; onPick: () => void; onReset?: () => void }) {
-  const [url, setUrl] = useState<string>();
-  useEffect(() => {
-    let live = true;
-    let made: string | undefined;
-    setUrl(undefined);
-    mm.logoBlobUrl(name).then((u) => {
-      if (live) setUrl((made = u));
-      else URL.revokeObjectURL(u);
-    }).catch(() => {});
-    return () => {
-      live = false;
-      if (made) URL.revokeObjectURL(made);
-    };
-  }, [name]);
-  return (
-    <div className="flex items-center gap-3">
-      <button
-        type="button"
-        onClick={onPick}
-        aria-label="Change logo"
-        className="group relative flex h-14 w-36 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted/40 p-2 outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      >
-        {url ? <img src={url} alt="Logo preview" className="max-h-full max-w-full object-contain" /> : <ImagePlus className="size-5 text-muted-foreground" />}
-        <span className="absolute inset-0 flex items-center justify-center gap-1.5 bg-background/80 text-xs font-medium opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
-          <Upload className="size-3.5" /> Change
-        </span>
-      </button>
-      <div className="min-w-0 space-y-0.5 text-xs text-muted-foreground">
-        <p>Shown in the email header. SVG, PNG or JPG.</p>
-        {onReset && <button type="button" onClick={onReset} className="underline underline-offset-2 hover:text-foreground">Use default logo</button>}
-      </div>
-    </div>
-  );
-}
-
-function Branding() {
-  const [b, setB] = useState<mm.Branding>(mm.DEFAULT_BRANDING);
-  const [openDlg, setOpenDlg] = useState(false);
-  useEffect(() => { if (openDlg) mm.loadBranding().then(setB); }, [openDlg]);
-  const set = (k: keyof mm.Branding) => (e: React.ChangeEvent<HTMLInputElement>) => setB({ ...b, [k]: e.target.value });
-
-  return (
-    <Dialog open={openDlg} onOpenChange={setOpenDlg}>
-      <DialogTrigger render={<Button variant="ghost" size="icon-sm" aria-label="Branding" />}><Palette /></DialogTrigger>
-      <DialogContent className="max-w-md">
-        <DialogHeader><DialogTitle>Email branding</DialogTitle></DialogHeader>
-        <div className="space-y-3">
-          <Field label="Organization"><Input value={b.organization} onChange={set("organization")} /></Field>
-          <Field label="Tagline"><Input value={b.tagline} onChange={set("tagline")} /></Field>
-          <Field label="Footer"><Input value={b.footerText} onChange={set("footerText")} /></Field>
-          <Field label="Logo">
-            <LogoPicker
-              name={b.logo}
-              onPick={async () => {
-                const f = await open({ filters: [{ name: "Image", extensions: ["svg", "png", "jpg", "jpeg"] }] });
-                if (f && !Array.isArray(f)) setB({ ...b, logo: await mm.setLogo(f) });
-              }}
-              onReset={b.logo.startsWith("logo-custom") ? () => setB({ ...b, logo: mm.DEFAULT_BRANDING.logo }) : undefined}
-            />
-          </Field>
-          <Button className="w-full" onClick={async () => { await mm.saveBranding(b); toast.success("Branding saved"); setOpenDlg(false); }}>Save</Button>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}

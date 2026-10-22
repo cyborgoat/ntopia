@@ -4,16 +4,11 @@ import { CalendarDays, Lock, MapPin, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { CoverImage, DetailPage, DetailTitle } from "@/components/detail-page";
 import { useDeleteMutation } from "@/components/feed-item-menu";
-import { RequireAuth } from "@/components/require-auth";
 import { orbit } from "@/lib/orbit";
 import { formatDateTime } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/events/$id")({
-  component: () => (
-    <RequireAuth>
-      <EventDetail />
-    </RequireAuth>
-  ),
+  component: EventDetail,
 });
 
 function EventDetail() {

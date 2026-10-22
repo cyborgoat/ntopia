@@ -8,15 +8,10 @@ import { FeedCard } from "@/components/feed-card";
 import { FeedItemMenu } from "@/components/feed-item-menu";
 import { ListPagination, PAGE_SIZE } from "@/components/list-pagination";
 import { Empty, PageHeader } from "@/components/page-header";
-import { RequireAuth } from "@/components/require-auth";
 import { orbit } from "@/lib/orbit";
 
 export const Route = createFileRoute("/_app/discussions/")({
-  component: () => (
-    <RequireAuth>
-      <Discussions />
-    </RequireAuth>
-  ),
+  component: Discussions,
 });
 
 function threadUrl(id: string) {
