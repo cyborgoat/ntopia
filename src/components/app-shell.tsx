@@ -1,4 +1,4 @@
-import { Fragment, type MouseEvent, useEffect, useRef, useState } from "react";
+import { Fragment, type MouseEvent, useEffect, useState } from "react";
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -191,19 +191,6 @@ function BrandToggle() {
   );
 }
 
-// Collapse the sidebar when entering a gadget (/gadgets/<name>, except the email composer) from elsewhere.
-// Only the transition triggers it, so a manual toggle sticks while in gadgets.
-function AutoCollapseForGadgets({ pathname }: { pathname: string }) {
-  const { setOpen } = useSidebar();
-  const inGadget = /^\/gadgets\/(?!email(?:\/|$))[^/]+/.test(pathname);
-  const wasInGadget = useRef(false);
-  useEffect(() => {
-    if (inGadget && !wasInGadget.current) setOpen(false);
-    wasInGadget.current = inGadget;
-  }, [inGadget, setOpen]);
-  return null;
-}
-
 /** Same content column as the shell outlet so titles and feed cards share one width. */
 const CONTENT_COL = "mx-auto w-full max-w-4xl px-8";
 
@@ -261,7 +248,6 @@ export function AppShell() {
   return (
     <TooltipProvider>
       <SidebarProvider className="h-svh overflow-hidden">
-        <AutoCollapseForGadgets pathname={pathname} />
         <Sidebar collapsible="icon">
           <SidebarHeader className="gap-2">
             <SidebarMenu>
