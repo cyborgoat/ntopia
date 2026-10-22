@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Bell, Check, ChevronDown, ChevronRight, Circle, MapPin, Pencil, StickyNote, Trash2 } from "lucide-react";
+import { Bell, Check, ChevronDown, ChevronRight, Circle, Flag, MapPin, Pencil, StickyNote, Trash2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   ContextMenu,
@@ -23,9 +24,16 @@ import {
   toggleTodo,
   updateTodo,
   type TodoItem,
+  type Urgency,
 } from "@/features/todo/store";
 import { useNow } from "@/features/todo/use-now";
 import { TodoDialog } from "@/features/todo/todo-dialog";
+
+const URGENCY_LABEL: Record<Exclude<Urgency, "none">, string> = {
+  low: "Low",
+  medium: "Med",
+  high: "High",
+};
 
 export const Route = createFileRoute("/_app/todo")({ component: TodoPage });
 
@@ -94,10 +102,31 @@ function TodoPage() {
             className="flex min-w-0 flex-1 items-center gap-3 text-left"
             onClick={() => setEditingId(t.id)}
           >
+            {t.flagged && (
+              <Flag className="size-3 shrink-0 fill-amber-500 text-amber-500" aria-label="Flagged" />
+            )}
             <span className={`min-w-0 flex-1 truncate text-sm ${t.done ? "text-muted-foreground line-through" : ""}`}>
               {t.title}
             </span>
             <span className="flex shrink-0 items-center gap-2.5 text-xs text-muted-foreground">
+              {t.urgency && t.urgency !== "none" && (
+                <Badge
+                  variant={t.urgency === "high" ? "destructive" : "secondary"}
+                  className="h-4 px-1.5 text-[10px]"
+                >
+                  {URGENCY_LABEL[t.urgency]}
+                </Badge>
+              )}
+              {t.tags && t.tags.length > 0 && (
+                <span className="flex max-w-40 items-center gap-1 truncate">
+                  {t.tags.slice(0, 2).map((tag) => (
+                    <Badge key={tag} variant="outline" className="h-4 max-w-20 truncate px-1.5 text-[10px] font-normal">
+                      {tag}
+                    </Badge>
+                  ))}
+                  {t.tags.length > 2 && <span className="text-[10px]">+{t.tags.length - 2}</span>}
+                </span>
+              )}
               {t.location && (
                 <span className="flex max-w-32 items-center gap-1 truncate"><MapPin className="size-3 shrink-0" /><span className="truncate">{t.location}</span></span>
               )}
@@ -126,6 +155,15 @@ function TodoPage() {
           <ContextMenuItem onClick={() => setItems(toggleTodo(t.id))}>
             {t.done ? <Circle /> : <Check />}
             {t.done ? "Mark incomplete" : "Mark complete"}
+          </ContextMenuItem>
+          <ContextMenuItem
+            onClick={() => {
+              updateTodo(t.id, { flagged: !t.flagged });
+              setItems(listTodos());
+            }}
+          >
+            <Flag className={t.flagged ? "fill-current" : undefined} />
+            {t.flagged ? "Unflag" : "Flag"}
           </ContextMenuItem>
           <ContextMenuSeparator />
           <ContextMenuItem variant="destructive" onClick={() => setItems(deleteTodo(t.id))}>

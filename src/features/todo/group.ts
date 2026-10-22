@@ -1,5 +1,5 @@
 import { addDays, fromDateKey, startOfWeek, toDateKey } from "./dates";
-import type { TodoItem } from "./store";
+import { urgencyRank, type TodoItem } from "./store";
 
 export type TodoSection = {
   id: string;
@@ -10,7 +10,10 @@ export type TodoSection = {
   items: TodoItem[];
 };
 
+/** Flagged first, then higher urgency, then earlier due date/time, then newest. */
 const byDue = (a: TodoItem, b: TodoItem) =>
+  Number(!!b.flagged) - Number(!!a.flagged) ||
+  urgencyRank(b.urgency) - urgencyRank(a.urgency) ||
   (a.dueDate ?? "").localeCompare(b.dueDate ?? "") ||
   (a.dueTime ?? "99:99").localeCompare(b.dueTime ?? "99:99") ||
   b.createdAt.localeCompare(a.createdAt);

@@ -135,7 +135,7 @@ Greeting plus two columns: the **Today** panel (`src/features/todo/today-panel.t
 A dedicated sidebar feature, not a gadget.
 
 - Implementation: `src/features/todo/` (`store.ts`, `group.ts` for the weekly grouping, `reminders.ts`, `todo-dialog.tsx`) + route UI.
-- Persists `{ id, title, done, createdAt, dueDate?, dueTime?, remind?, notes?, location?, remindedAt? }[]` under the `todos` storage key (loaded at boot with `serverUrl` / `token`). Older items without the optional fields still load.
+- Persists `{ id, title, done, createdAt, dueDate?, dueTime?, remind?, notes?, location?, flagged?, urgency?, tags?, remindedAt? }[]` under the `todos` storage key (loaded at boot with `serverUrl` / `token`). Older items without the optional fields still load. `urgency` is `low` | `medium` | `high`; `tags` is a string array.
 - The list is grouped Overdue → Today → the remaining weekdays of the current Mon–Sun week → Upcoming → No date → Completed.
 - Reminders: `useTodoReminders()` (mounted in `routes/_app.tsx`) checks every 30 s and fires a native notification plus a toast once per item. They only fire while the app is running; ones missed while closed fire on launch.
 
@@ -145,7 +145,7 @@ Desktop right-click menus use shadcn [`context-menu`](https://ui.shadcn.com/docs
 
 | Surface | Actions |
 |---------|---------|
-| Todo rows / list | Edit, toggle, delete; focus add / clear completed |
+| Todo rows / list | Edit, toggle, flag, delete; focus add / clear completed |
 | Email editor & preview | Open in Mail, export formats, copy HTML |
 | Notifications | Mark as read |
 | Announcements / events / news / blog | Copy title; Delete if `isAdmin` |

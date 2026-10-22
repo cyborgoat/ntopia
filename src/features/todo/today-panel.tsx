@@ -1,13 +1,20 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, MapPin, Plus } from "lucide-react";
+import { ArrowRight, Flag, MapPin, Plus } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { dueLabel, groupTodos } from "./group";
 import { TODO_REMINDER_EVENT } from "./reminders";
-import { addTodo, listTodos, toggleTodo, type TodoItem } from "./store";
+import { addTodo, listTodos, toggleTodo, type TodoItem, type Urgency } from "./store";
 import { toDateKey } from "./dates";
 import { useNow } from "./use-now";
+
+const URGENCY_LABEL: Record<Exclude<Urgency, "none">, string> = {
+  low: "Low",
+  medium: "Med",
+  high: "High",
+};
 
 /** Overdue and due-today tasks with tick-off and quick add; shared data with the Todo page. */
 export function TodayPanel() {
@@ -65,8 +72,14 @@ export function TodayPanel() {
                     className="size-4 shrink-0 accent-foreground"
                     aria-label="Mark complete"
                   />
+                  {t.flagged && <Flag className="size-3.5 shrink-0 fill-amber-500 text-amber-500" aria-label="Flagged" />}
                   <span className="min-w-0 flex-1 truncate text-base">{t.title}</span>
-                  <span className="flex shrink-0 items-center gap-3 text-sm text-muted-foreground">
+                  <span className="flex shrink-0 items-center gap-2.5 text-sm text-muted-foreground">
+                    {t.urgency && t.urgency !== "none" && (
+                      <Badge variant={t.urgency === "high" ? "destructive" : "secondary"} className="h-4 px-1.5 text-[10px]">
+                        {URGENCY_LABEL[t.urgency]}
+                      </Badge>
+                    )}
                     {t.location && <span className="flex max-w-24 items-center gap-1"><MapPin className="size-3 shrink-0" /><span className="truncate">{t.location}</span></span>}
                     {t.dueDate && (
                       <span className={`tabular-nums ${s.id === "overdue" ? "text-destructive" : ""}`}>

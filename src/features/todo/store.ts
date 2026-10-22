@@ -12,6 +12,34 @@ export const REMIND_OPTIONS: { value: Remind; label: string; ms: number }[] = [
   { value: "1d", label: "1 day before", ms: 24 * 60 * 60_000 },
 ];
 
+export type Urgency = "none" | "low" | "medium" | "high";
+
+export const URGENCY_OPTIONS: { value: Urgency; label: string; rank: number }[] = [
+  { value: "none", label: "None", rank: 0 },
+  { value: "low", label: "Low", rank: 1 },
+  { value: "medium", label: "Medium", rank: 2 },
+  { value: "high", label: "High", rank: 3 },
+];
+
+export function urgencyRank(urgency: Urgency | undefined): number {
+  return URGENCY_OPTIONS.find((o) => o.value === (urgency ?? "none"))?.rank ?? 0;
+}
+
+/** Split a comma-separated tag string into unique trimmed tags. */
+export function parseTags(raw: string): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const part of raw.split(/[,]+/)) {
+    const t = part.trim();
+    if (!t) continue;
+    const key = t.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(t);
+  }
+  return out;
+}
+
 export type TodoItem = {
   id: string;
   title: string;
@@ -24,11 +52,19 @@ export type TodoItem = {
   remind?: Remind;
   notes?: string;
   location?: string;
+  /** Starred / pin-like marker for quick focus. */
+  flagged?: boolean;
+  /** Priority relative to other open tasks; `"none"` is never persisted. */
+  urgency?: Urgency;
+  /** Free-form labels. */
+  tags?: string[];
   /** Set once the reminder has fired so it never repeats. */
   remindedAt?: string;
 };
 
-export type TodoInput = Partial<Pick<TodoItem, "dueDate" | "dueTime" | "remind" | "notes" | "location">> & { title: string };
+export type TodoInput = Partial<
+  Pick<TodoItem, "dueDate" | "dueTime" | "remind" | "notes" | "location" | "flagged" | "urgency" | "tags">
+> & { title: string };
 
 export function listTodos(): TodoItem[] {
   return getItem<TodoItem[]>(TODO_STORAGE_KEY) ?? [];
@@ -50,6 +86,19 @@ function clean(patch: Partial<TodoItem>): Partial<TodoItem> {
     out.remind = undefined;
   }
   if (out.remind === "none") out.remind = undefined;
+  if ("flagged" in out && !out.flagged) out.flagged = undefined;
+  if (out.urgency === "none") out.urgency = undefined;
+  if ("tags" in out) {
+    const tags = (out.tags ?? []).map((t) => t.trim()).filter(Boolean);
+    const seen = new Set<string>();
+    out.tags = tags.filter((t) => {
+      const key = t.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    if (out.tags.length === 0) out.tags = undefined;
+  }
   return out;
 }
 

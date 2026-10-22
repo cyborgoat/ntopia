@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Flag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -6,7 +7,14 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { DatePicker } from "./date-picker";
 import { parseTime } from "./dates";
-import { REMIND_OPTIONS, type Remind, type TodoItem } from "./store";
+import {
+  parseTags,
+  REMIND_OPTIONS,
+  URGENCY_OPTIONS,
+  type Remind,
+  type TodoItem,
+  type Urgency,
+} from "./store";
 
 type Patch = Partial<Omit<TodoItem, "id" | "createdAt">>;
 
@@ -25,6 +33,9 @@ export function TodoDialog({ todo, onSave, onClose }: { todo: TodoItem; onSave: 
   const [dueDate, setDueDate] = useState(todo.dueDate ?? "");
   const [dueTime, setDueTime] = useState(todo.dueTime ?? "");
   const [remind, setRemind] = useState<Remind>(todo.remind ?? "none");
+  const [flagged, setFlagged] = useState(!!todo.flagged);
+  const [urgency, setUrgency] = useState<Urgency>(todo.urgency ?? "none");
+  const [tags, setTags] = useState((todo.tags ?? []).join(", "));
   const [location, setLocation] = useState(todo.location ?? "");
   const [notes, setNotes] = useState(todo.notes ?? "");
 
@@ -34,7 +45,17 @@ export function TodoDialog({ todo, onSave, onClose }: { todo: TodoItem; onSave: 
   const save = (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!title.trim() || timeInvalid) return;
-    onSave({ title, dueDate: dueDate || undefined, dueTime: parsedTime || undefined, remind: dueDate ? remind : "none", location, notes });
+    onSave({
+      title,
+      dueDate: dueDate || undefined,
+      dueTime: parsedTime || undefined,
+      remind: dueDate ? remind : "none",
+      flagged,
+      urgency,
+      tags: parseTags(tags),
+      location,
+      notes,
+    });
     onClose();
   };
 
@@ -59,6 +80,39 @@ export function TodoDialog({ todo, onSave, onClose }: { todo: TodoItem; onSave: 
               {timeInvalid && <p className="text-xs text-destructive">Use 24-hour time, e.g. 09:00 or 15:30.</p>}
             </Field>
           </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Urgency">
+              <select
+                value={urgency}
+                onChange={(e) => setUrgency(e.target.value as Urgency)}
+                className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
+              >
+                {URGENCY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </Field>
+            <Field label="Flag">
+              <button
+                type="button"
+                onClick={() => setFlagged((f) => !f)}
+                aria-pressed={flagged}
+                className={`flex h-8 w-full items-center justify-center gap-2 rounded-lg border text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 ${
+                  flagged
+                    ? "border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-400"
+                    : "border-input bg-transparent text-muted-foreground dark:bg-input/30"
+                }`}
+              >
+                <Flag className={`size-3.5 ${flagged ? "fill-current" : ""}`} />
+                {flagged ? "Flagged" : "Not flagged"}
+              </button>
+            </Field>
+          </div>
+          <Field label="Tags">
+            <Input
+              value={tags}
+              placeholder="Comma separated, e.g. work, errands"
+              onChange={(e) => setTags(e.target.value)}
+            />
+          </Field>
           <Field label="Reminder">
             <select
               value={remind}
