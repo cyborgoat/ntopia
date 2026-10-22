@@ -101,7 +101,7 @@ File routes under `src/routes/`; generated tree in `src/routeTree.gen.ts`.
 ### Orbit feature notes (`@goatcheese/teamorbit-client` ≥ 0.2.3)
 
 - **Events:** create supports `audience` `GLOBAL` \| `INVITE_ONLY` plus `recipientIds` via [`UserPicker`](../src/components/user-picker.tsx); detail shows invitees.
-- **Notifications:** list filters with `status=unread|read|dismissed`; mark unread (`DELETE …/read`), restore dismissed, mark-all-read, dismiss. Unread badges use `status=unread` + `total`.
+- **Notifications:** Unread / Read tabs via `status=unread|read`; mark unread (`DELETE …/read`), mark-all-read, dismiss. Dismissed items are not shown in the app (maintainer-only). Unread badges use `status=unread` + `total`.
 - **Views:** news, blog, and forum detail (and discussion list) surface `viewCount`.
 
 ## Key libraries (`src/lib/`)
@@ -153,7 +153,7 @@ Desktop right-click menus use shadcn [`context-menu`](https://ui.shadcn.com/docs
 |---------|---------|
 | Todo rows / list | Edit, toggle, flag, delete; focus add / clear completed |
 | Email editor & preview | Open in Mail, export formats, copy HTML |
-| Notifications | Open; mark read / unread / restore / dismiss (by tab) |
+| Notifications | Open; mark read / unread / dismiss (by tab) |
 | Announcements / events / news / blog | Copy title; Delete if `isAdmin` |
 | Discussion threads | Open, copy link |
 | Discussion post / comments | Vote, reply |

@@ -359,7 +359,8 @@ function SidebarSeparator({
     <Separator
       data-slot="sidebar-separator"
       data-sidebar="separator"
-      className={cn("mx-2 w-auto bg-sidebar-border", className)}
+      // Explicit calc so horizontal `w-full` from Separator doesn't eat the right margin.
+      className={cn("mx-2 w-[calc(100%-1rem)] bg-sidebar-border data-horizontal:w-[calc(100%-1rem)]", className)}
       {...props}
     />
   )

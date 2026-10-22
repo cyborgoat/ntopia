@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, CheckCheck, ExternalLink, Mail, MailOpen, RotateCcw, Trash2 } from "lucide-react";
+import { Check, CheckCheck, ExternalLink, Mail, MailOpen, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,12 +27,11 @@ export const Route = createFileRoute("/_app/notifications")({
   ),
 });
 
-type Status = "unread" | "read" | "dismissed";
+type Status = "unread" | "read";
 
 const TABS: { value: Status; label: string }[] = [
   { value: "unread", label: "Unread" },
   { value: "read", label: "Read" },
-  { value: "dismissed", label: "Dismissed" },
 ];
 
 function Notifications() {
@@ -60,14 +59,6 @@ function Notifications() {
   const markUnread = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await orbit.DELETE("/api/notifications/{id}/read", { params: { path: { id } } });
-      if (error) throw new Error(errorMessage(error));
-    },
-    onSuccess: refresh,
-    onError: (e) => toast.error(e.message),
-  });
-  const restore = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await orbit.POST("/api/notifications/{id}/restore", { params: { path: { id } } });
       if (error) throw new Error(errorMessage(error));
     },
     onSuccess: refresh,
@@ -102,10 +93,7 @@ function Notifications() {
   };
 
   const items = data?.items ?? [];
-  const emptyCopy =
-    status === "unread" ? "You're all caught up."
-    : status === "read" ? "No read notifications."
-    : "No dismissed notifications.";
+  const emptyCopy = status === "unread" ? "You're all caught up." : "No read notifications.";
 
   return (
     <>
@@ -170,12 +158,7 @@ function Notifications() {
                     {status === "read" && (
                       <Button variant="ghost" size="icon-sm" aria-label="Mark as unread" onClick={() => markUnread.mutate(n.id)}><Mail /></Button>
                     )}
-                    {status === "dismissed" && (
-                      <Button variant="ghost" size="icon-sm" aria-label="Restore" onClick={() => restore.mutate(n.id)}><RotateCcw /></Button>
-                    )}
-                    {status !== "dismissed" && (
-                      <Button variant="ghost" size="icon-sm" aria-label="Dismiss" onClick={() => remove.mutate(n.id)}><Trash2 /></Button>
-                    )}
+                    <Button variant="ghost" size="icon-sm" aria-label="Dismiss" onClick={() => remove.mutate(n.id)}><Trash2 /></Button>
                   </div>
                 </div>
               </ContextMenuTrigger>
@@ -187,15 +170,8 @@ function Notifications() {
                 {status === "read" && (
                   <ContextMenuItem onClick={() => markUnread.mutate(n.id)}><MailOpen /> Mark as unread</ContextMenuItem>
                 )}
-                {status === "dismissed" && (
-                  <ContextMenuItem onClick={() => restore.mutate(n.id)}><RotateCcw /> Restore</ContextMenuItem>
-                )}
-                {status !== "dismissed" && (
-                  <>
-                    <ContextMenuSeparator />
-                    <ContextMenuItem variant="destructive" onClick={() => remove.mutate(n.id)}><Trash2 /> Dismiss</ContextMenuItem>
-                  </>
-                )}
+                <ContextMenuSeparator />
+                <ContextMenuItem variant="destructive" onClick={() => remove.mutate(n.id)}><Trash2 /> Dismiss</ContextMenuItem>
               </ContextMenuContent>
             </ContextMenu>
           );

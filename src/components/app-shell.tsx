@@ -239,7 +239,7 @@ export function AppShell() {
                 <BrandToggle />
               </SidebarMenuItem>
             </SidebarMenu>
-            <SidebarSeparator className="mx-0 group-data-[collapsible=icon]:hidden" />
+            <SidebarSeparator />
           </SidebarHeader>
 
           <SidebarContent>
@@ -251,12 +251,15 @@ export function AppShell() {
             </SidebarGroup>
 
             {token && (
-              <SidebarGroup>
-                <SidebarGroupLabel>Team Orbit</SidebarGroupLabel>
-                <SidebarGroupContent>
-                  <NavItems items={orbitNav} pathname={pathname} />
-                </SidebarGroupContent>
-              </SidebarGroup>
+              <>
+                <SidebarSeparator />
+                <SidebarGroup>
+                  <SidebarGroupLabel>Team Orbit</SidebarGroupLabel>
+                  <SidebarGroupContent>
+                    <NavItems items={orbitNav} pathname={pathname} />
+                  </SidebarGroupContent>
+                </SidebarGroup>
+              </>
             )}
           </SidebarContent>
 
