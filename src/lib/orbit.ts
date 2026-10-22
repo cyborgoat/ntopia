@@ -71,7 +71,8 @@ export function errorMessage(error: unknown, response?: Response): string {
 export async function reachable<T>(call: Promise<T>): Promise<T> {
   try {
     return await call;
-  } catch {
-    throw new Error(`Can't reach the server at ${getServerUrl()}. Check the server URL and that it is running.`);
+  } catch (e) {
+    const reason = e instanceof Error ? e.message : String(e);
+    throw new Error(`Can't reach the server at ${getServerUrl()} (${reason}). Check the server URL and that it is running.`);
   }
 }
