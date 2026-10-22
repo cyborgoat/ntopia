@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { CalendarDays, Lock, MapPin, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { DetailPage } from "@/components/detail-page";
+import { CoverImage, DetailPage, DetailTitle } from "@/components/detail-page";
+import { useDeleteMutation } from "@/components/feed-item-menu";
 import { RequireAuth } from "@/components/require-auth";
-import { assetUrl, orbit } from "@/lib/orbit";
+import { orbit } from "@/lib/orbit";
 import { formatDateTime } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/events/$id")({
@@ -17,15 +18,13 @@ export const Route = createFileRoute("/_app/events/$id")({
 
 function EventDetail() {
   const { id } = Route.useParams();
-  const qc = useQueryClient();
   const { data, isPending } = useQuery({
     queryKey: ["events", id],
     queryFn: async () => (await orbit.GET("/api/events/{id}", { params: { path: { id } } })).data ?? null,
   });
-  const del = useMutation({
-    mutationFn: () => orbit.DELETE("/api/events/{id}", { params: { path: { id } } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["events"] }),
-  });
+  const del = useDeleteMutation<void>(["events"], () =>
+    orbit.DELETE("/api/events/{id}", { params: { path: { id } } }),
+  );
 
   return (
     <DetailPage
@@ -37,9 +36,9 @@ function EventDetail() {
     >
       {data && (
         <>
-          {data.coverImageUrl && <img src={assetUrl(data.coverImageUrl)} alt="" className="h-56 w-full rounded-lg object-cover" />}
+          <CoverImage src={data.coverImageUrl} />
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-xl font-semibold tracking-tight">{data.title}</h1>
+            <DetailTitle>{data.title}</DetailTitle>
             <Badge variant={data.audience === "INVITE_ONLY" ? "secondary" : "outline"} className="gap-1">
               {data.audience === "INVITE_ONLY" ? <><Lock className="size-3" /> Invite only</> : "Everyone"}
             </Badge>

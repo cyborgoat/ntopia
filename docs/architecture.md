@@ -1,6 +1,6 @@
 # Architecture
 
-NTOPIA is a **Tauri v2 desktop client**. Auth and team data live in a separate **[team-orbit](https://github.com/cyborgoat/team-orbit)** backend; this repo only talks to it through `@goatcheese/teamorbit-client`. Local gadgets (email, todo) work without signing in.
+NTOPIA is a **Tauri v2 desktop client**. Auth and team data live in a separate **[team-orbit](https://github.com/cyborgoat/team-orbit)** backend; this repo only talks to it through `@goatcheese/teamorbit-client`. Local gadgets (email, notes, links, timer) and Todo work without signing in.
 
 ## Stack
 
@@ -11,7 +11,7 @@ NTOPIA is a **Tauri v2 desktop client**. Auth and team data live in a separate *
 | Routing / data | TanStack Router (hash history), TanStack Query |
 | Backend | `@goatcheese/teamorbit-client` → team-orbit HTTP + Socket.io |
 | Sidecar | Portable Node + `@goatcheese/mdmailer` for the email gadget |
-| Markdown | `@mdxeditor/editor` (WYSIWYG for posts/comments), CodeMirror (email source), `react-markdown` + `remark-gfm` (rendering) |
+| Markdown | `@mdxeditor/editor` (WYSIWYG for posts/comments), CodeMirror (email source), `react-markdown` with `remark-gfm`, `remark-math`, `rehype-katex`, `rehype-raw` and `rehype-sanitize` (rendering) |
 
 Boot sequence (`src/main.tsx`): `initStorage` → `QueryClientProvider` → `AuthProvider` → `RouterProvider`.
 
@@ -21,7 +21,9 @@ Boot sequence (`src/main.tsx`): `initStorage` → `QueryClientProvider` → `Aut
 ntopia/
 ├── src/                 # React app
 │   ├── components/      # AppShell, RequireAuth, shared UI
+│   ├── features/        # Standalone local features (Todo)
 │   ├── gadgets/         # Local tools (registry + per-gadget modules)
+│   ├── hooks/           # Small shared hooks (dark mode, mobile)
 │   ├── lib/             # auth, orbit, storage, realtime
 │   ├── routes/          # File-based TanStack routes
 │   └── main.tsx
@@ -70,7 +72,7 @@ Login is **optional**.
 
 | State | What you get |
 |--------|----------------|
-| Guest (no token) | Home hub, Todo, Gadgets (email), Settings (server URL + Sign in). Team Orbit nav hidden. |
+| Guest (no token) | Home hub, Todo, Gadgets (email, notes, links, timer), and the sign-in / server URL dialog. Team Orbit nav hidden. |
 | Signed in | Orbit nav + notifications + home feed. Profile/password in Settings. |
 
 - `_app` always renders `AppShell` after auth bootstrap (`src/routes/_app.tsx`). It does **not** redirect guests to `/login`.
@@ -81,7 +83,7 @@ Login is **optional**.
 
 Sidebar (`src/components/app-shell.tsx`):
 
-- **Always:** Home, Gadgets, Settings
+- **Always:** Home, Todo, Gadgets
 - **When signed in:** Team Orbit group (Announcements, Events, News, Blog, Discussions), Notifications, user avatar
 - **When guest:** Sign in → `/login`
 
@@ -95,7 +97,7 @@ File routes under `src/routes/`; generated tree in `src/routeTree.gen.ts`.
 |------|--------|--------|
 | Public | `/login`, `/register` | Outside the shell; login can “Continue without signing in” |
 | Shell | `/_app` → `AppShell` | Pathless layout; URLs stay `/`, `/gadgets`, … |
-| Local | `/`, `/gadgets/email`, `/gadgets/notes`, `/gadgets/links`, `/gadgets/timer`, `/todo`, `/settings` | No Orbit API required |
+| Local | `/`, `/gadgets/email`, `/gadgets/notes`, `/gadgets/links`, `/gadgets/timer`, `/todo` | No Orbit API required |
 | Orbit | `/announcements`, `/events`, `/news`, `/news/new`, `/blog`, `/blog/new`, `/discussions/*`, `/notifications`; detail pages `/announcements/$id`, `/events/$id`, `/news/$id`, `/blog/$id`, `/discussions/$postId` | Behind `RequireAuth`; `*/new` composers are full-bleed (`FULL_BLEED` in `app-shell.tsx`) |
 
 ### Orbit feature notes (`@goatcheese/teamorbit-client` ≥ 0.2.3)
@@ -128,7 +130,7 @@ Built-ins: **email** (sidecar), **notes** (`gadget-notes` store with folders + t
 ### Email composer (`/gadgets/email`)
 
 - Implementation: `src/gadgets/email/mdmailer.ts` + route UI.
-- The document is held as `meta` (frontmatter) + `body`, joined with `joinDoc` (`frontmatter.ts`) for preview/export. The body is edited as raw Markdown in `source-editor.tsx` (CodeMirror, with a formatting toolbar, ⌘B/⌘I/⌘K, and image import via button, paste or drop) — not the shared WYSIWYG `MarkdownEditor`. Frontmatter is edited in `details-bar.tsx`: a one-line summary that expands into a form whose fields come from `fields.ts` (per `type`, including hosts and agenda), plus "Edit as YAML". Keys the form doesn't know about are kept and shown under "Other fields".
+- The document is held as `meta` (frontmatter) + `body`, joined with `joinDoc` (`frontmatter.ts`) for preview/export. The body is edited as raw Markdown in `source-editor.tsx` (CodeMirror, with a formatting toolbar, ⌘B/⌘I/⌘K, and image import via button, paste or drop) — not the shared WYSIWYG `MarkdownEditor`. Frontmatter is edited in `details-panel.tsx`: a one-line summary that expands into a form whose fields come from `fields.ts` (per `type`, including hosts and agenda), plus "Edit as YAML". Keys the form doesn't know about are kept and shown under "Other fields".
 - `stringifyMeta` writes YAML 1.1-safe text, because mdmailer parses with gray-matter/js-yaml (YAML 1.1), where an unquoted `15:00` would become the number 900.
 - Images in the editor (pasted ones, template host photos) are relative to `work/` and shown through `mm.workAssetUrl` (blob URLs).
 - Scratch workspace under app data: `email/work/`, `email/out/`, branding JSON, pasted images in `work/assets/pasted/`.

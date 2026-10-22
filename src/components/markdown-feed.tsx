@@ -1,26 +1,19 @@
 import { useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Copy, ExternalLink, Plus, Trash2 } from "lucide-react";
-import { toast } from "sonner";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Plus, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuSeparator,
-  ContextMenuTrigger,
-} from "@/components/ui/context-menu";
 import { CommentThread } from "@/components/comments";
 import { FeedCard } from "@/components/feed-card";
-import { DetailPage } from "@/components/detail-page";
+import { FeedItemMenu, useDeleteMutation } from "@/components/feed-item-menu";
+import { Byline, CoverImage, DetailPage, DetailTitle } from "@/components/detail-page";
 import { Markdown } from "@/components/markdown";
 import { ListPagination, PAGE_SIZE } from "@/components/list-pagination";
 import { Empty, PageHeader } from "@/components/page-header";
 import { PostComposer, type PostDraft } from "@/components/post-composer";
 import { useAuth } from "@/lib/auth";
-import { assetUrl, errorMessage, orbit } from "@/lib/orbit";
+import { assetUrl, orbit, unwrap } from "@/lib/orbit";
 
 type Kind = "/news" | "/blog-posts";
 
@@ -52,17 +45,12 @@ const canPublish = (kind: Kind, isAdmin: boolean) => kind === "/blog-posts" || i
 /** News and blog posts share one shape, so they share one page. */
 export function MarkdownFeed({ kind, title }: { kind: Kind; title: string }) {
   const { isAdmin } = useAuth();
-  const qc = useQueryClient();
   const navigate = useNavigate();
   const feed = FEED[kind];
-  const key = [kind];
   const [page, setPage] = useState(1);
   const { data } = useQuery({ queryKey: [kind, "list", page], queryFn: () => feed.list(page), placeholderData: keepPreviousData });
 
-  const del = useMutation({
-    mutationFn: feed.remove,
-    onSuccess: () => qc.invalidateQueries({ queryKey: key }),
-  });
+  const del = useDeleteMutation([kind], feed.remove);
 
   return (
     <>
@@ -80,8 +68,12 @@ export function MarkdownFeed({ kind, title }: { kind: Kind; title: string }) {
       <div className="space-y-2">
         {data?.items.length === 0 && <Empty>Nothing here yet.</Empty>}
         {data?.items.map((p) => (
-          <ContextMenu key={p.id}>
-            <ContextMenuTrigger className="block w-full">
+          <FeedItemMenu
+            key={p.id}
+            onOpen={() => void navigate({ to: feed.detailTo, params: { id: p.id } })}
+            copy={{ text: p.title, label: "Title" }}
+            onDelete={isAdmin ? () => del.mutate(p.id) : undefined}
+          >
               <FeedCard
                 to={feed.detailTo}
                 params={{ id: p.id }}
@@ -97,26 +89,7 @@ export function MarkdownFeed({ kind, title }: { kind: Kind; title: string }) {
                   <Button variant="ghost" size="icon-xs" onClick={() => del.mutate(p.id)} aria-label="Delete"><Trash2 /></Button>
                 ) : undefined}
               />
-            </ContextMenuTrigger>
-            <ContextMenuContent>
-              <ContextMenuItem
-                onClick={() => void navigate({ to: feed.detailTo, params: { id: p.id } })}
-              >
-                <ExternalLink /> Open
-              </ContextMenuItem>
-              <ContextMenuItem onClick={() => void navigator.clipboard.writeText(p.title).then(() => toast.success("Title copied"))}>
-                <Copy /> Copy title
-              </ContextMenuItem>
-              {isAdmin && (
-                <>
-                  <ContextMenuSeparator />
-                  <ContextMenuItem variant="destructive" onClick={() => del.mutate(p.id)}>
-                    <Trash2 /> Delete
-                  </ContextMenuItem>
-                </>
-              )}
-            </ContextMenuContent>
-          </ContextMenu>
+          </FeedItemMenu>
         ))}
       </div>
       <ListPagination page={page} total={data?.total} onPageChange={setPage} />
@@ -126,13 +99,9 @@ export function MarkdownFeed({ kind, title }: { kind: Kind; title: string }) {
 
 /** Full content of one news or blog post. */
 export function FeedPostDetail({ kind, id }: { kind: Kind; id: string }) {
-  const qc = useQueryClient();
   const feed = FEED[kind];
   const { data, isPending } = useQuery({ queryKey: [kind, id], queryFn: () => feed.get(id) });
-  const del = useMutation({
-    mutationFn: () => feed.remove(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: [kind] }),
-  });
+  const del = useDeleteMutation<void>([kind], () => feed.remove(id));
 
   return (
     <DetailPage
@@ -144,11 +113,9 @@ export function FeedPostDetail({ kind, id }: { kind: Kind; id: string }) {
     >
       {data && (
         <>
-          {data.coverImageUrl && <img src={assetUrl(data.coverImageUrl)} alt="" className="h-56 w-full rounded-lg object-cover" />}
-          <h1 className="text-xl font-semibold tracking-tight">{data.title}</h1>
-          <p className="text-xs text-muted-foreground">
-            {data.author.fullName} · {new Date(data.createdAt).toLocaleString()} · {data.viewCount} {data.viewCount === 1 ? "view" : "views"}
-          </p>
+          <CoverImage src={data.coverImageUrl} />
+          <DetailTitle>{data.title}</DetailTitle>
+          <Byline author={data.author.fullName} createdAt={data.createdAt} views={data.viewCount} />
           <Markdown>{data.content}</Markdown>
           {data.tags.length > 0 && (
             <div className="flex flex-wrap gap-1.5">{data.tags.map((t) => <Badge key={t} variant="secondary">{t}</Badge>)}</div>
@@ -170,8 +137,7 @@ export function NewFeedPost({ kind, title }: { kind: Kind; title: string }) {
       pageTitle={`New ${title.toLowerCase()} post`}
       backTo={kind === "/news" ? "/news" : "/blog"}
       onPublish={async (body) => {
-        const { error } = await FEED[kind].create(body);
-        if (error) throw new Error(errorMessage(error));
+        await unwrap(FEED[kind].create(body));
         await qc.invalidateQueries({ queryKey: [kind] });
       }}
     />

@@ -19,7 +19,6 @@ export const THEME_LABELS: Record<(typeof THEME_PRESETS)[number], string> = {
   "forest-cream": "Forest & Cream",
 };
 export const themeLabel = (t: string) => THEME_LABELS[t as keyof typeof THEME_LABELS] ?? t;
-export const typeLabel = (t: string) => EMAIL_TYPES.find((x) => x.value === t)?.label ?? t;
 
 type TemplateText = { name: string; description: string };
 

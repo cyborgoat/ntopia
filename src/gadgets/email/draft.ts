@@ -1,3 +1,4 @@
+import { readJsonPref, writeJsonPref } from "@/lib/prefs";
 import type { Frontmatter } from "./frontmatter";
 
 const DRAFT_KEY = "ntopia.email-composer.draft";
@@ -11,21 +12,15 @@ export type Draft = {
 
 /** The saved draft, or null when the user has not started one yet. */
 export function loadDraft(): Draft | null {
-  try {
-    const raw = localStorage.getItem(DRAFT_KEY);
-    if (!raw) return null;
-    const d = JSON.parse(raw) as Partial<Draft>;
-    if (d.meta && typeof d.body === "string" && typeof d.baseline === "string") return d as Draft;
-  } catch {
-    /* ignore */
-  }
-  return null;
+  return (
+    readJsonPref(
+      DRAFT_KEY,
+      (d): d is Draft =>
+        typeof d === "object" && d !== null && !!(d as Draft).meta && typeof (d as Draft).body === "string" && typeof (d as Draft).baseline === "string",
+    ) ?? null
+  );
 }
 
 export function saveDraft(d: Draft) {
-  try {
-    localStorage.setItem(DRAFT_KEY, JSON.stringify(d));
-  } catch {
-    /* ignore */
-  }
+  writeJsonPref(DRAFT_KEY, d);
 }

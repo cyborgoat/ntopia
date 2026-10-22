@@ -9,14 +9,54 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
-import { Divider } from "@/components/detail-page";
+import { Byline, Divider } from "@/components/detail-page";
 import { Markdown } from "@/components/markdown";
 import { MarkdownEditor, type MarkdownEditorHandle } from "@/components/markdown-editor";
 import { releaseStagedImages, stageImage, uploadStagedImages } from "@/components/image-upload";
 import { errorMessage, imagePreviewUrl, orbit } from "@/lib/orbit";
 
 export type Vote = 1 | -1 | 0;
-export type ResourceType = "announcement" | "event" | "news" | "blog" | "forum";
+type ResourceType = "announcement" | "event" | "news" | "blog" | "forum";
+
+type CommentData = {
+  id: string;
+  content: string;
+  score: number;
+  myVote: Vote;
+  createdAt: string;
+  author: { fullName: string };
+};
+
+/** One comment or reply with its vote bar and context menu; `onReply` is only given for top-level comments. */
+function CommentItem({
+  comment,
+  nested,
+  onVote,
+  onReply,
+}: {
+  comment: CommentData;
+  nested?: boolean;
+  onVote: (id: string, value: Vote) => Promise<void>;
+  onReply?: () => void;
+}) {
+  return (
+    <ContextMenu>
+      <ContextMenuTrigger className="block">
+        <div className={nested ? "ml-8" : undefined}>
+          <Byline author={comment.author.fullName} createdAt={comment.createdAt} />
+          <Markdown>{comment.content}</Markdown>
+          <div className="mt-2 flex items-center gap-2">
+            <VoteBar score={comment.score} mine={comment.myVote} onVote={(v) => onVote(comment.id, v)} />
+            {onReply && <Button variant="ghost" size="sm" onClick={onReply}>Reply</Button>}
+          </div>
+        </div>
+      </ContextMenuTrigger>
+      <ContextMenuContent>
+        <VoteMenuItems mine={comment.myVote} onVote={(v) => void onVote(comment.id, v)} onReply={onReply} />
+      </ContextMenuContent>
+    </ContextMenu>
+  );
+}
 
 // Solid arrow = the current user's vote; outlined = not voted.
 export function VoteBar({ score, mine, onVote }: { score: number; mine: Vote; onVote: (v: Vote) => void }) {
@@ -134,34 +174,9 @@ export function CommentThread({
       <div className="space-y-6">
         {comments.map((c) => (
           <div key={c.id} className="space-y-3">
-            <ContextMenu>
-              <ContextMenuTrigger className="block">
-                <div>
-                  <p className="mb-1 text-xs text-muted-foreground">{c.author.fullName} · {new Date(c.createdAt).toLocaleString()}</p>
-                  <Markdown>{c.content}</Markdown>
-                  <div className="mt-2 flex items-center gap-2">
-                    <VoteBar score={c.score} mine={c.myVote} onVote={(v) => vote(c.id, v)} />
-                    <Button variant="ghost" size="sm" onClick={() => startReply(c.id)}>Reply</Button>
-                  </div>
-                </div>
-              </ContextMenuTrigger>
-              <ContextMenuContent>
-                <VoteMenuItems mine={c.myVote} onVote={(v) => void vote(c.id, v)} onReply={() => startReply(c.id)} />
-              </ContextMenuContent>
-            </ContextMenu>
+            <CommentItem comment={c} onVote={vote} onReply={() => startReply(c.id)} />
             {c.replies.map((r) => (
-              <ContextMenu key={r.id}>
-                <ContextMenuTrigger className="block">
-                  <div className="ml-8">
-                    <p className="mb-1 text-xs text-muted-foreground">{r.author.fullName} · {new Date(r.createdAt).toLocaleString()}</p>
-                    <Markdown>{r.content}</Markdown>
-                    <div className="mt-2"><VoteBar score={r.score} mine={r.myVote} onVote={(v) => vote(r.id, v)} /></div>
-                  </div>
-                </ContextMenuTrigger>
-                <ContextMenuContent>
-                  <VoteMenuItems mine={r.myVote} onVote={(v) => void vote(r.id, v)} />
-                </ContextMenuContent>
-              </ContextMenu>
+              <CommentItem key={r.id} comment={r} nested onVote={vote} />
             ))}
           </div>
         ))}

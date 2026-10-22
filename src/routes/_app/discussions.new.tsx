@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { PostComposer } from "@/components/post-composer";
 import { RequireAuth } from "@/components/require-auth";
-import { errorMessage, orbit } from "@/lib/orbit";
+import { orbit, unwrap } from "@/lib/orbit";
 
 export const Route = createFileRoute("/_app/discussions/new")({
   component: () => (
@@ -21,8 +21,7 @@ function NewThread() {
       submitLabel="Post thread"
       fields={{}}
       onPublish={async ({ title, content }) => {
-        const { error } = await orbit.POST("/api/forum-posts", { body: { title, content } });
-        if (error) throw new Error(errorMessage(error));
+        await unwrap(orbit.POST("/api/forum-posts", { body: { title, content } }));
         await qc.invalidateQueries({ queryKey: ["forum-posts"] });
       }}
     />

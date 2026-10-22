@@ -2,28 +2,22 @@ import { DateChip } from "@/components/date-chip";
 import { useState } from "react";
 import { ListPagination, PAGE_SIZE } from "@/components/list-pagination";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Copy, ExternalLink, Lock, MapPin, Trash2 } from "lucide-react";
-import { toast } from "sonner";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Lock, MapPin, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuSeparator,
-  ContextMenuTrigger,
-} from "@/components/ui/context-menu";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { NativeSelect } from "@/components/native-select";
 import { FeedCard } from "@/components/feed-card";
+import { FeedItemMenu, useDeleteMutation } from "@/components/feed-item-menu";
 import { Field, FormDialog } from "@/components/form-dialog";
 import { ImageUploadButton } from "@/components/image-upload";
 import { Empty, PageHeader } from "@/components/page-header";
 import { RequireAuth } from "@/components/require-auth";
 import { UserPicker, type PickedUser } from "@/components/user-picker";
 import { useAuth } from "@/lib/auth";
-import { errorMessage, orbit } from "@/lib/orbit";
+import { orbit, unwrap } from "@/lib/orbit";
 import { formatDateTime } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/events/")({
@@ -60,10 +54,9 @@ function Events() {
     queryFn: async () => (await orbit.GET("/api/events", { params: { query: { page, limit: PAGE_SIZE } } })).data,
     placeholderData: keepPreviousData,
   });
-  const del = useMutation({
-    mutationFn: (id: string) => orbit.DELETE("/api/events/{id}", { params: { path: { id } } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["events"] }),
-  });
+  const del = useDeleteMutation(["events"], (id) =>
+    orbit.DELETE("/api/events/{id}", { params: { path: { id } } }),
+  );
 
   return (
     <>
@@ -79,7 +72,7 @@ function Events() {
                 if (f.audience === "INVITE_ONLY" && f.recipients.length === 0) {
                   throw new Error("Pick at least one invitee for invite-only events.");
                 }
-                const { error } = await orbit.POST("/api/events", {
+                await unwrap(orbit.POST("/api/events", {
                   body: {
                     title: f.title,
                     description: f.description,
@@ -90,8 +83,7 @@ function Events() {
                     audience: f.audience,
                     ...(f.audience === "INVITE_ONLY" ? { recipientIds: f.recipients.map((r) => r.id) } : {}),
                   },
-                });
-                if (error) throw new Error(errorMessage(error));
+                }));
                 setF(blank);
                 qc.invalidateQueries({ queryKey: ["events"] });
               }}
@@ -104,14 +96,13 @@ function Events() {
               </div>
               <Field label="Location"><Input required value={f.location} onChange={set("location")} /></Field>
               <Field label="Audience">
-                <select
+                <NativeSelect
                   value={f.audience}
                   onChange={(e) => setF({ ...f, audience: e.target.value as Audience, recipients: e.target.value === "GLOBAL" ? [] : f.recipients })}
-                  className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
                 >
                   <option value="GLOBAL">Everyone</option>
                   <option value="INVITE_ONLY">Invite only</option>
-                </select>
+                </NativeSelect>
               </Field>
               {f.audience === "INVITE_ONLY" && (
                 <Field label="Invitees">
@@ -133,8 +124,12 @@ function Events() {
       <div className="space-y-2">
         {data?.items.length === 0 && <Empty>No events scheduled.</Empty>}
         {data?.items.map((ev) => (
-          <ContextMenu key={ev.id}>
-            <ContextMenuTrigger className="block w-full">
+          <FeedItemMenu
+            key={ev.id}
+            onOpen={() => void navigate({ to: "/events/$id", params: { id: ev.id } })}
+            copy={{ text: ev.title, label: "Title" }}
+            onDelete={isAdmin ? () => del.mutate(ev.id) : undefined}
+          >
               <FeedCard
                 to="/events/$id"
                 params={{ id: ev.id }}
@@ -163,24 +158,7 @@ function Events() {
                   <Button variant="ghost" size="icon-xs" onClick={() => del.mutate(ev.id)} aria-label="Delete"><Trash2 /></Button>
                 ) : undefined}
               />
-            </ContextMenuTrigger>
-            <ContextMenuContent>
-              <ContextMenuItem onClick={() => void navigate({ to: "/events/$id", params: { id: ev.id } })}>
-                <ExternalLink /> Open
-              </ContextMenuItem>
-              <ContextMenuItem onClick={() => void navigator.clipboard.writeText(ev.title).then(() => toast.success("Title copied"))}>
-                <Copy /> Copy title
-              </ContextMenuItem>
-              {isAdmin && (
-                <>
-                  <ContextMenuSeparator />
-                  <ContextMenuItem variant="destructive" onClick={() => del.mutate(ev.id)}>
-                    <Trash2 /> Delete
-                  </ContextMenuItem>
-                </>
-              )}
-            </ContextMenuContent>
-          </ContextMenu>
+          </FeedItemMenu>
         ))}
       </div>
       <ListPagination page={page} total={data?.total} onPageChange={setPage} />

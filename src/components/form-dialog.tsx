@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { cloneElement, isValidElement, useId, useState } from "react";
 import { toMessage } from "@/lib/utils";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 export function FormDialog({
@@ -53,11 +54,16 @@ export function FormDialog({
   );
 }
 
+/** Labelled form control; a single child element gets the id the label points at. */
 export function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  const id = useId();
+  const control = isValidElement<{ id?: string }>(children)
+    ? cloneElement(children, { id: children.props.id ?? id })
+    : children;
   return (
     <div className="space-y-1.5">
-      <label className="text-sm font-medium">{label}</label>
-      {children}
+      <Label htmlFor={isValidElement<{ id?: string }>(children) ? (children.props.id ?? id) : undefined}>{label}</Label>
+      {control}
     </div>
   );
 }

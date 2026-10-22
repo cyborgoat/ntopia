@@ -16,8 +16,8 @@ import { ListPagination, PAGE_SIZE } from "@/components/list-pagination";
 import { Empty, PageHeader } from "@/components/page-header";
 import { RequireAuth } from "@/components/require-auth";
 import { notificationTarget } from "@/lib/notification-link";
-import { errorMessage, orbit } from "@/lib/orbit";
-import { cn } from "@/lib/utils";
+import { orbit, unwrap } from "@/lib/orbit";
+import { cn, formatDateTime } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/notifications")({
   component: () => (
@@ -57,27 +57,18 @@ function Notifications() {
     onSuccess: refresh,
   });
   const markUnread = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await orbit.DELETE("/api/notifications/{id}/read", { params: { path: { id } } });
-      if (error) throw new Error(errorMessage(error));
-    },
+    mutationFn: (id: string) =>
+      unwrap(orbit.DELETE("/api/notifications/{id}/read", { params: { path: { id } } })),
     onSuccess: refresh,
     onError: (e) => toast.error(e.message),
   });
   const markAll = useMutation({
-    mutationFn: async () => {
-      const { data, error } = await orbit.POST("/api/notifications/read-all");
-      if (error) throw new Error(errorMessage(error));
-      return data;
-    },
+    mutationFn: () => unwrap(orbit.POST("/api/notifications/read-all")),
     onSuccess: (d) => { toast.success(d?.marked ? `Marked ${d.marked} as read` : "Nothing to mark"); void refresh(); },
     onError: (e) => toast.error(e.message),
   });
   const remove = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await orbit.DELETE("/api/notifications/{id}", { params: { path: { id } } });
-      if (error) throw new Error(errorMessage(error));
-    },
+    mutationFn: (id: string) => unwrap(orbit.DELETE("/api/notifications/{id}", { params: { path: { id } } })),
     onSuccess: () => {
       if (page > 1 && data?.items.length === 1) setPage(page - 1);
       void refresh();
@@ -146,7 +137,7 @@ function Notifications() {
                       <div className={cn("text-sm", status === "unread" && "font-medium")}>{n.title}</div>
                       <div className="text-sm text-muted-foreground">{n.body}</div>
                       <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
-                        {new Date(n.createdAt).toLocaleString()}
+                        {formatDateTime(n.createdAt)}
                         {n.audience === "DIRECTED" && <Badge variant="secondary">For you</Badge>}
                       </div>
                     </div>

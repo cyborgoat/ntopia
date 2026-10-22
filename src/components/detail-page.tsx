@@ -5,6 +5,27 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Empty } from "@/components/page-header";
 import { usePageCrumbs, usePageTitle } from "@/components/page-chrome";
 import { useAuth } from "@/lib/auth";
+import { assetUrl } from "@/lib/orbit";
+import { formatDateTime } from "@/lib/utils";
+
+/** Page title of a single item. */
+export function DetailTitle({ children }: { children: React.ReactNode }) {
+  return <h1 className="text-xl font-semibold tracking-tight">{children}</h1>;
+}
+
+/** "Author · date" line, optionally followed by a view count. */
+export function Byline({ author, createdAt, views }: { author: string; createdAt: string; views?: number }) {
+  return (
+    <p className="text-xs text-muted-foreground">
+      {author} · {formatDateTime(createdAt)}
+      {views !== undefined && ` · ${views} ${views === 1 ? "view" : "views"}`}
+    </p>
+  );
+}
+
+export function CoverImage({ src }: { src?: string | null }) {
+  return src ? <img src={assetUrl(src)} alt="" className="h-56 w-full rounded-lg object-cover" /> : null;
+}
 
 /** Hairline between a page's main content and a secondary section. */
 export function Divider() {

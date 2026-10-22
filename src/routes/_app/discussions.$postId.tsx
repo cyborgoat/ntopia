@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { CommentThread, VoteBar, VoteMenuItems, type Vote } from "@/components/comments";
-import { DetailPage } from "@/components/detail-page";
+import { Byline, DetailPage, DetailTitle } from "@/components/detail-page";
 import { Markdown } from "@/components/markdown";
 import { RequireAuth } from "@/components/require-auth";
 import { orbit } from "@/lib/orbit";
@@ -42,10 +42,8 @@ function Thread() {
           <ContextMenu>
             <ContextMenuTrigger className="block">
               <div className="space-y-5">
-                <h1 className="text-xl font-semibold tracking-tight">{post.title}</h1>
-                <p className="text-xs text-muted-foreground">
-                  {post.author.fullName} · {new Date(post.createdAt).toLocaleString()} · {post.viewCount} {post.viewCount === 1 ? "view" : "views"}
-                </p>
+                <DetailTitle>{post.title}</DetailTitle>
+                <Byline author={post.author.fullName} createdAt={post.createdAt} views={post.viewCount} />
                 <Markdown>{post.content}</Markdown>
                 <VoteBar score={post.score} mine={post.myVote} onVote={votePost} />
               </div>

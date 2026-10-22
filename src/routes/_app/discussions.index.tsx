@@ -1,18 +1,11 @@
 import { useState } from "react";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { ArrowBigUp, Copy, ExternalLink, Eye, MessageSquare, Plus } from "lucide-react";
-import { toast } from "sonner";
-import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuSeparator,
-  ContextMenuTrigger,
-} from "@/components/ui/context-menu";
+import { ArrowBigUp, Eye, MessageSquare, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { FeedCard } from "@/components/feed-card";
+import { FeedItemMenu } from "@/components/feed-item-menu";
 import { ListPagination, PAGE_SIZE } from "@/components/list-pagination";
 import { Empty, PageHeader } from "@/components/page-header";
 import { RequireAuth } from "@/components/require-auth";
@@ -55,8 +48,12 @@ function Discussions() {
       <div className="space-y-2">
         {data?.items.length === 0 && <Empty>No threads yet. Start one!</Empty>}
         {data?.items.map((p) => (
-          <ContextMenu key={p.id}>
-            <ContextMenuTrigger className="block w-full">
+          <FeedItemMenu
+            key={p.id}
+            onOpen={() => void navigate({ to: "/discussions/$postId", params: { postId: p.id } })}
+            openLabel="Open thread"
+            copy={{ text: threadUrl(p.id), label: "Link" }}
+          >
               <FeedCard
                 to="/discussions/$postId"
                 params={{ postId: p.id }}
@@ -72,17 +69,7 @@ function Discussions() {
                   </>
                 }
               />
-            </ContextMenuTrigger>
-            <ContextMenuContent>
-              <ContextMenuItem onClick={() => void navigate({ to: "/discussions/$postId", params: { postId: p.id } })}>
-                <ExternalLink /> Open thread
-              </ContextMenuItem>
-              <ContextMenuSeparator />
-              <ContextMenuItem onClick={() => void navigator.clipboard.writeText(threadUrl(p.id)).then(() => toast.success("Link copied"))}>
-                <Copy /> Copy link
-              </ContextMenuItem>
-            </ContextMenuContent>
-          </ContextMenu>
+          </FeedItemMenu>
         ))}
       </div>
       <ListPagination page={page} total={data?.total} onPageChange={setPage} />

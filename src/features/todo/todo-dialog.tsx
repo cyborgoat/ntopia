@@ -3,6 +3,7 @@ import { Flag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { NativeSelect } from "@/components/native-select";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { DatePicker } from "./date-picker";
@@ -82,13 +83,12 @@ export function TodoDialog({ todo, onSave, onClose }: { todo: TodoItem; onSave: 
           </div>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Urgency">
-              <select
+              <NativeSelect
                 value={urgency}
                 onChange={(e) => setUrgency(e.target.value as Urgency)}
-                className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
               >
                 {URGENCY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
+              </NativeSelect>
             </Field>
             <Field label="Flag">
               <button
@@ -114,14 +114,13 @@ export function TodoDialog({ todo, onSave, onClose }: { todo: TodoItem; onSave: 
             />
           </Field>
           <Field label="Reminder">
-            <select
+            <NativeSelect
               value={remind}
               disabled={!dueDate}
               onChange={(e) => setRemind(e.target.value as Remind)}
-              className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50 dark:bg-input/30"
             >
               {REMIND_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-            </select>
+            </NativeSelect>
             {remind !== "none" && !parsedTime && <p className="text-xs text-muted-foreground">No time set: reminders count from 09:00.</p>}
           </Field>
           <Field label="Location"><Input value={location} placeholder="Where?" onChange={(e) => setLocation(e.target.value)} /></Field>

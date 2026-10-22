@@ -1,25 +1,18 @@
 import { useState } from "react";
 import { ListPagination, PAGE_SIZE } from "@/components/list-pagination";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Copy, ExternalLink, Trash2 } from "lucide-react";
-import { toast } from "sonner";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuSeparator,
-  ContextMenuTrigger,
-} from "@/components/ui/context-menu";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { FeedCard } from "@/components/feed-card";
+import { FeedItemMenu, useDeleteMutation } from "@/components/feed-item-menu";
 import { Field, FormDialog } from "@/components/form-dialog";
 import { Empty, PageHeader } from "@/components/page-header";
 import { RequireAuth } from "@/components/require-auth";
 import { useAuth } from "@/lib/auth";
-import { errorMessage, orbit } from "@/lib/orbit";
+import { orbit, unwrap } from "@/lib/orbit";
 
 export const Route = createFileRoute("/_app/announcements/")({
   component: () => (
@@ -40,10 +33,9 @@ function Announcements() {
     queryFn: async () => (await orbit.GET("/api/announcements", { params: { query: { page, limit: PAGE_SIZE } } })).data,
     placeholderData: keepPreviousData,
   });
-  const del = useMutation({
-    mutationFn: (id: string) => orbit.DELETE("/api/announcements/{id}", { params: { path: { id } } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["announcements"] }),
-  });
+  const del = useDeleteMutation(["announcements"], (id) =>
+    orbit.DELETE("/api/announcements/{id}", { params: { path: { id } } }),
+  );
 
   return (
     <>
@@ -56,8 +48,7 @@ function Announcements() {
               title="New announcement"
               triggerLabel="New"
               onSubmit={async () => {
-                const { error } = await orbit.POST("/api/announcements", { body: f });
-                if (error) throw new Error(errorMessage(error));
+                await unwrap(orbit.POST("/api/announcements", { body: f }));
                 setF({ title: "", description: "" });
                 qc.invalidateQueries({ queryKey: ["announcements"] });
               }}
@@ -71,8 +62,12 @@ function Announcements() {
       <div className="space-y-2">
         {data?.items.length === 0 && <Empty>No announcements yet.</Empty>}
         {data?.items.map((a) => (
-          <ContextMenu key={a.id}>
-            <ContextMenuTrigger className="block w-full">
+          <FeedItemMenu
+            key={a.id}
+            onOpen={() => void navigate({ to: "/announcements/$id", params: { id: a.id } })}
+            copy={{ text: a.title, label: "Title" }}
+            onDelete={isAdmin ? () => del.mutate(a.id) : undefined}
+          >
               <FeedCard
                 to="/announcements/$id"
                 params={{ id: a.id }}
@@ -86,24 +81,7 @@ function Announcements() {
                   </Button>
                 ) : undefined}
               />
-            </ContextMenuTrigger>
-            <ContextMenuContent>
-              <ContextMenuItem onClick={() => void navigate({ to: "/announcements/$id", params: { id: a.id } })}>
-                <ExternalLink /> Open
-              </ContextMenuItem>
-              <ContextMenuItem onClick={() => void navigator.clipboard.writeText(a.title).then(() => toast.success("Title copied"))}>
-                <Copy /> Copy title
-              </ContextMenuItem>
-              {isAdmin && (
-                <>
-                  <ContextMenuSeparator />
-                  <ContextMenuItem variant="destructive" onClick={() => del.mutate(a.id)}>
-                    <Trash2 /> Delete
-                  </ContextMenuItem>
-                </>
-              )}
-            </ContextMenuContent>
-          </ContextMenu>
+          </FeedItemMenu>
         ))}
       </div>
       <ListPagination page={page} total={data?.total} onPageChange={setPage} />

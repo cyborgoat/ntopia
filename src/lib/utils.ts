@@ -1,4 +1,5 @@
 import { clsx, type ClassValue } from "clsx";
+import { toast } from "sonner";
 import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
@@ -34,4 +35,12 @@ export function timeAgo(iso: string, now = Date.now()) {
   if (mins < 60 * 24) return `${Math.floor(mins / 60)}h ago`;
   if (mins < 60 * 24 * 7) return `${Math.floor(mins / (60 * 24))}d ago`;
   return new Date(iso).toLocaleDateString([], { month: "short", day: "numeric" });
+}
+
+/** Copies text to the clipboard and confirms with a toast, e.g. `copyText(url, "Link")` → "Link copied". */
+export function copyText(text: string, label: string) {
+  navigator.clipboard.writeText(text).then(
+    () => toast.success(`${label} copied`),
+    () => toast.error("Could not copy to clipboard"),
+  );
 }

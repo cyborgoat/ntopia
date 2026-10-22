@@ -15,7 +15,7 @@ import { Field, FormDialog } from "@/components/form-dialog";
 import { Empty, PageHeader } from "@/components/page-header";
 import { addLink, deleteLink, listLinks, type ShelfLink } from "@/gadgets/links/store";
 import { openExternal } from "@/lib/open-external";
-import { toMessage } from "@/lib/utils";
+import { toMessage, copyText } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/gadgets/links")({ component: LinksGadget });
 
@@ -84,7 +84,7 @@ function LinksGadget() {
             </ContextMenuTrigger>
             <ContextMenuContent>
               <ContextMenuItem onClick={() => void open(l.url)}><ExternalLink /> Open</ContextMenuItem>
-              <ContextMenuItem onClick={() => void navigator.clipboard.writeText(l.url).then(() => toast.success("URL copied"))}>
+              <ContextMenuItem onClick={() => copyText(l.url, "URL")}>
                 <Copy /> Copy URL
               </ContextMenuItem>
               <ContextMenuSeparator />

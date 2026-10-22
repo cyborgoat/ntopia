@@ -75,13 +75,12 @@ function write(mutator: (state: NotesState) => NotesState): NotesState {
   return next;
 }
 
-/** Same as `updateNote` but awaits the store flush (for autosave UI). */
-export async function updateNoteAndWait(
+function applyNotePatch(
+  state: NotesState,
   id: string,
   patch: Partial<Pick<Note, "title" | "content">>,
-): Promise<NotesState> {
-  const state = loadState();
-  const next: NotesState = {
+): NotesState {
+  return {
     ...state,
     notes: state.notes.map((n) => {
       if (n.id !== id) return n;
@@ -93,6 +92,14 @@ export async function updateNoteAndWait(
       };
     }),
   };
+}
+
+/** Same as `updateNote` but awaits the store flush (for autosave UI). */
+export async function updateNoteAndWait(
+  id: string,
+  patch: Partial<Pick<Note, "title" | "content">>,
+): Promise<NotesState> {
+  const next = applyNotePatch(loadState(), id, patch);
   await persist(next);
   return next;
 }
@@ -103,10 +110,6 @@ export function listFolders(): NoteFolder[] {
 
 export function listActiveNotes(): Note[] {
   return loadState().notes.filter((n) => !n.deletedAt);
-}
-
-export function listTrashedNotes(): Note[] {
-  return loadState().notes.filter((n) => !!n.deletedAt);
 }
 
 export function addFolder(name = "New folder"): NoteFolder {
@@ -151,18 +154,7 @@ export function addNote(opts?: { folderId?: string | null; title?: string }): No
 
 /** Title may stay empty while editing; use `finalizeTitle` on blur. */
 export function updateNote(id: string, patch: Partial<Pick<Note, "title" | "content">>): NotesState {
-  return write((s) => ({
-    ...s,
-    notes: s.notes.map((n) => {
-      if (n.id !== id) return n;
-      return {
-        ...n,
-        ...(patch.title !== undefined ? { title: patch.title } : {}),
-        ...(patch.content !== undefined ? { content: patch.content } : {}),
-        updatedAt: new Date().toISOString(),
-      };
-    }),
-  }));
+  return write((s) => applyNotePatch(s, id, patch));
 }
 
 /** Coerce blank titles to "Untitled" after the user leaves the field. */

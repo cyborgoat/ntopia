@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { cn, toMessage } from "@/lib/utils";
+import { cn, toMessage, copyText } from "@/lib/utils";
+import { usePanelLayout, usePersistedChoice, usePersistedFlag } from "@/lib/prefs";
 import { createFileRoute } from "@tanstack/react-router";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
@@ -38,43 +39,8 @@ const TAB_KEY = "ntopia.email-composer.tab";
 const HINT_KEY = "ntopia.email-composer.hint-dismissed";
 const DEFAULT_LAYOUT = { editor: 50, preview: 50 };
 
-function loadLayout(): Record<string, number> {
-  try {
-    const raw = localStorage.getItem(LAYOUT_KEY);
-    if (!raw) return DEFAULT_LAYOUT;
-    const parsed = JSON.parse(raw) as Record<string, number>;
-    if (parsed.editor != null && parsed.preview != null) return parsed;
-  } catch {
-    /* ignore */
-  }
-  return DEFAULT_LAYOUT;
-}
-
-function loadShowPreview() {
-  try {
-    return localStorage.getItem(PREVIEW_KEY) !== "0";
-  } catch {
-    return true;
-  }
-}
-
 type Tab = "details" | "message";
-
-function loadTab(): Tab {
-  try {
-    return localStorage.getItem(TAB_KEY) === "message" ? "message" : "details";
-  } catch {
-    return "details";
-  }
-}
-
-function loadHintDismissed() {
-  try {
-    return localStorage.getItem(HINT_KEY) === "1";
-  } catch {
-    return false;
-  }
-}
+const TABS = ["details", "message"] as const;
 
 function exportBasename(meta: Frontmatter) {
   const title = meta.title;
@@ -102,46 +68,21 @@ function Composer() {
   const [baseline, setBaseline] = useState(saved?.baseline ?? joinDoc(BLANK_META, BLANK_BODY));
   const [ready, setReady] = useState(false);
   const [html, setHtml] = useState("");
-  const [showPreview, setShowPreview] = useState(loadShowPreview);
+  const [showPreview, setShowPreview] = usePersistedFlag(PREVIEW_KEY, true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [templates, setTemplates] = useState<string[]>([]);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const versionRef = useRef(0);
-  const layout = useMemo(() => loadLayout(), []);
+  const [layout, saveLayout] = usePanelLayout(LAYOUT_KEY, DEFAULT_LAYOUT);
 
-  function togglePreview() {
-    setShowPreview((v) => {
-      try {
-        localStorage.setItem(PREVIEW_KEY, v ? "0" : "1");
-      } catch {
-        /* ignore */
-      }
-      return !v;
-    });
-  }
+  const togglePreview = () => setShowPreview((v) => !v);
 
   const [attempt, setAttempt] = useState(0);
-  const [tab, setTabState] = useState<Tab>(loadTab);
-  const [hintDismissed, setHintDismissed] = useState(loadHintDismissed);
+  const [tab, setTab] = usePersistedChoice<Tab>(TAB_KEY, TABS, "details");
+  const [hintDismissed, setHintDismissed] = usePersistedFlag(HINT_KEY, false);
 
-  function setTab(next: Tab) {
-    setTabState(next);
-    try {
-      localStorage.setItem(TAB_KEY, next);
-    } catch {
-      /* ignore */
-    }
-  }
-
-  function dismissHint() {
-    setHintDismissed(true);
-    try {
-      localStorage.setItem(HINT_KEY, "1");
-    } catch {
-      /* ignore */
-    }
-  }
+  const dismissHint = () => setHintDismissed(true);
 
   // Keep the draft across navigation and restarts; the cleanup flushes the pending write on unmount.
   useEffect(() => {
@@ -285,7 +226,7 @@ function Composer() {
     } catch (e) { toast.error(toMessage(e)); }
   }
 
-  const copyHtml = () => void navigator.clipboard.writeText(html).then(() => toast.success("HTML copied"));
+  const copyHtml = () => copyText(html, "HTML");
 
   const exportMenuItems = (
     <>
@@ -388,12 +329,7 @@ function Composer() {
         id="email-composer"
         defaultLayout={layout}
         onLayoutChanged={(next) => {
-          if (!showPreview) return;
-          try {
-            localStorage.setItem(LAYOUT_KEY, JSON.stringify(next));
-          } catch {
-            /* ignore */
-          }
+          if (showPreview) saveLayout(next);
         }}
       >
         <ResizablePanel id="editor" defaultSize={`${layout.editor}%`} minSize="25%" className="min-w-0">

@@ -3,7 +3,7 @@ import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
 import { getItem, isTauri, setItem } from "./storage";
 
 /** Preset via VITE_DEFAULT_SERVER; dev builds fall back to a local server, release builds start blank. */
-export const DEFAULT_SERVER: string =
+const DEFAULT_SERVER: string =
   import.meta.env.VITE_DEFAULT_SERVER ?? (import.meta.env.DEV ? "http://localhost:3000" : "");
 export const STORAGE_KEYS = ["serverUrl", "token"];
 
@@ -13,7 +13,7 @@ const normalizeServerUrl = (u: string) => u.trim().replace(/\/+$/, "").replace(/
 export const getServerUrl = () => normalizeServerUrl(getItem<string>("serverUrl") ?? DEFAULT_SERVER);
 export const getToken = () => getItem<string>("token");
 export const setToken = (t: string | null) => setItem("token", t);
-export const setServerUrl = (u: string) => setItem("serverUrl", normalizeServerUrl(u));
+const setServerUrl = (u: string) => setItem("serverUrl", normalizeServerUrl(u));
 
 /** Absolute URL for a server-relative path such as `/uploads/x.png`. */
 export const assetUrl = (path?: string | null) =>
@@ -65,6 +65,13 @@ export function errorMessage(error: unknown, response?: Response): string {
     return `No Team Orbit API found at ${getServerUrl()} (HTTP 404). Check the server URL.`;
   if (response?.status) return `Request failed (HTTP ${response.status}).`;
   return "Something went wrong";
+}
+
+/** Resolves with the response data; an API error response becomes a thrown `Error` with a readable message. */
+export async function unwrap<D>(call: Promise<{ data?: D; error?: unknown; response?: Response }>): Promise<D> {
+  const { data, error, response } = await call;
+  if (error) throw new Error(errorMessage(error, response));
+  return data as D;
 }
 
 /** Run a client call, turning network failures into a message naming the server. */

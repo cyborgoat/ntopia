@@ -16,6 +16,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { usePanelLayout, usePersistedFlag } from "@/lib/prefs";
 import {
   Accordion,
   AccordionContent,
@@ -73,7 +74,7 @@ import {
   type Note,
   type NoteFolder,
 } from "@/gadgets/notes/store";
-import { cn } from "@/lib/utils";
+import { cn, copyText, formatDateTime } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/gadgets/notes")({ component: NotesGadget });
 
@@ -181,18 +182,6 @@ type Confirm =
   | { kind: "delete-folder"; folderId: string; name: string; noteCount: number }
   | null;
 
-function loadLayout(): Record<string, number> {
-  try {
-    const raw = localStorage.getItem(LAYOUT_KEY);
-    if (!raw) return DEFAULT_LAYOUT;
-    const parsed = JSON.parse(raw) as Record<string, number>;
-    if (parsed.sidebar != null && parsed.editor != null) return parsed;
-  } catch {
-    /* ignore */
-  }
-  return DEFAULT_LAYOUT;
-}
-
 function NotesGadget() {
   const [tick, setTick] = useState(0);
   const refresh = () => setTick((t) => t + 1);
@@ -202,8 +191,8 @@ function NotesGadget() {
   const trashed = state.notes.filter((n) => !!n.deletedAt);
 
   const [selectedId, setSelectedId] = useState<string | null>(() => listActiveNotes()[0]?.id ?? null);
-  const [collapsed, setCollapsed] = useState(() => localStorage.getItem(COLLAPSE_KEY) === "1");
-  const [layout, setLayout] = useState(loadLayout);
+  const [collapsed, setCollapsed] = usePersistedFlag(COLLAPSE_KEY, false);
+  const [layout, saveLayout] = usePanelLayout(LAYOUT_KEY, DEFAULT_LAYOUT);
   const [openFolders, setOpenFolders] = useState<string[]>(() => listFolders().map((f) => f.id));
   const [renamingFolderId, setRenamingFolderId] = useState<string | null>(null);
   const [renamingNoteId, setRenamingNoteId] = useState<string | null>(null);
@@ -217,14 +206,6 @@ function NotesGadget() {
       setSelectedId(active[0]?.id ?? null);
     }
   }, [active, selectedId]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(COLLAPSE_KEY, collapsed ? "1" : "0");
-    } catch {
-      /* ignore */
-    }
-  }, [collapsed]);
 
   // Empty notes are discarded as soon as they stop being the selected note.
   useEffect(() => {
@@ -381,7 +362,7 @@ function NotesGadget() {
             >
               <span className="block truncate text-sm leading-tight font-medium">{displayTitle(n)}</span>
               <span className="block truncate text-[11px] leading-tight text-muted-foreground">
-                {new Date(n.updatedAt).toLocaleString()}
+                {formatDateTime(n.updatedAt)}
               </span>
             </button>
           )}
@@ -390,7 +371,7 @@ function NotesGadget() {
           <ContextMenuItem onClick={() => setRenamingNoteId(n.id)}>
             <Pencil /> Rename
           </ContextMenuItem>
-          <ContextMenuItem onClick={() => void navigator.clipboard.writeText(n.content).then(() => toast.success("Copied"))}>
+          <ContextMenuItem onClick={() => copyText(n.content, "Markdown")}>
             <Copy /> Copy markdown
           </ContextMenuItem>
           {folders.length > 0 && (
@@ -625,14 +606,7 @@ function NotesGadget() {
             className="min-h-0 flex-1"
             id="notes-layout"
             defaultLayout={layout}
-            onLayoutChanged={(next) => {
-              setLayout(next);
-              try {
-                localStorage.setItem(LAYOUT_KEY, JSON.stringify(next));
-              } catch {
-                /* ignore */
-              }
-            }}
+            onLayoutChanged={saveLayout}
           >
             <ResizablePanel id="sidebar" defaultSize={`${layout.sidebar}%`} minSize="15%" maxSize="40%" className="min-w-0">
               {sidebar}
@@ -672,7 +646,7 @@ function NotesGadget() {
                   <div className="min-w-0 flex-1">
                     <span className="block truncate text-sm leading-tight font-medium">{displayTitle(n)}</span>
                     <span className="block truncate text-[11px] leading-tight text-muted-foreground">
-                      Deleted {new Date(n.deletedAt ?? n.updatedAt).toLocaleString()}
+                      Deleted {formatDateTime(n.deletedAt ?? n.updatedAt)}
                     </span>
                   </div>
                   <Button
