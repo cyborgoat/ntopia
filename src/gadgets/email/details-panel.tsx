@@ -241,7 +241,7 @@ function Agenda({ value, onChange }: { value: AgendaItem[]; onChange: (v: Agenda
       <SectionHeader title="Agenda" hint="Shown as a timeline below the event card." addLabel="Add item" onAdd={() => onChange([...value, { time: "", title: "" }])} />
       {value.map((a, i) => (
         <div key={i} className="flex items-center gap-2">
-          <Input className="w-24" placeholder="HH:mm" value={str(a.time)} onChange={(e) => onChange(update(value, i, { time: e.target.value }))} />
+          <Input className="w-24" placeholder="15:30" value={str(a.time)} onChange={(e) => onChange(update(value, i, { time: e.target.value }))} />
           <Input className="flex-1" placeholder="Agenda item" value={str(a.title)} onChange={(e) => onChange(update(value, i, { title: e.target.value }))} />
           <Button variant="ghost" size="icon-xs" aria-label="Remove item" onClick={() => onChange(value.filter((_, j) => j !== i))}><X /></Button>
         </div>

@@ -73,7 +73,7 @@ export function TodoDialog({ todo, onSave, onClose }: { todo: TodoItem; onSave: 
                 value={dueTime}
                 disabled={!dueDate}
                 inputMode="numeric"
-                placeholder="HH:mm"
+                placeholder="15:30"
                 aria-invalid={timeInvalid}
                 onChange={(e) => setDueTime(e.target.value)}
                 onBlur={() => parsedTime && setDueTime(parsedTime)}
