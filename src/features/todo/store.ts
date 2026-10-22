@@ -17,10 +17,24 @@ export type Urgency = "none" | "low" | "medium" | "high";
 
 export const URGENCY_OPTIONS: { value: Urgency; label: string; rank: number }[] = [
   { value: "none", label: "None", rank: 0 },
-  { value: "low", label: "Low", rank: 1 },
-  { value: "medium", label: "Medium", rank: 2 },
-  { value: "high", label: "High", rank: 3 },
+  { value: "low", label: "!", rank: 1 },
+  { value: "medium", label: "!!", rank: 2 },
+  { value: "high", label: "!!!", rank: 3 },
 ];
+
+/** Exclamation marks for list badges; omit `"none"`. */
+export const URGENCY_LABEL: Record<Exclude<Urgency, "none">, string> = {
+  low: "!",
+  medium: "!!",
+  high: "!!!",
+};
+
+/** Badge colors by urgency — low muted, medium amber, high red. */
+export const URGENCY_CLASS: Record<Exclude<Urgency, "none">, string> = {
+  low: "border-transparent bg-sky-500/10 text-sky-700 dark:text-sky-400",
+  medium: "border-transparent bg-amber-500/10 text-amber-700 dark:text-amber-400",
+  high: "border-transparent bg-destructive/10 text-destructive",
+};
 
 export function urgencyRank(urgency: Urgency | undefined): number {
   return URGENCY_OPTIONS.find((o) => o.value === (urgency ?? "none"))?.rank ?? 0;

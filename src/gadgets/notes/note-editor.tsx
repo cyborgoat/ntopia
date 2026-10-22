@@ -116,6 +116,7 @@ export function NoteEditor({
           }}
           placeholder="Write a scratch note…"
           className="h-full rounded-none border-0"
+          autoFocus
         />
       </div>
     </div>

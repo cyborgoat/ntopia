@@ -31,6 +31,7 @@ import { Empty, PageHeader } from "@/components/page-header";
 import {
   addFolder,
   addNote,
+  defaultFolderId,
   deleteFolder,
   displayTitle,
   emptyTrash,
@@ -95,22 +96,21 @@ function NotesGadget() {
 
   const openFolder = (id: string) => setOpenFolders((v) => (v.includes(id) ? v : [...v, id]));
   const { drag, dropTarget, justDragged, startNoteDrag } = useNoteDrag({
-    folders,
     onMoved: (folderId) => {
       refresh();
-      if (folderId) openFolder(folderId);
+      openFolder(folderId);
     },
     onHoverFolder: openFolder,
   });
 
-  const rootNotes = active.filter((n) => !n.folderId);
-  const draggedNote = drag ? active.find((n) => n.id === drag.noteId) : undefined;
+  /** New notes go in the selected note’s folder, else Default. */
+  const targetFolderId = () => selected?.folderId ?? defaultFolderId(state);
 
-  const createNote = (folderId: string | null = null) => {
+  const createNote = (folderId: string = targetFolderId()) => {
     const n = addNote({ folderId });
     refresh();
     setSelectedId(n.id);
-    if (folderId && !openFolders.includes(folderId)) setOpenFolders((v) => [...v, folderId]);
+    if (!openFolders.includes(folderId)) setOpenFolders((v) => [...v, folderId]);
   };
 
   const createFolder = () => {
@@ -189,23 +189,18 @@ function NotesGadget() {
           <ContextMenuItem onClick={() => copyText(n.content, "Markdown")}>
             <Copy /> Copy markdown
           </ContextMenuItem>
-          {folders.length > 0 && (
+          {folders.length > 1 && (
             <>
               <ContextMenuSeparator />
               {folders.map((f) => (
                 <ContextMenuItem
                   key={f.id}
                   disabled={n.folderId === f.id}
-                  onClick={() => { moveNote(n.id, f.id); refresh(); }}
+                  onClick={() => { moveNote(n.id, f.id); refresh(); openFolder(f.id); }}
                 >
                   Move to {f.name}
                 </ContextMenuItem>
               ))}
-              {n.folderId && (
-                <ContextMenuItem onClick={() => { moveNote(n.id, null); refresh(); }}>
-                  Move to top level
-                </ContextMenuItem>
-              )}
             </>
           )}
           <ContextMenuSeparator />
@@ -242,12 +237,11 @@ function NotesGadget() {
           </div>
         ) : (
           <AccordionTrigger
-            className="min-w-0 flex-1 items-center px-2 py-0 hover:no-underline"
+            className="min-w-0 flex-1 items-center rounded-md border-0 bg-transparent px-2 py-0 shadow-none hover:bg-muted/60 hover:no-underline focus-visible:border-transparent focus-visible:ring-0"
             onDoubleClick={() => setRenamingFolderId(folder.id)}
           >
             <FolderGlyph className="mr-1.5 size-4 shrink-0 text-muted-foreground" />
             <span className="truncate">{label}</span>
-            <span className="ml-1.5 text-xs font-normal text-muted-foreground tabular-nums">{notes.length}</span>
           </AccordionTrigger>
         )}
         {!renaming && (
@@ -282,7 +276,7 @@ function NotesGadget() {
         value={id}
         data-drop={id}
         className={cn(
-          "rounded-md border-b-0 transition-colors",
+          "rounded-md border-0 bg-transparent shadow-none not-last:border-b-0 transition-colors",
           drag && dropTarget === id && "bg-primary/10 ring-1 ring-primary/40",
         )}
       >
@@ -327,27 +321,10 @@ function NotesGadget() {
           New folder
         </Button>
       </div>
-      <div data-drop="root" className="min-h-0 flex-1 overflow-auto p-1.5">
-        {draggedNote?.folderId && (
-          <div
-            className={cn(
-              "mb-1.5 rounded-md border border-dashed px-2 py-2 text-center text-xs text-muted-foreground transition-colors",
-              dropTarget === "root" && "border-primary/40 bg-primary/10 text-foreground",
-            )}
-          >
-            Drop here to move to top level
-          </div>
-        )}
-        {rootNotes.length > 0 && <ul className="space-y-0.5">{rootNotes.map((n) => noteRow(n))}</ul>}
-        {rootNotes.length > 0 && folders.length > 0 && <div className="my-1.5 h-px bg-border" />}
-        {folders.length > 0 && (
-          <Accordion multiple value={openFolders} onValueChange={setOpenFolders}>
-            {folders.map((f) => folderSection(f))}
-          </Accordion>
-        )}
-        {rootNotes.length === 0 && folders.length === 0 && (
-          <p className="px-2 py-4 text-xs text-muted-foreground">No notes yet. Create one with New, or add a folder.</p>
-        )}
+      <div className="min-h-0 flex-1 overflow-auto p-1.5">
+        <Accordion multiple value={openFolders} onValueChange={setOpenFolders}>
+          {folders.map((f) => folderSection(f))}
+        </Accordion>
       </div>
       <div className="border-t p-1.5">
         <Button
@@ -376,7 +353,7 @@ function NotesGadget() {
         <div className="flex flex-1 items-center justify-center p-8">
           <Empty>
             No note selected.{" "}
-            <button type="button" className="underline" onClick={() => createNote(null)}>
+            <button type="button" className="underline" onClick={() => createNote()}>
               Create one
             </button>
             .
@@ -399,7 +376,7 @@ function NotesGadget() {
         title="Notes"
         actions={
           <div className="flex items-center gap-2">
-            <Button size="sm" onClick={() => createNote(null)}>
+            <Button size="sm" onClick={() => createNote()}>
               <Plus /> New
             </Button>
           </div>

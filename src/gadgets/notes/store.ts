@@ -1,8 +1,21 @@
 import { getItem } from "@/lib/storage";
 import { createStore, newId, nowIso } from "@/lib/create-store";
 
-const store = createStore<NotesState>("gadget-notes", () => ({ folders: [], notes: [] }));
+const store = createStore<NotesState>("gadget-notes", seedState);
 export const NOTES_STORAGE_KEY = store.key;
+
+export const DEFAULT_FOLDER_NAME = "Default folder";
+
+const WELCOME_TITLE = "Welcome to Notes";
+const WELCOME_CONTENT = `This is your scratchpad. A few tips:
+
+- **Folders** group notes. Use **New folder** in the sidebar, or rename/delete from a folder’s menu.
+- **New notes** land in the current folder (or Default folder). You can also use **+** on a folder row.
+- **Drag** a note onto another folder to move it, or use the note’s context menu.
+- **Trash** soft-deletes; open Trash at the bottom to restore or delete forever.
+
+Edit or delete this note whenever you like.
+`;
 
 export type NoteFolder = {
   id: string;
@@ -14,7 +27,8 @@ export type Note = {
   id: string;
   title: string;
   content: string;
-  folderId: string | null;
+  /** Every note lives in a folder. */
+  folderId: string;
   createdAt: string;
   updatedAt: string;
   /** Soft-deleted notes live in trash until restored or purged. */
@@ -36,35 +50,80 @@ type LegacyNote = {
   deletedAt?: string;
 };
 
-function emptyState(): NotesState {
-  return { folders: [], notes: [] };
+function seedState(): NotesState {
+  const now = nowIso();
+  const folderId = newId();
+  return {
+    folders: [{ id: folderId, name: DEFAULT_FOLDER_NAME, createdAt: now }],
+    notes: [
+      {
+        id: newId(),
+        title: WELCOME_TITLE,
+        content: WELCOME_CONTENT,
+        folderId,
+        createdAt: now,
+        updatedAt: now,
+      },
+    ],
+  };
 }
 
-/** Load and migrate legacy `Note[]` payloads into `{ folders, notes }`. */
+/** Ensure every note has a folder; create Default if needed. */
+function normalize(state: NotesState): NotesState {
+  let { folders, notes } = state;
+  if (folders.length === 0) {
+    const seeded = seedState();
+    if (notes.length === 0) return seeded;
+    const folder = seeded.folders[0]!;
+    return {
+      folders: [folder],
+      notes: notes.map((n) => ({ ...n, folderId: folder.id })),
+    };
+  }
+  const fallbackId = folders.find((f) => f.name === DEFAULT_FOLDER_NAME)?.id ?? folders[0]!.id;
+  let changed = false;
+  const nextNotes = notes.map((n) => {
+    if (n.folderId && folders.some((f) => f.id === n.folderId)) return n;
+    changed = true;
+    return { ...n, folderId: fallbackId };
+  });
+  return changed ? { folders, notes: nextNotes } : state;
+}
+
+/** Load and migrate legacy payloads; always leaves at least Default with notes filed. */
 export function loadState(): NotesState {
   const raw = getItem<NotesState | LegacyNote[]>(NOTES_STORAGE_KEY);
-  if (!raw) return emptyState();
+  if (!raw) {
+    const seeded = seedState();
+    void persist(seeded);
+    return seeded;
+  }
+  let state: NotesState;
   if (Array.isArray(raw)) {
-    return {
+    state = {
       folders: [],
       notes: raw.map((n) => ({
         id: n.id,
         title: n.title,
         content: n.content,
-        folderId: n.folderId ?? null,
+        folderId: n.folderId ?? "",
         createdAt: n.createdAt,
         updatedAt: n.updatedAt,
         deletedAt: n.deletedAt,
       })),
     };
+  } else {
+    state = {
+      folders: raw.folders ?? [],
+      notes: (raw.notes ?? []).map((n) => ({
+        ...n,
+        folderId: n.folderId ?? "",
+      })),
+    };
   }
-  return {
-    folders: raw.folders ?? [],
-    notes: (raw.notes ?? []).map((n) => ({
-      ...n,
-      folderId: n.folderId ?? null,
-    })),
-  };
+  const next = normalize(state);
+  if (next !== state) void persist(next);
+  return next;
 }
 
 function persist(state: NotesState): Promise<void> {
@@ -72,7 +131,7 @@ function persist(state: NotesState): Promise<void> {
 }
 
 function write(mutator: (state: NotesState) => NotesState): NotesState {
-  const next = mutator(loadState());
+  const next = normalize(mutator(loadState()));
   void persist(next);
   return next;
 }
@@ -114,6 +173,11 @@ export function listActiveNotes(): Note[] {
   return loadState().notes.filter((n) => !n.deletedAt);
 }
 
+/** Prefer Default, else the first folder. */
+export function defaultFolderId(state = loadState()): string {
+  return state.folders.find((f) => f.name === DEFAULT_FOLDER_NAME)?.id ?? state.folders[0]!.id;
+}
+
 export function addFolder(name = "New folder"): NoteFolder {
   const folder: NoteFolder = {
     id: newId(),
@@ -132,21 +196,34 @@ export function renameFolder(id: string, name: string): NotesState {
   }));
 }
 
-/** Removes the folder; its notes become unfiled (not trashed). */
+/**
+ * Removes the folder. Its notes move to another folder (Default if present, else the first
+ * remaining). If it was the last folder, a fresh Default is created for them.
+ */
 export function deleteFolder(id: string): NotesState {
-  return write((s) => ({
-    folders: s.folders.filter((f) => f.id !== id),
-    notes: s.notes.map((n) => (n.folderId === id ? { ...n, folderId: null } : n)),
-  }));
+  return write((s) => {
+    const remaining = s.folders.filter((f) => f.id !== id);
+    let folders = remaining;
+    let targetId = remaining.find((f) => f.name === DEFAULT_FOLDER_NAME)?.id ?? remaining[0]?.id;
+    if (!targetId) {
+      const folder: NoteFolder = { id: newId(), name: DEFAULT_FOLDER_NAME, createdAt: nowIso() };
+      folders = [folder];
+      targetId = folder.id;
+    }
+    return {
+      folders,
+      notes: s.notes.map((n) => (n.folderId === id ? { ...n, folderId: targetId!, updatedAt: nowIso() } : n)),
+    };
+  });
 }
 
-export function addNote(opts?: { folderId?: string | null; title?: string }): Note {
+export function addNote(opts: { folderId: string; title?: string; content?: string }): Note {
   const now = nowIso();
   const note: Note = {
     id: newId(),
-    title: opts?.title ?? "",
-    content: "",
-    folderId: opts?.folderId ?? null,
+    title: opts.title ?? "",
+    content: opts.content ?? "",
+    folderId: opts.folderId,
     createdAt: now,
     updatedAt: now,
   };
@@ -171,7 +248,7 @@ export function finalizeTitle(id: string): NotesState {
   }));
 }
 
-export function moveNote(id: string, folderId: string | null): NotesState {
+export function moveNote(id: string, folderId: string): NotesState {
   return write((s) => ({
     ...s,
     notes: s.notes.map((n) =>

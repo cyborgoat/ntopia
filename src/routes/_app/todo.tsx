@@ -23,17 +23,12 @@ import {
   listTodos,
   toggleTodo,
   updateTodo,
+  URGENCY_CLASS,
+  URGENCY_LABEL,
   type TodoItem,
-  type Urgency,
 } from "@/features/todo/store";
 import { useNow } from "@/features/todo/use-now";
 import { TodoDialog } from "@/features/todo/todo-dialog";
-
-const URGENCY_LABEL: Record<Exclude<Urgency, "none">, string> = {
-  low: "Low",
-  medium: "Med",
-  high: "High",
-};
 
 export const Route = createFileRoute("/_app/todo")({ component: TodoPage });
 
@@ -110,10 +105,7 @@ function TodoPage() {
             </span>
             <span className="flex shrink-0 items-center gap-2.5 text-xs text-muted-foreground">
               {t.urgency && t.urgency !== "none" && (
-                <Badge
-                  variant={t.urgency === "high" ? "destructive" : "secondary"}
-                  className="h-4 px-1.5 text-[10px]"
-                >
+                <Badge variant="outline" className={`h-4 px-1.5 text-[10px] ${URGENCY_CLASS[t.urgency]}`}>
                   {URGENCY_LABEL[t.urgency]}
                 </Badge>
               )}

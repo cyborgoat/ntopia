@@ -43,7 +43,7 @@ export function ConfirmDialog({
             {confirm?.kind === "purge" && `“${confirm.title}” will be permanently deleted. This cannot be undone.`}
             {confirm?.kind === "delete-folder" &&
               (confirm.noteCount > 0
-                ? `Delete "${confirm.name}"? Its ${plural(confirm.noteCount)} will move to the top level.`
+                ? `Delete "${confirm.name}"? Its ${plural(confirm.noteCount)} will move to another folder.`
                 : `Delete empty folder "${confirm.name}"?`)}
           </AlertDialogDescription>
         </AlertDialogHeader>

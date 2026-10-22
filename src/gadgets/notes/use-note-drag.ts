@@ -1,21 +1,21 @@
 import { useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
-import { displayTitle, moveNote, type Note, type NoteFolder } from "@/gadgets/notes/store";
+import { displayTitle, moveNote, type Note } from "@/gadgets/notes/store";
 
 type Drag = { noteId: string; title: string; x: number; y: number };
 
 /**
- * Pointer-based drag & drop of notes onto folders (`data-drop="<folderId>"`) or the top level
- * (`data-drop="root"`). Native HTML5 drags are intercepted by the Tauri webview, so this tracks the pointer itself.
+ * Pointer-based drag & drop of notes onto folders (`data-drop="<folderId>"`).
+ * Native HTML5 drags are intercepted by the Tauri webview, so this tracks the pointer itself.
+ *
+ * Listeners attach only after the pointer moves past a small threshold, and we never put
+ * `select-none` on `document.body` (that breaks contenteditable / IME typing).
  */
 export function useNoteDrag({
-  folders,
   onMoved,
   onHoverFolder,
 }: {
-  folders: NoteFolder[];
-  /** Called after a note moved; `folderId` is null for the top level. */
-  onMoved: (folderId: string | null) => void;
+  /** Called after a note moved into a folder. */
+  onMoved: (folderId: string) => void;
   /** Called when the pointer rests on a folder for a moment, so it can be opened. */
   onHoverFolder: (folderId: string) => void;
 }) {
@@ -23,7 +23,12 @@ export function useNoteDrag({
   const [dropTarget, setDropTarget] = useState<string | null>(null);
   const justDragged = useRef(false);
   const stopDrag = useRef<(() => void) | null>(null);
-  useEffect(() => () => stopDrag.current?.(), []);
+
+  useEffect(() => {
+    // Clear a leftover grab cursor if a previous drag was interrupted (HMR / crash).
+    document.body.classList.remove("cursor-grabbing");
+    return () => stopDrag.current?.();
+  }, []);
 
   const startNoteDrag = (e: React.PointerEvent, n: Note) => {
     if (e.button !== 0) return;
@@ -41,7 +46,7 @@ export function useNoteDrag({
       window.removeEventListener("pointerup", onUp);
       window.removeEventListener("pointercancel", cleanup);
       window.removeEventListener("keydown", onKey);
-      document.body.classList.remove("select-none", "cursor-grabbing");
+      document.body.classList.remove("cursor-grabbing");
       clearTimeout(expandTimer);
       stopDrag.current = null;
       setDrag(null);
@@ -51,7 +56,10 @@ export function useNoteDrag({
       if (!active) {
         if (Math.hypot(ev.clientX - startX, ev.clientY - startY) < 5) return;
         active = true;
-        document.body.classList.add("select-none", "cursor-grabbing");
+        document.body.classList.add("cursor-grabbing");
+        // Escape only matters once a drag has started — avoid a standing keydown
+        // listener on every note click (breaks IME composition in Tauri).
+        window.addEventListener("keydown", onKey);
       }
       const target = targetAt(ev.clientX, ev.clientY);
       setDrag({ noteId: n.id, title: displayTitle(n), x: ev.clientX, y: ev.clientY });
@@ -59,7 +67,7 @@ export function useNoteDrag({
       if (target !== lastTarget) {
         lastTarget = target;
         clearTimeout(expandTimer);
-        if (target && target !== "root") expandTimer = setTimeout(() => onHoverFolder(target), 500);
+        if (target) expandTimer = setTimeout(() => onHoverFolder(target), 500);
       }
     }
     function onUp(ev: PointerEvent) {
@@ -67,24 +75,23 @@ export function useNoteDrag({
         justDragged.current = true;
         setTimeout(() => { justDragged.current = false; }, 0);
         const target = targetAt(ev.clientX, ev.clientY);
-        if (target && target !== (n.folderId ?? "root")) {
-          const folderId = target === "root" ? null : target;
-          moveNote(n.id, folderId);
-          onMoved(folderId);
-          const name = folderId ? folders.find((f) => f.id === folderId)?.name : null;
-          toast.success(name ? `Moved to ${name}` : "Moved to top level");
+        if (target && target !== n.folderId) {
+          moveNote(n.id, target);
+          onMoved(target);
         }
       }
       cleanup();
     }
     function onKey(ev: KeyboardEvent) {
-      if (ev.key === "Escape") cleanup();
+      if (ev.key === "Escape") {
+        ev.preventDefault();
+        cleanup();
+      }
     }
     stopDrag.current = cleanup;
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
     window.addEventListener("pointercancel", cleanup);
-    window.addEventListener("keydown", onKey);
   };
 
   return { drag, dropTarget, justDragged, startNoteDrag };

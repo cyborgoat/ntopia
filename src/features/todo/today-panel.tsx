@@ -6,15 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { dueLabel, groupTodos } from "./group";
 import { TODO_REMINDER_EVENT } from "./reminders";
-import { addTodo, listTodos, toggleTodo, type TodoItem, type Urgency } from "./store";
+import { addTodo, listTodos, toggleTodo, URGENCY_CLASS, URGENCY_LABEL, type TodoItem } from "./store";
 import { toDateKey } from "./dates";
 import { useNow } from "./use-now";
-
-const URGENCY_LABEL: Record<Exclude<Urgency, "none">, string> = {
-  low: "Low",
-  medium: "Med",
-  high: "High",
-};
 
 /** Overdue and due-today tasks with tick-off and quick add; shared data with the Todo page. */
 export function TodayPanel() {
@@ -76,7 +70,7 @@ export function TodayPanel() {
                   <span className="min-w-0 flex-1 truncate text-base">{t.title}</span>
                   <span className="flex shrink-0 items-center gap-2.5 text-sm text-muted-foreground">
                     {t.urgency && t.urgency !== "none" && (
-                      <Badge variant={t.urgency === "high" ? "destructive" : "secondary"} className="h-4 px-1.5 text-[10px]">
+                      <Badge variant="outline" className={`h-4 px-1.5 text-[10px] ${URGENCY_CLASS[t.urgency]}`}>
                         {URGENCY_LABEL[t.urgency]}
                       </Badge>
                     )}
