@@ -171,7 +171,7 @@ export function finalizeTitle(id: string): NotesState {
     ...s,
     notes: s.notes.map((n) => {
       if (n.id !== id) return n;
-      if (n.title.trim()) return n;
+      if (n.title.trim() || !n.content.trim()) return n;
       return { ...n, title: "Untitled", updatedAt: new Date().toISOString() };
     }),
   }));
@@ -211,6 +211,21 @@ export function purgeNote(id: string): NotesState {
 
 export function emptyTrash(): NotesState {
   return write((s) => ({ ...s, notes: s.notes.filter((n) => !n.deletedAt) }));
+}
+
+/** Notes with no content and no real title are never kept. */
+export function isEmptyNote(n: Note): boolean {
+  const title = n.title.trim();
+  return !n.content.trim() && (title === "" || title === "Untitled");
+}
+
+/** Permanently drops empty notes (except `keepId`); returns true if any were removed. */
+export function pruneEmptyNotes(keepId?: string | null): boolean {
+  const state = loadState();
+  const kept = state.notes.filter((n) => n.id === keepId || !isEmptyNote(n));
+  if (kept.length === state.notes.length) return false;
+  write((s) => ({ ...s, notes: kept }));
+  return true;
 }
 
 export function displayTitle(note: Note): string {

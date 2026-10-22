@@ -2,11 +2,12 @@ import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   Check,
+  ChevronLeft,
+  ChevronRight,
   Copy,
   FolderPlus,
   Loader2,
-  PanelLeft,
-  PanelLeftClose,
+  Pencil,
   Plus,
   RotateCcw,
   Trash2,
@@ -36,6 +37,14 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { MarkdownEditor } from "@/components/markdown-editor";
@@ -51,10 +60,12 @@ import {
   listFolders,
   loadState,
   moveNote,
+  pruneEmptyNotes,
   purgeNote,
   renameFolder,
   restoreNote,
   trashNote,
+  updateNote,
   updateNoteAndWait,
   type Note,
   type NoteFolder,
@@ -67,6 +78,7 @@ const LAYOUT_KEY = "ntopia.notes.layout";
 const COLLAPSE_KEY = "ntopia.notes.sidebar-collapsed";
 const DEFAULT_LAYOUT = { sidebar: 24, editor: 76 };
 const AUTOSAVE_MS = 500;
+const NOTE_DRAG_TYPE = "application/x-ntopia-note";
 
 type SaveStatus = "saved" | "saving" | "unsaved";
 
@@ -83,6 +95,81 @@ function SaveIndicator({ status }: { status: SaveStatus }) {
       {status === "saved" && <><Check className="size-3" /> Saved</>}
       {status === "unsaved" && "Unsaved"}
     </span>
+  );
+}
+
+function SidebarPill({
+  collapsed,
+  onToggle,
+  className,
+}: {
+  collapsed: boolean;
+  onToggle: () => void;
+  className?: string;
+}) {
+  const Icon = collapsed ? ChevronRight : ChevronLeft;
+  return (
+    <button
+      type="button"
+      aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+      onPointerDown={(e) => e.stopPropagation()}
+      onClick={onToggle}
+      className={cn(
+        "z-10 flex h-10 w-4 items-center justify-center rounded-full border bg-background text-muted-foreground shadow-xs transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-hidden",
+        className,
+      )}
+    >
+      <Icon className="size-3" />
+    </button>
+  );
+}
+
+/** Text input that replaces a label in place. Enter/blur commit, Escape cancels. */
+function InlineRename({
+  value,
+  onCommit,
+  onCancel,
+  className,
+}: {
+  value: string;
+  onCommit: (next: string) => void;
+  onCancel: () => void;
+  className?: string;
+}) {
+  const ref = useRef<HTMLInputElement>(null);
+  const done = useRef(false);
+
+  useEffect(() => {
+    // Defer so a closing context menu does not steal focus back.
+    const t = setTimeout(() => {
+      ref.current?.focus();
+      ref.current?.select();
+    }, 50);
+    return () => clearTimeout(t);
+  }, []);
+
+  const finish = (commit: boolean, next?: string) => {
+    if (done.current) return;
+    done.current = true;
+    if (commit) onCommit(next ?? value);
+    else onCancel();
+  };
+
+  return (
+    <Input
+      ref={ref}
+      defaultValue={value}
+      aria-label="Rename"
+      className={cn("h-6 min-w-0 flex-1 px-1.5 text-sm", className)}
+      onBlur={(e) => finish(true, e.target.value)}
+      onClick={(e) => e.stopPropagation()}
+      onDoubleClick={(e) => e.stopPropagation()}
+      onKeyDown={(e) => {
+        e.stopPropagation();
+        if (e.key === "Enter") finish(true, e.currentTarget.value);
+        if (e.key === "Escape") finish(false);
+      }}
+    />
   );
 }
 
@@ -113,22 +200,21 @@ function NotesGadget() {
   const trashed = state.notes.filter((n) => !!n.deletedAt);
 
   const [selectedId, setSelectedId] = useState<string | null>(() => listActiveNotes()[0]?.id ?? null);
-  const [view, setView] = useState<"notes" | "trash">("notes");
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem(COLLAPSE_KEY) === "1");
   const [layout, setLayout] = useState(loadLayout);
   const [openFolders, setOpenFolders] = useState<string[]>(() => ["unfiled", ...listFolders().map((f) => f.id)]);
   const [renamingFolderId, setRenamingFolderId] = useState<string | null>(null);
+  const [renamingNoteId, setRenamingNoteId] = useState<string | null>(null);
+  const [trashOpen, setTrashOpen] = useState(false);
   const [confirm, setConfirm] = useState<Confirm>(null);
 
-  const selected =
-    (view === "notes" ? active : trashed).find((n) => n.id === selectedId) ?? null;
+  const selected = active.find((n) => n.id === selectedId) ?? null;
 
   useEffect(() => {
-    const pool = view === "notes" ? active : trashed;
-    if (selectedId && !pool.some((n) => n.id === selectedId)) {
-      setSelectedId(pool[0]?.id ?? null);
+    if (selectedId && !active.some((n) => n.id === selectedId)) {
+      setSelectedId(active[0]?.id ?? null);
     }
-  }, [active, trashed, selectedId, view]);
+  }, [active, selectedId]);
 
   useEffect(() => {
     try {
@@ -138,17 +224,32 @@ function NotesGadget() {
     }
   }, [collapsed]);
 
+  // Empty notes are discarded as soon as they stop being the selected note.
+  useEffect(() => {
+    if (pruneEmptyNotes(selectedId)) refresh();
+  }, [selectedId]);
+  useEffect(() => () => void pruneEmptyNotes(), []);
+
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const dropOnFolder = (e: React.DragEvent, folderId: string | null) => {
+    e.preventDefault();
+    setDragOverId(null);
+    const noteId = e.dataTransfer.getData(NOTE_DRAG_TYPE);
+    if (!noteId) return;
+    const note = state.notes.find((n) => n.id === noteId);
+    if (!note || (note.folderId ?? null) === folderId) return;
+    moveNote(noteId, folderId);
+    refresh();
+    const key = folderId ?? "unfiled";
+    if (!openFolders.includes(key)) setOpenFolders((v) => [...v, key]);
+  };
+
   const createNote = (folderId: string | null = null) => {
     const n = addNote({ folderId });
     refresh();
-    setView("notes");
     setSelectedId(n.id);
-    if (folderId && !openFolders.includes(folderId)) {
-      setOpenFolders((v) => [...v, folderId]);
-    }
-    if (!folderId && !openFolders.includes("unfiled")) {
-      setOpenFolders((v) => [...v, "unfiled"]);
-    }
+    const key = folderId ?? "unfiled";
+    if (!openFolders.includes(key)) setOpenFolders((v) => [...v, key]);
   };
 
   const createFolder = () => {
@@ -170,12 +271,10 @@ function NotesGadget() {
     if (confirm.kind === "empty-trash") {
       emptyTrash();
       refresh();
-      setSelectedId(null);
       toast.success("Trash emptied");
     } else if (confirm.kind === "purge") {
       purgeNote(confirm.noteId);
       refresh();
-      if (selectedId === confirm.noteId) setSelectedId(null);
       toast.success("Note permanently deleted");
     } else if (confirm.kind === "delete-folder") {
       deleteFolder(confirm.folderId);
@@ -186,128 +285,162 @@ function NotesGadget() {
     setConfirm(null);
   };
 
-  const noteRow = (n: Note, inTrash: boolean) => (
-    <ContextMenu key={n.id}>
-      <ContextMenuTrigger className="block w-full">
-        <button
-          type="button"
-          onClick={() => setSelectedId(n.id)}
-          className={cn(
-            "w-full rounded-md px-2 py-1.5 text-left transition-colors hover:bg-muted/60",
-            n.id === selectedId && "bg-muted",
-          )}
-        >
-          <span className="block truncate text-sm font-medium">{displayTitle(n)}</span>
-          <span className="block truncate text-[11px] text-muted-foreground">
-            {new Date(inTrash ? (n.deletedAt ?? n.updatedAt) : n.updatedAt).toLocaleString()}
-          </span>
-        </button>
-      </ContextMenuTrigger>
-      <ContextMenuContent>
-        {!inTrash && (
-          <>
-            <ContextMenuItem onClick={() => void navigator.clipboard.writeText(n.content).then(() => toast.success("Copied"))}>
-              <Copy /> Copy markdown
-            </ContextMenuItem>
-            {folders.length > 0 && (
-              <>
-                <ContextMenuSeparator />
-                {folders.map((f) => (
-                  <ContextMenuItem
-                    key={f.id}
-                    disabled={n.folderId === f.id}
-                    onClick={() => { moveNote(n.id, f.id); refresh(); }}
-                  >
-                    Move to {f.name}
-                  </ContextMenuItem>
-                ))}
-                {n.folderId && (
-                  <ContextMenuItem onClick={() => { moveNote(n.id, null); refresh(); }}>
-                    Move to Unfiled
-                  </ContextMenuItem>
-                )}
-              </>
-            )}
-            <ContextMenuSeparator />
-            <ContextMenuItem variant="destructive" onClick={() => softDelete(n.id)}>
-              <Trash2 /> Move to trash
-            </ContextMenuItem>
-          </>
-        )}
-        {inTrash && (
-          <>
-            <ContextMenuItem onClick={() => { restoreNote(n.id); refresh(); toast.success("Restored"); }}>
-              <RotateCcw /> Restore
-            </ContextMenuItem>
-            <ContextMenuSeparator />
-            <ContextMenuItem
-              variant="destructive"
-              onClick={() => setConfirm({ kind: "purge", noteId: n.id, title: displayTitle(n) })}
+  const noteRow = (n: Note) => (
+    <li key={n.id}>
+      <ContextMenu>
+        <ContextMenuTrigger className="block w-full">
+          {renamingNoteId === n.id ? (
+            <div className="flex h-9 items-center rounded-md bg-muted px-2">
+              <InlineRename
+                value={displayTitle(n)}
+                onCancel={() => setRenamingNoteId(null)}
+                onCommit={(next) => {
+                  updateNote(n.id, { title: next });
+                  finalizeTitle(n.id);
+                  refresh();
+                  setRenamingNoteId(null);
+                }}
+              />
+            </div>
+          ) : (
+            <button
+              type="button"
+              draggable
+              onDragStart={(e) => {
+                e.dataTransfer.setData(NOTE_DRAG_TYPE, n.id);
+                e.dataTransfer.effectAllowed = "move";
+              }}
+              onDragEnd={() => setDragOverId(null)}
+              onClick={() => setSelectedId(n.id)}
+              onDoubleClick={() => setRenamingNoteId(n.id)}
+              className={cn(
+                "flex h-9 w-full flex-col justify-center rounded-md px-2 text-left transition-colors hover:bg-muted/60",
+                n.id === selectedId && "bg-muted",
+              )}
             >
-              <Trash2 /> Delete forever
-            </ContextMenuItem>
-          </>
-        )}
-      </ContextMenuContent>
-    </ContextMenu>
+              <span className="block truncate text-sm leading-tight font-medium">{displayTitle(n)}</span>
+              <span className="block truncate text-[11px] leading-tight text-muted-foreground">
+                {new Date(n.updatedAt).toLocaleString()}
+              </span>
+            </button>
+          )}
+        </ContextMenuTrigger>
+        <ContextMenuContent>
+          <ContextMenuItem onClick={() => setRenamingNoteId(n.id)}>
+            <Pencil /> Rename
+          </ContextMenuItem>
+          <ContextMenuItem onClick={() => void navigator.clipboard.writeText(n.content).then(() => toast.success("Copied"))}>
+            <Copy /> Copy markdown
+          </ContextMenuItem>
+          {folders.length > 0 && (
+            <>
+              <ContextMenuSeparator />
+              {folders.map((f) => (
+                <ContextMenuItem
+                  key={f.id}
+                  disabled={n.folderId === f.id}
+                  onClick={() => { moveNote(n.id, f.id); refresh(); }}
+                >
+                  Move to {f.name}
+                </ContextMenuItem>
+              ))}
+              {n.folderId && (
+                <ContextMenuItem onClick={() => { moveNote(n.id, null); refresh(); }}>
+                  Move to Unfiled
+                </ContextMenuItem>
+              )}
+            </>
+          )}
+          <ContextMenuSeparator />
+          <ContextMenuItem variant="destructive" onClick={() => softDelete(n.id)}>
+            <Trash2 /> Move to trash
+          </ContextMenuItem>
+        </ContextMenuContent>
+      </ContextMenu>
+    </li>
   );
 
   const folderSection = (folder: NoteFolder | null) => {
     const id = folder?.id ?? "unfiled";
     const label = folder?.name ?? "Unfiled";
     const notes = active.filter((n) => (folder ? n.folderId === folder.id : n.folderId == null));
+    const renaming = !!folder && renamingFolderId === folder.id;
+    const actionClass =
+      "opacity-0 transition-opacity group-hover/folder:opacity-100 group-focus-within/folder:opacity-100";
     const header = (
-      <div className="group/folder flex items-center gap-0.5 pr-1">
-        <AccordionTrigger className="min-w-0 flex-1 px-2 py-1.5 hover:no-underline">
-          <span className="truncate">{label}</span>
-          <span className="ml-1 text-xs font-normal text-muted-foreground tabular-nums">{notes.length}</span>
-        </AccordionTrigger>
-        {folder && renamingFolderId !== folder.id && (
-          <div className="flex shrink-0 opacity-0 transition-opacity group-hover/folder:opacity-100 group-focus-within/folder:opacity-100">
+      <div className="group/folder flex h-8 items-center gap-0.5 pr-1">
+        {renaming ? (
+          <div className="flex min-w-0 flex-1 items-center px-2">
+            <InlineRename
+              value={label}
+              onCancel={() => setRenamingFolderId(null)}
+              onCommit={(next) => {
+                renameFolder(folder.id, next);
+                refresh();
+                setRenamingFolderId(null);
+              }}
+            />
+          </div>
+        ) : (
+          <AccordionTrigger
+            className="min-w-0 flex-1 items-center px-2 py-0 hover:no-underline"
+            onDoubleClick={folder ? () => setRenamingFolderId(folder.id) : undefined}
+          >
+            <span className="truncate">{label}</span>
+            <span className="ml-1.5 text-xs font-normal text-muted-foreground tabular-nums">{notes.length}</span>
+          </AccordionTrigger>
+        )}
+        {!renaming && (
+          <div className={cn("flex shrink-0 items-center", actionClass)}>
             <Button
               type="button"
               variant="ghost"
               size="icon-xs"
-              aria-label="New note in folder"
-              onClick={(e) => { e.stopPropagation(); createNote(folder.id); }}
+              aria-label={folder ? "New note in folder" : "New unfiled note"}
+              onClick={() => createNote(folder?.id ?? null)}
             >
               <Plus />
             </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-xs"
-              aria-label="Delete folder"
-              onClick={(e) => {
-                e.stopPropagation();
-                setConfirm({ kind: "delete-folder", folderId: folder.id, name: folder.name, noteCount: notes.length });
-              }}
-            >
-              <Trash2 />
-            </Button>
+            {folder && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-xs"
+                aria-label="Delete folder"
+                onClick={() =>
+                  setConfirm({ kind: "delete-folder", folderId: folder.id, name: folder.name, noteCount: notes.length })
+                }
+              >
+                <Trash2 />
+              </Button>
+            )}
           </div>
-        )}
-        {!folder && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-xs"
-            className="opacity-0 group-hover/folder:opacity-100 group-focus-within/folder:opacity-100"
-            aria-label="New unfiled note"
-            onClick={(e) => { e.stopPropagation(); createNote(null); }}
-          >
-            <Plus />
-          </Button>
         )}
       </div>
     );
     return (
-      <AccordionItem key={id} value={id} className="border-b-0">
+      <AccordionItem
+        key={id}
+        value={id}
+        className={cn("rounded-md border-b-0 transition-colors", dragOverId === id && "bg-primary/10 ring-1 ring-primary/40")}
+        onDragOver={(e) => {
+          if (!e.dataTransfer.types.includes(NOTE_DRAG_TYPE)) return;
+          e.preventDefault();
+          e.dataTransfer.dropEffect = "move";
+          if (dragOverId !== id) setDragOverId(id);
+        }}
+        onDragLeave={(e) => {
+          if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragOverId(null);
+        }}
+        onDrop={(e) => dropOnFolder(e, folder?.id ?? null)}
+      >
         {folder ? (
           <ContextMenu>
             <ContextMenuTrigger className="block w-full">{header}</ContextMenuTrigger>
             <ContextMenuContent>
-              <ContextMenuItem onClick={() => setRenamingFolderId(folder.id)}>Rename</ContextMenuItem>
+              <ContextMenuItem onClick={() => setRenamingFolderId(folder.id)}>
+                <Pencil /> Rename
+              </ContextMenuItem>
               <ContextMenuItem onClick={() => createNote(folder.id)}><Plus /> New note</ContextMenuItem>
               <ContextMenuSeparator />
               <ContextMenuItem
@@ -321,102 +454,55 @@ function NotesGadget() {
         ) : (
           header
         )}
-        {folder && renamingFolderId === folder.id && (
-          <div className="px-2 pb-1">
-            <Input
-              autoFocus
-              defaultValue={folder.name}
-              className="h-7 text-sm"
-              onBlur={(e) => {
-                renameFolder(folder.id, e.target.value);
-                refresh();
-                setRenamingFolderId(null);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-                if (e.key === "Escape") setRenamingFolderId(null);
-              }}
-              onClick={(e) => e.stopPropagation()}
-            />
-          </div>
-        )}
         <AccordionContent className="pb-1">
           {notes.length === 0 ? (
             <p className="px-2 py-1 text-xs text-muted-foreground">Empty</p>
           ) : (
-            <ul className="space-y-0.5 px-1">{notes.map((n) => noteRow(n, false))}</ul>
+            <ul className="space-y-0.5">{notes.map((n) => noteRow(n))}</ul>
           )}
         </AccordionContent>
       </AccordionItem>
     );
   };
 
-  // Double-click folder name to rename — attach via context on accordion label area
   const sidebar = (
-    <div className="flex h-full min-h-0 flex-col">
-      <div className="flex items-center gap-1 border-b px-2 py-1.5">
-        <div className="flex flex-1 gap-0.5">
-          <Button
-            type="button"
-            size="xs"
-            variant={view === "notes" ? "secondary" : "ghost"}
-            onClick={() => setView("notes")}
-          >
-            Notes
-          </Button>
-          <Button
-            type="button"
-            size="xs"
-            variant={view === "trash" ? "secondary" : "ghost"}
-            onClick={() => setView("trash")}
-          >
-            Trash{trashed.length > 0 ? ` · ${trashed.length}` : ""}
-          </Button>
-        </div>
-        <Button type="button" variant="ghost" size="icon-xs" aria-label="Collapse sidebar" onClick={() => setCollapsed(true)}>
-          <PanelLeftClose />
+    <div className="relative flex h-full min-h-0 flex-col">
+      <div className="border-b p-1.5">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="w-full justify-start gap-2 px-2 text-muted-foreground hover:text-foreground"
+          onClick={createFolder}
+        >
+          <FolderPlus />
+          New folder
         </Button>
       </div>
-      <div className="min-h-0 flex-1 overflow-auto p-1">
-        {view === "notes" ? (
-          <>
-            <Accordion multiple value={openFolders} onValueChange={setOpenFolders}>
-              {folders.map((f) => (
-                <div
-                  key={f.id}
-                  onDoubleClick={() => setRenamingFolderId(f.id)}
-                >
-                  {folderSection(f)}
-                </div>
-              ))}
-              {folderSection(null)}
-            </Accordion>
-            {active.length === 0 && folders.length === 0 && (
-              <p className="px-2 py-4 text-xs text-muted-foreground">No notes yet.</p>
-            )}
-          </>
-        ) : (
-          <div className="space-y-2 p-1">
-            {trashed.length === 0 ? (
-              <p className="px-2 py-4 text-xs text-muted-foreground">Trash is empty.</p>
-            ) : (
-              <>
-                <div className="flex justify-end px-1">
-                  <Button
-                    type="button"
-                    size="xs"
-                    variant="destructive"
-                    onClick={() => setConfirm({ kind: "empty-trash" })}
-                  >
-                    Empty trash
-                  </Button>
-                </div>
-                <ul className="space-y-0.5">{trashed.map((n) => noteRow(n, true))}</ul>
-              </>
-            )}
-          </div>
-        )}
+      <div className="min-h-0 flex-1 overflow-auto p-1.5">
+        <Accordion multiple value={openFolders} onValueChange={setOpenFolders}>
+          {folders.map((f) => folderSection(f))}
+          {folderSection(null)}
+        </Accordion>
       </div>
+      <div className="border-t p-1.5">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="w-full justify-start gap-2 px-2 text-muted-foreground hover:text-foreground"
+          onClick={() => setTrashOpen(true)}
+        >
+          <Trash2 />
+          <span className="flex-1 text-left">Trash</span>
+          {trashed.length > 0 && <span className="text-xs tabular-nums">{trashed.length}</span>}
+        </Button>
+      </div>
+      <SidebarPill
+        collapsed={false}
+        onToggle={() => setCollapsed(true)}
+        className="absolute top-1/2 right-0 -translate-y-1/2 rounded-r-none border-r-0"
+      />
     </div>
   );
 
@@ -425,28 +511,19 @@ function NotesGadget() {
       {!selected ? (
         <div className="flex flex-1 items-center justify-center p-8">
           <Empty>
-            {view === "trash"
-              ? (trashed.length === 0 ? "Trash is empty." : "Select a trashed note.")
-              : (
-                <>
-                  No note selected.{" "}
-                  <button type="button" className="underline" onClick={() => createNote(null)}>
-                    Create one
-                  </button>
-                  .
-                </>
-              )}
+            No note selected.{" "}
+            <button type="button" className="underline" onClick={() => createNote(null)}>
+              Create one
+            </button>
+            .
           </Empty>
         </div>
       ) : (
         <NoteEditor
           key={selected.id}
           note={selected}
-          readOnly={view === "trash"}
           onRefresh={refresh}
           onTrash={() => softDelete(selected.id)}
-          onRestore={() => { restoreNote(selected.id); refresh(); setView("notes"); toast.success("Restored"); }}
-          onPurge={() => setConfirm({ kind: "purge", noteId: selected.id, title: displayTitle(selected) })}
         />
       )}
     </div>
@@ -458,23 +535,20 @@ function NotesGadget() {
         title="Notes"
         actions={
           <div className="flex items-center gap-2">
-            <Button size="sm" variant="outline" onClick={createFolder}>
-              <FolderPlus /> Folder
-            </Button>
             <Button size="sm" onClick={() => createNote(null)}>
               <Plus /> New
             </Button>
           </div>
         }
       />
-      <div className="flex min-h-0 flex-1 border-t">
+      <div className="relative flex min-h-0 flex-1 border-t">
         {collapsed ? (
           <>
-            <div className="flex w-9 shrink-0 flex-col items-center border-r py-2">
-              <Button type="button" variant="ghost" size="icon-sm" aria-label="Expand sidebar" onClick={() => setCollapsed(false)}>
-                <PanelLeft />
-              </Button>
-            </div>
+            <SidebarPill
+              collapsed
+              onToggle={() => setCollapsed(false)}
+              className="absolute top-1/2 left-0 -translate-y-1/2 rounded-l-none border-l-0"
+            />
             <div className="min-w-0 flex-1">{editor}</div>
           </>
         ) : (
@@ -492,7 +566,7 @@ function NotesGadget() {
               }
             }}
           >
-            <ResizablePanel id="sidebar" defaultSize={`${layout.sidebar}%`} minSize="15%" maxSize="40%" className="min-w-0 border-r">
+            <ResizablePanel id="sidebar" defaultSize={`${layout.sidebar}%`} minSize="15%" maxSize="40%" className="min-w-0">
               {sidebar}
             </ResizablePanel>
             <ResizableHandle />
@@ -502,6 +576,64 @@ function NotesGadget() {
           </ResizablePanelGroup>
         )}
       </div>
+
+      <Dialog open={trashOpen} onOpenChange={setTrashOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Trash</DialogTitle>
+            <DialogDescription>
+              {trashed.length === 0
+                ? "Trash is empty."
+                : `${trashed.length} ${trashed.length === 1 ? "note" : "notes"} in trash. Restore or delete them for good.`}
+            </DialogDescription>
+          </DialogHeader>
+          {trashed.length > 0 && (
+            <ul className="max-h-72 space-y-0.5 overflow-auto">
+              {trashed.map((n) => (
+                <li key={n.id} className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-muted/60">
+                  <div className="min-w-0 flex-1">
+                    <span className="block truncate text-sm leading-tight font-medium">{displayTitle(n)}</span>
+                    <span className="block truncate text-[11px] leading-tight text-muted-foreground">
+                      Deleted {new Date(n.deletedAt ?? n.updatedAt).toLocaleString()}
+                    </span>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label="Restore"
+                    onClick={() => { restoreNote(n.id); refresh(); toast.success("Restored"); }}
+                  >
+                    <RotateCcw />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label="Delete forever"
+                    onClick={() => setConfirm({ kind: "purge", noteId: n.id, title: displayTitle(n) })}
+                  >
+                    <Trash2 />
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setTrashOpen(false)}>
+              Close
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={trashed.length === 0}
+              onClick={() => setConfirm({ kind: "empty-trash" })}
+            >
+              Empty trash
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={!!confirm} onOpenChange={(open) => !open && setConfirm(null)}>
         <AlertDialogContent>
@@ -541,18 +673,12 @@ function NotesGadget() {
 
 function NoteEditor({
   note,
-  readOnly,
   onRefresh,
   onTrash,
-  onRestore,
-  onPurge,
 }: {
   note: Note;
-  readOnly: boolean;
   onRefresh: () => void;
   onTrash: () => void;
-  onRestore: () => void;
-  onPurge: () => void;
 }) {
   const [title, setTitle] = useState(note.title);
   const [content, setContent] = useState(note.content);
@@ -578,12 +704,21 @@ function NoteEditor({
   const scheduleSave = (nextTitle: string, nextContent: string) => {
     setSaveStatus("unsaved");
     if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => void flush(nextTitle, nextContent), AUTOSAVE_MS);
+    timer.current = setTimeout(() => {
+      timer.current = null;
+      void flush(nextTitle, nextContent);
+    }, AUTOSAVE_MS);
   };
 
+  const latest = useRef({ title, content });
+  latest.current = { title, content };
   useEffect(() => () => {
-    if (timer.current) clearTimeout(timer.current);
-  }, []);
+    // Persist a pending edit so switching notes never drops typed text.
+    if (timer.current) {
+      clearTimeout(timer.current);
+      updateNote(note.id, latest.current);
+    }
+  }, [note.id]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -591,14 +726,12 @@ function NoteEditor({
         <Input
           value={title}
           placeholder="Untitled"
-          disabled={readOnly}
           onChange={(e) => {
             const next = e.target.value;
             setTitle(next);
-            if (!readOnly) scheduleSave(next, content);
+            scheduleSave(next, content);
           }}
           onBlur={() => {
-            if (readOnly) return;
             if (timer.current) clearTimeout(timer.current);
             void (async () => {
               await flush(title, content);
@@ -611,21 +744,10 @@ function NoteEditor({
           className="h-8 border-0 bg-transparent px-1 text-base font-semibold shadow-none focus-visible:ring-0"
           aria-label="Note title"
         />
-        {!readOnly && <SaveIndicator status={saveStatus} />}
-        {readOnly ? (
-          <>
-            <Button type="button" variant="ghost" size="icon-sm" aria-label="Restore" onClick={onRestore}>
-              <RotateCcw />
-            </Button>
-            <Button type="button" variant="ghost" size="icon-sm" aria-label="Delete forever" onClick={onPurge}>
-              <Trash2 />
-            </Button>
-          </>
-        ) : (
-          <Button type="button" variant="ghost" size="icon-sm" aria-label="Move to trash" onClick={onTrash}>
-            <Trash2 />
-          </Button>
-        )}
+        <SaveIndicator status={saveStatus} />
+        <Button type="button" variant="ghost" size="icon-sm" aria-label="Move to trash" onClick={onTrash}>
+          <Trash2 />
+        </Button>
       </div>
       <div className="min-h-0 flex-1">
         <MarkdownEditor
@@ -633,7 +755,6 @@ function NoteEditor({
           variant="full"
           value={content}
           onChange={(next) => {
-            if (readOnly) return;
             setContent(next);
             scheduleSave(title, next);
           }}

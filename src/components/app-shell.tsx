@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState } from "react";
+import { Fragment, type MouseEvent, useEffect, useRef, useState } from "react";
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -67,6 +67,16 @@ const orbitNav = [
 const FULL_BLEED = ["/gadgets/email", "/gadgets/notes", "/todo", "/blog/new", "/news/new", "/discussions/new"];
 const MARK = "text-[1.65rem] font-semibold tracking-[-0.06em]";
 
+/** In the icon rail, a click expands the sidebar instead of navigating. */
+function useExpandWhenCollapsed() {
+  const { state, isMobile, setOpen } = useSidebar();
+  return (e: MouseEvent) => {
+    if (state !== "collapsed" || isMobile) return;
+    e.preventDefault();
+    setOpen(true);
+  };
+}
+
 function NavItems({
   items,
   pathname,
@@ -74,6 +84,7 @@ function NavItems({
   items: readonly { to: string; label: string; icon: typeof Home }[];
   pathname: string;
 }) {
+  const expandIfCollapsed = useExpandWhenCollapsed();
   return (
     <SidebarMenu>
       {items.map(({ to, label, icon: Icon }) => {
@@ -82,6 +93,7 @@ function NavItems({
           <SidebarMenuItem key={to}>
             <SidebarMenuButton
               render={<Link to={to} />}
+              onClick={expandIfCollapsed}
               isActive={active}
               tooltip={label}
             >
@@ -142,6 +154,24 @@ function GadgetsMenu({ pathname }: { pathname: string }) {
   );
 }
 
+function NotificationsItem({ pathname, unread }: { pathname: string; unread: number }) {
+  const expandIfCollapsed = useExpandWhenCollapsed();
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton
+        render={<Link to="/notifications" />}
+        onClick={expandIfCollapsed}
+        isActive={pathname.startsWith("/notifications")}
+        tooltip="Notifications"
+      >
+        <Bell />
+        <span>Notifications</span>
+      </SidebarMenuButton>
+      {unread > 0 && <SidebarMenuBadge>{unread}</SidebarMenuBadge>}
+    </SidebarMenuItem>
+  );
+}
+
 function BrandToggle() {
   const { toggleSidebar, state } = useSidebar();
   return (
@@ -161,11 +191,11 @@ function BrandToggle() {
   );
 }
 
-// Collapse the sidebar when entering a gadget (/gadgets/<name>) from elsewhere.
+// Collapse the sidebar when entering a gadget (/gadgets/<name>, except the email composer) from elsewhere.
 // Only the transition triggers it, so a manual toggle sticks while in gadgets.
 function AutoCollapseForGadgets({ pathname }: { pathname: string }) {
   const { setOpen } = useSidebar();
-  const inGadget = /^\/gadgets\/[^/]+/.test(pathname);
+  const inGadget = /^\/gadgets\/(?!email(?:\/|$))[^/]+/.test(pathname);
   const wasInGadget = useRef(false);
   useEffect(() => {
     if (inGadget && !wasInGadget.current) setOpen(false);
@@ -267,17 +297,7 @@ export function AppShell() {
             <SidebarSeparator />
             <SidebarMenu>
               {token && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    render={<Link to="/notifications" />}
-                    isActive={pathname.startsWith("/notifications")}
-                    tooltip="Notifications"
-                  >
-                    <Bell />
-                    <span>Notifications</span>
-                  </SidebarMenuButton>
-                  {unread > 0 && <SidebarMenuBadge>{unread}</SidebarMenuBadge>}
-                </SidebarMenuItem>
+                <NotificationsItem pathname={pathname} unread={unread} />
               )}
               {token ? (
                 user ? (
