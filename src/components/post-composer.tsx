@@ -47,7 +47,7 @@ export function PostComposer({
   });
 
   async function publish() {
-    if (!title.trim() || !content.trim()) return setError("Add a title and some content first.");
+    if (!title.trim() || !content.trim()) return setError("A title and content are required.");
     setBusy(true);
     setError("");
     try {
@@ -85,7 +85,7 @@ export function PostComposer({
       {(fields.tags || fields.cover) && (
         <div className="flex flex-wrap items-center gap-2">
           {fields.tags && (
-            <Input placeholder="Tags, comma separated" value={tags} onChange={(e) => setTags(e.target.value)} className="h-8 max-w-xs text-sm" />
+            <Input placeholder="Tags (comma-separated)" value={tags} onChange={(e) => setTags(e.target.value)} className="h-8 max-w-xs text-sm" />
           )}
           {fields.cover && (
             <>
@@ -130,7 +130,7 @@ export function PostComposer({
         fillHeight
         value={content}
         onChange={setContent}
-        placeholder="Write your post… Markdown shortcuts like #, -, > and ``` work as you type."
+        placeholder="Write your post…"
         imageUploadHandler={stageImage}
         imagePreviewHandler={imagePreviewUrl}
       />

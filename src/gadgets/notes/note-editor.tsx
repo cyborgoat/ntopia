@@ -114,7 +114,7 @@ export function NoteEditor({
             setContent(next);
             scheduleSave(title, next);
           }}
-          placeholder="Write a scratch note…"
+          placeholder="Write a note…"
           className="h-full rounded-none border-0"
           autoFocus
         />

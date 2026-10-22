@@ -70,21 +70,21 @@ export const isEventType = (type: string) => EVENT_TYPES.has(type);
 export function typeFields(type: string): FieldDef[] {
   if (type === "notification") {
     return [
-      { key: "headline", label: "Headline", placeholder: "Defaults to the subject", wide: true },
-      { key: "banner", label: "Banner", placeholder: "e.g. Schedule change" },
+      { key: "headline", label: "Headline", placeholder: "Same as subject", wide: true },
+      { key: "banner", label: "Banner", placeholder: "Brief announcement" },
       { key: "date", label: "Date", input: "date" },
     ];
   }
   if (isEventType(type)) {
     return [
-      { key: "eventName", label: "Event name", placeholder: "Defaults to the subject", wide: true },
+      { key: "eventName", label: "Event name", placeholder: "Same as subject", wide: true },
       { key: "startsAt", label: "Date", input: "date" },
-      { key: "time", label: "Time", placeholder: "e.g. 15:00–16:00 UTC" },
-      { key: "location", label: "Location", placeholder: "Room, address or “Online”" },
+      { key: "time", label: "Time", placeholder: "15:00–16:00 UTC" },
+      { key: "location", label: "Location", placeholder: "Venue, address, or online" },
       type === "invitation"
-        ? { key: "rsvpUrl", label: "RSVP link", input: "url", placeholder: "https://…" }
-        : { key: "joinUrl", label: "Join link", input: "url", placeholder: "https://…" },
-      { key: "kicker", label: "Kicker", placeholder: "Small label above the title" },
+        ? { key: "rsvpUrl", label: "RSVP link", input: "url", placeholder: "https://example.com" }
+        : { key: "joinUrl", label: "Join link", input: "url", placeholder: "https://example.com" },
+      { key: "kicker", label: "Header label", placeholder: "Label above the title" },
     ];
   }
   return [{ key: "date", label: "Date", input: "date" }];

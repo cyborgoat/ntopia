@@ -28,7 +28,7 @@ export function DetailsPanel({ meta, onChange }: { meta: Frontmatter; onChange: 
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex items-center justify-between gap-2 px-4 py-2">
-        <p className="text-xs text-muted-foreground">These fields fill the header, event card, hosts and agenda of the email.</p>
+        <p className="text-xs text-muted-foreground">Header and event details</p>
         <div className="flex shrink-0 gap-1" role="group" aria-label="Edit mode">
           <Button size="sm" variant={yamlMode ? "ghost" : "secondary"} aria-pressed={!yamlMode} onClick={() => setYamlMode(false)}>
             <ListChecks /> Form
@@ -75,7 +75,7 @@ function DetailsForm({ meta, type, onChange }: { meta: Frontmatter; type: string
 
   return (
     <div className="space-y-6">
-      <Section title="Basics" description="Subject line and look of the whole email.">
+      <Section title="Basics" description="Subject and appearance.">
         <FieldRow label="Subject">
           <Input value={str(meta.title)} onChange={(e) => set("title", e.target.value)} />
         </FieldRow>
@@ -136,7 +136,7 @@ function DetailsForm({ meta, type, onChange }: { meta: Frontmatter; type: string
       {Object.keys(other).length > 0 && (
         <>
           <Separator />
-          <Section title="Other fields" description="Extra frontmatter keys this form doesn't cover.">
+          <Section title="Other fields" description="Additional frontmatter.">
             <YamlEditor
               value={other}
               rows={4}
@@ -201,7 +201,7 @@ function Hosts({ value, onChange }: { value: Host[]; onChange: (v: Host[]) => vo
             <Textarea
               className="col-span-2 min-h-0 text-sm"
               rows={2}
-              placeholder="Short bio"
+              placeholder="Brief biography"
               value={str(h.bio)}
               onChange={(e) => onChange(update(value, i, { bio: e.target.value }))}
             />
@@ -241,8 +241,8 @@ function Agenda({ value, onChange }: { value: AgendaItem[]; onChange: (v: Agenda
       <SectionHeader title="Agenda" hint="Shown as a timeline below the event card." addLabel="Add item" onAdd={() => onChange([...value, { time: "", title: "" }])} />
       {value.map((a, i) => (
         <div key={i} className="flex items-center gap-2">
-          <Input className="w-24" placeholder="15:00" value={str(a.time)} onChange={(e) => onChange(update(value, i, { time: e.target.value }))} />
-          <Input className="flex-1" placeholder="What happens" value={str(a.title)} onChange={(e) => onChange(update(value, i, { title: e.target.value }))} />
+          <Input className="w-24" placeholder="HH:mm" value={str(a.time)} onChange={(e) => onChange(update(value, i, { time: e.target.value }))} />
+          <Input className="flex-1" placeholder="Agenda item" value={str(a.title)} onChange={(e) => onChange(update(value, i, { title: e.target.value }))} />
           <Button variant="ghost" size="icon-xs" aria-label="Remove item" onClick={() => onChange(value.filter((_, j) => j !== i))}><X /></Button>
         </div>
       ))}

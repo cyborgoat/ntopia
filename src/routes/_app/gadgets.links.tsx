@@ -45,8 +45,8 @@ function LinksGadget() {
               setLinks(listLinks());
             }}
           >
-            <Field label="Title"><Input value={f.title} placeholder="Optional" onChange={(e) => setF({ ...f, title: e.target.value })} /></Field>
-            <Field label="URL"><Input required type="url" value={f.url} placeholder="https://…" onChange={(e) => setF({ ...f, url: e.target.value })} /></Field>
+            <Field label="Title (optional)"><Input value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} /></Field>
+            <Field label="URL"><Input required type="url" value={f.url} placeholder="https://example.com" onChange={(e) => setF({ ...f, url: e.target.value })} /></Field>
           </FormDialog>
         }
       />

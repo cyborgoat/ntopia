@@ -68,17 +68,17 @@ export function TodoDialog({ todo, onSave, onClose }: { todo: TodoItem; onSave: 
           <Field label="Title"><Input value={title} onChange={(e) => setTitle(e.target.value)} autoFocus /></Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Due date"><DatePicker value={dueDate} onChange={setDueDate} /></Field>
-            <Field label="Time (24h)">
+            <Field label="Time (24-hour)">
               <Input
                 value={dueTime}
                 disabled={!dueDate}
                 inputMode="numeric"
-                placeholder="HH:mm, e.g. 15:30"
+                placeholder="HH:mm"
                 aria-invalid={timeInvalid}
                 onChange={(e) => setDueTime(e.target.value)}
                 onBlur={() => parsedTime && setDueTime(parsedTime)}
               />
-              {timeInvalid && <p className="text-xs text-destructive">Use 24-hour time, e.g. 09:00 or 15:30.</p>}
+              {timeInvalid && <p className="text-xs text-destructive">Enter a valid time (HH:mm).</p>}
             </Field>
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -109,7 +109,7 @@ export function TodoDialog({ todo, onSave, onClose }: { todo: TodoItem; onSave: 
           <Field label="Tags">
             <Input
               value={tags}
-              placeholder="Comma separated, e.g. work, errands"
+              placeholder="Tags (comma-separated)"
               onChange={(e) => setTags(e.target.value)}
             />
           </Field>
@@ -121,10 +121,10 @@ export function TodoDialog({ todo, onSave, onClose }: { todo: TodoItem; onSave: 
             >
               {REMIND_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </NativeSelect>
-            {remind !== "none" && !parsedTime && <p className="text-xs text-muted-foreground">No time set: reminders count from 09:00.</p>}
+            {remind !== "none" && !parsedTime && <p className="text-xs text-muted-foreground">Reminders use 09:00 when no time is set.</p>}
           </Field>
-          <Field label="Location"><Input value={location} placeholder="Where?" onChange={(e) => setLocation(e.target.value)} /></Field>
-          <Field label="Notes"><Textarea value={notes} rows={4} placeholder="Details, links, context…" onChange={(e) => setNotes(e.target.value)} /></Field>
+          <Field label="Location"><Input value={location} onChange={(e) => setLocation(e.target.value)} /></Field>
+          <Field label="Notes"><Textarea value={notes} rows={4} placeholder="Additional details" onChange={(e) => setNotes(e.target.value)} /></Field>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
             <Button type="submit" disabled={!title.trim() || timeInvalid}>Save</Button>

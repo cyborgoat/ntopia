@@ -193,7 +193,7 @@ export function CommentThread({
           <MarkdownEditor
             ref={composerRef}
             variant="compact"
-            placeholder="Write a comment… (⌘↵ to send)"
+            placeholder="Write a comment…"
             value={text}
             onChange={setText}
             onSubmit={() => void send()}

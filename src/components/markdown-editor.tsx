@@ -152,7 +152,7 @@ function CompactToolbar({ onPickImage }: { onPickImage?: () => void }) {
 /** WYSIWYG Markdown editor (MDXEditor) with a rich-text / source toggle. */
 export const MarkdownEditor = forwardRef<MarkdownEditorHandle, Props>(function MarkdownEditor(
   {
-    value, onChange, placeholder = "Write something…", fillHeight, variant = "full", className, autoFocus,
+    value, onChange, placeholder = "Start writing…", fillHeight, variant = "full", className, autoFocus,
     imageUploadHandler, imagePreviewHandler, onSubmit,
   },
   ref,
