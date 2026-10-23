@@ -174,6 +174,10 @@ export async function fetchPreviewState(url: string, version: number): Promise<P
   const res = await tauriFetch(`${url}/state?version=${version}`, {
     method: "GET",
     headers: { Accept: "application/json" },
+    // The server is loopback-only. Without this, reqwest routes it through the Windows system proxy
+    // (corporate proxy/VPN), which answers 504. An explicit proxy overrides the system one, and
+    // `noProxy` then makes loopback requests go direct.
+    proxy: { all: { url: "http://127.0.0.1:9", noProxy: "127.0.0.1,localhost" } },
   });
   if (!res.ok) throw new Error(`Preview server returned ${res.status}`);
   return (await res.json()) as PreviewState;
