@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { cn, toMessage, copyText } from "@/lib/utils";
+import { cn, toMessage } from "@/lib/utils";
 import { usePanelLayout, usePersistedChoice, usePersistedFlag } from "@/lib/prefs";
 import { createFileRoute } from "@tanstack/react-router";
-import { ChevronDown, Copy, Download, Eye, EyeOff, FileText, FolderOpen, ListChecks, Loader2, Mail, PenLine, X } from "lucide-react";
+import { ChevronDown, Download, Eye, EyeOff, FileCode, FileImage, FileText, FolderOpen, ListChecks, Loader2, Mail, Mailbox, PenLine, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -102,18 +102,16 @@ function Composer() {
   }
 
   const { exportMd, exportOne, exportAll, openInMail } = useEmailExport(meta, doc);
-  const copyHtml = () => copyText(html, "HTML");
 
   const exportMenuItems = (
     <>
       <ContextMenuItem onClick={() => void openInMail()}><Mail /> Open in Mail</ContextMenuItem>
       <ContextMenuSeparator />
-      <ContextMenuItem onClick={() => void exportMd()}><FileText /> Save Markdown</ContextMenuItem>
-      <ContextMenuItem onClick={() => void exportOne("html")}><Download /> Save HTML</ContextMenuItem>
-      <ContextMenuItem onClick={() => void exportOne("eml")}><Download /> Save EML</ContextMenuItem>
-      <ContextMenuItem onClick={() => void exportOne("png")}><Download /> Save PNG</ContextMenuItem>
+      <ContextMenuItem onClick={() => void exportMd()}><FileText /> Markdown</ContextMenuItem>
+      <ContextMenuItem onClick={() => void exportOne("html")}><FileCode /> HTML</ContextMenuItem>
+      <ContextMenuItem onClick={() => void exportOne("eml")}><Mailbox /> EML</ContextMenuItem>
+      <ContextMenuItem onClick={() => void exportOne("png")}><FileImage /> PNG</ContextMenuItem>
       <ContextMenuSeparator />
-      <ContextMenuItem disabled={!html} onClick={copyHtml}><Copy /> Copy HTML</ContextMenuItem>
       <ContextMenuItem onClick={() => void exportAll()}><FolderOpen /> Export all…</ContextMenuItem>
     </>
   );
@@ -167,14 +165,11 @@ function Composer() {
               <Download /> Export <ChevronDown className="opacity-60" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => void exportMd()}><FileText /> Save Markdown</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => void exportOne("html")}><Download /> Save HTML</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => void exportOne("eml")}><Download /> Save EML</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => void exportOne("png")}><Download /> Save PNG</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => void exportMd()}><FileText /> Markdown</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => void exportOne("html")}><FileCode /> HTML</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => void exportOne("eml")}><Mailbox /> EML</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => void exportOne("png")}><FileImage /> PNG</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem disabled={!html} onClick={copyHtml}>
-                <Copy /> Copy HTML
-              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => void exportAll()}><FolderOpen /> Export all…</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -238,7 +233,7 @@ function Composer() {
             <ContextMenuTrigger className="flex h-full min-h-0 flex-col">
               <section className="flex h-full min-h-0 flex-col">
                 <div className="flex h-10 items-center justify-between gap-2 border-b px-4">
-                  <span className="text-sm font-medium">Preview <span className="font-normal text-muted-foreground">· Details + Message</span></span>
+                  <span className="text-sm font-medium">Preview</span>
                   {busy && (
                     <span className="flex items-center gap-1.5 text-xs text-muted-foreground" role="status">
                       <Loader2 className="size-3.5 animate-spin" /> Rendering…
