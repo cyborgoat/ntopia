@@ -1,6 +1,6 @@
 [package]
 name = "ntopia"
-version = "0.0.1"
+version = "0.0.2"
 description = "NTOPIA desktop app"
 authors = ["cyborgoat"]
 edition = "2024"
@@ -22,7 +22,6 @@ tauri-plugin-store = "2.5.0"
 tauri-plugin-http = "2.8.3"
 tauri-plugin-fs = "2.7.1"
 tauri-plugin-dialog = "2.8.3"
-tauri-plugin-shell = "2.5.0"
 tauri-plugin-notification = "2.7.0"
 
 [target.'cfg(target_os = "macos")'.dependencies]

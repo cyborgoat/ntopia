@@ -8,7 +8,7 @@ NTOPIA is only a client. Auth and team data come from **[team-orbit](https://git
 
 ## Docs
 
-- [Architecture](docs/architecture.md) — stack, auth model, routes, libs, sidecar
+- [Architecture](docs/architecture.md) — stack, auth model, routes, libs
 - [Gadgets](docs/gadgets.md) — built-in tools and how to add one
 
 ## Run
@@ -19,7 +19,7 @@ cd ../team-orbit/api && npm install && npx prisma migrate dev && npx prisma db s
 
 # 2. app (Node 20+, Rust, pnpm)
 pnpm install
-pnpm tauri:dev        # prepares the mdmailer sidecar, then launches the app
+pnpm tauri dev
 ```
 
 On macOS, development automatically launches **NTOPIA Dev.app** through LaunchServices so it has a Dock icon and receives keyboard input, including when started from a terminal or editor. The app bundle is generated beside the Cargo executable under `src-tauri/target/`; Vite hot reload and Rust rebuilds still work. Closing the app or stopping the dev command ends that instance. The development app uses the same local data as NTOPIA.
@@ -30,9 +30,9 @@ You can use Home and Gadgets immediately without signing in. To unlock Team Orbi
 
 ### Email (`/gadgets/email`)
 
-One-shot composer — pick a template, set subject/type/theme/hosts/agenda in the collapsible Details bar (no raw YAML needed, though "Edit as YAML" is there), and write the body as Markdown source with a formatting toolbar (live HTML preview via mdmailer's `preview` server), then export HTML / EML / PNG / Markdown or open `.eml` in the mail client. Branding dialog for org, color, logo, and theme. Import, paste or drop images into the editor to save them under the scratch `work/assets/pasted/` folder (relative Markdown paths). No draft library; the scratch working file is used only while the tool is open.
+One-shot composer — pick a template, set subject/type/theme/hosts/agenda in the collapsible Details bar (no raw YAML needed, though "Edit as YAML" is there), and write the body as Markdown source with a formatting toolbar (live HTML preview rendered in-process by `@goatcheese/mdmailer-core`), then export HTML / EML / PNG / Markdown or open `.eml` in the mail client. Branding dialog for org, color, logo, and theme. Import, paste or drop images into the editor to save them under the scratch `work/assets/pasted/` folder (relative Markdown paths). No draft library; the scratch working file is used only while the tool is open.
 
-mdmailer needs native modules (sharp) and Puppeteer, so it can't be compiled into a single binary. `pnpm sidecar` (`sidecar/mdmailer/build.mjs`) downloads a portable Node runtime into `src-tauri/binaries/` (Tauri `externalBin`) and copies mdmailer + `node_modules` into `src-tauri/resources/mdmailer/`. The app runs `node …/cli.js preview` for live preview and generate for export/PNG against a scratch file in app-data. Puppeteer downloads Chrome on first PNG render if none is found. Run `pnpm sidecar` before `pnpm tauri build`.
+Rendering runs in the webview through [`@goatcheese/mdmailer-core`](https://www.npmjs.com/package/@goatcheese/mdmailer-core): Markdown → HTML/EML in-process, with PNG captured by `html-to-image`. There is no Node sidecar. The starter templates and sample host photos are vendored from the published `@goatcheese/mdmailer` package into `src/gadgets/email/mdmailer/` — refresh them with `pnpm sync:mdmailer [version]`.
 
 ### Notes (`/gadgets/notes`)
 

@@ -1,7 +1,7 @@
 import { join } from "@tauri-apps/api/path";
 import { copyFile, exists, readTextFile, writeTextFile } from "@tauri-apps/plugin-fs";
 import { blobUrlFor } from "./assets";
-import { brandingPath, configPath, ensureWorkspace, root } from "./paths";
+import { brandingPath, ensureWorkspace, root } from "./paths";
 
 export type Branding = {
   organization: string;
@@ -38,24 +38,9 @@ export async function loadBranding(): Promise<Branding> {
 export async function saveBranding(b: Branding) {
   await ensureWorkspace();
   await writeTextFile(await brandingPath(), JSON.stringify(b, null, 2));
-  await writeTextFile(
-    await configPath(),
-    JSON.stringify(
-      {
-        organization: { name: b.organization, logoUrl: b.logo },
-        theme: {
-          primaryColor: PRIMARY_COLOR,
-          ...(b.tagline && { tagline: b.tagline }),
-          footerText: b.footerText,
-        },
-      },
-      null,
-      2,
-    ),
-  );
 }
 
-/** Copy a user-picked logo next to the config (logo paths are relative to it). */
+/** Copy a user-picked logo into the branding folder. */
 export async function setLogo(sourcePath: string): Promise<string> {
   const ext = sourcePath.split(".").pop()?.toLowerCase() || "png";
   const name = `logo-custom.${ext}`;
@@ -68,8 +53,15 @@ export async function logoBlobUrl(name: string): Promise<string> {
   return blobUrlFor(await join(await root(), name));
 }
 
-export async function ensureConfig() {
-  // Always rewritten so configs saved by older versions (custom color, default preset) are replaced.
-  await saveBranding(await loadBranding());
-  return configPath();
+/** The mdmailer config for the saved branding. The logo is an absolute path so the image reader needs no base dir. */
+export async function buildConfig() {
+  const b = await loadBranding();
+  return {
+    organization: { name: b.organization, logoUrl: await join(await root(), b.logo) },
+    theme: {
+      primaryColor: PRIMARY_COLOR,
+      ...(b.tagline && { tagline: b.tagline }),
+      footerText: b.footerText,
+    },
+  };
 }

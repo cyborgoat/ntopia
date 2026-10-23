@@ -12,15 +12,6 @@
       "identifier": "http:default",
       "allow": [{ "url": "http://*" }, { "url": "https://*" }, { "url": "http://*:*" }, { "url": "https://*:*" }]
     },
-    {
-      "identifier": "shell:allow-execute",
-      "allow": [{ "name": "binaries/node", "sidecar": true, "args": true }]
-    },
-    {
-      "identifier": "shell:allow-spawn",
-      "allow": [{ "name": "binaries/node", "sidecar": true, "args": true }]
-    },
-    "shell:allow-kill",
     "fs:allow-mkdir",
     "fs:allow-exists",
     "fs:allow-read-dir",
@@ -35,8 +26,6 @@
       "allow": [
         { "path": "$APPDATA" },
         { "path": "$APPDATA/**" },
-        { "path": "$RESOURCE" },
-        { "path": "$RESOURCE/**" },
         { "path": "$HOME/**" },
         { "path": "$DOCUMENT/**" },
         { "path": "$DESKTOP/**" },

@@ -27,8 +27,8 @@ ntopia/
 │   ├── lib/             # auth, orbit, storage, realtime
 │   ├── routes/          # File-based TanStack routes
 │   └── main.tsx
-├── src-tauri/           # Rust shell, capabilities, binaries/, resources/
-├── sidecar/mdmailer/    # Build script that packs Node + mdmailer for Tauri
+├── src-tauri/           # Rust shell, capabilities
+├── scripts/             # sync-mdmailer-assets.mjs (vendors email templates)
 └── docs/                # Architecture notes (this folder)
 ```
 
@@ -50,12 +50,6 @@ flowchart TB
     Gadgets --> FS[appData FS]
   end
 
-  subgraph sidecar [mdmailer sidecar]
-    Node[portable Node]
-    Mdmailer[mdmailer CLI]
-    Node --> Mdmailer
-  end
-
   subgraph backend [team-orbit]
     API[HTTP API]
     Socket[Socket.io]
@@ -63,7 +57,6 @@ flowchart TB
 
   OrbitLib --> API
   OrbitLib --> Socket
-  Gadgets -->|email preview/export| Mdmailer
 ```
 
 ## Auth and access
@@ -125,16 +118,16 @@ File routes under `src/routes/`; generated tree in `src/routeTree.gen.ts`.
 
 Gadgets are small local tools under the Gadgets sidebar menu. Register one in `src/gadgets/registry.ts` and add `src/routes/_app/gadgets.<id>.tsx`. First-class local features (Todo) stay in `src/features/` with their own nav item — see [gadgets.md](./gadgets.md).
 
-Built-ins: **email** (sidecar), **notes** (`gadget-notes` store with folders + trash, Markdown editor, full-bleed resizable sidebar), **links** (`gadget-links` store + system browser), **timer** (in-session countdown).
+Built-ins: **email** (in-process mdmailer-core), **notes** (`gadget-notes` store with folders + trash, Markdown editor, full-bleed resizable sidebar), **links** (`gadget-links` store + system browser), **timer** (in-session countdown).
 
 ### Email composer (`/gadgets/email`)
 
-- Implementation: `src/gadgets/email/mdmailer.ts` + route UI.
+- Implementation: `src/gadgets/email/mdmailer/` + route UI. `engine.ts` runs `@goatcheese/mdmailer-core` in the webview (lazy-loaded): `renderEmail` → hidden iframe → `postProcessDocument` → `buildEml`, and `html-to-image` for PNG; `image-io.ts` supplies image access (Tauri fs + canvas).
 - The document is held as `meta` (frontmatter) + `body`, joined with `joinDoc` (`frontmatter.ts`) for preview/export. The body is edited as raw Markdown in `source-editor.tsx` (CodeMirror, with a formatting toolbar, ⌘B/⌘I/⌘K, and image import via button, paste or drop) — not the shared WYSIWYG `MarkdownEditor`. Frontmatter is edited in `details-panel.tsx`: a one-line summary that expands into a form whose fields come from `fields.ts` (per `type`, including hosts and agenda), plus "Edit as YAML". Keys the form doesn't know about are kept and shown under "Other fields".
-- `stringifyMeta` writes YAML 1.1-safe text, because mdmailer parses with gray-matter/js-yaml (YAML 1.1), where an unquoted `15:00` would become the number 900.
+- `stringifyMeta` writes YAML 1.1-safe text, because mdmailer parses frontmatter with js-yaml (YAML 1.1), where an unquoted `15:00` would become the number 900.
 - Images in the editor (pasted ones, template host photos) are relative to `work/` and shown through `mm.workAssetUrl` (blob URLs).
 - Scratch workspace under app data: `email/work/`, `email/out/`, branding JSON, pasted images in `work/assets/pasted/`.
-- Sidecar: `pnpm sidecar` downloads portable Node into `src-tauri/binaries/` and copies mdmailer into `src-tauri/resources/mdmailer/`. The app shells out to `node …/cli.js` for live `preview` and generate (HTML / EML / PNG).
+- Templates and sample host photos are vendored into `src/gadgets/email/mdmailer/{templates,assets}` (`pnpm sync:mdmailer`); sample photos are copied into `work/assets/` on first use.
 
 ### Home (`/`)
 
@@ -166,9 +159,7 @@ When adding a new list surface, wrap rows with `ContextMenu` / `ContextMenuTrigg
 
 ## Tauri surface
 
-- Capabilities in `src-tauri/capabilities/default.json` scope FS (`$APPDATA`, resources, common user folders), shell (sidecar Node), HTTP, dialog, notifications, store.
-- `externalBin`: portable Node for mdmailer.
-- `resources`: bundled mdmailer package tree.
+- Capabilities in `src-tauri/capabilities/default.json` scope FS (`$APPDATA`, common user folders), HTTP, dialog, notifications, store.
 
 ## Related docs
 

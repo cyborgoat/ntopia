@@ -40,7 +40,7 @@ const TABS = ["details", "message"] as const;
 
 function EmailGadget() {
   if (!isTauri()) {
-    return <p className="text-sm text-muted-foreground">The email composer needs the desktop app (run with <code>pnpm tauri:dev</code>).</p>;
+    return <p className="text-sm text-muted-foreground">The email composer needs the desktop app (run with <code>pnpm tauri dev</code>).</p>;
   }
   return <Composer />;
 }
@@ -55,7 +55,7 @@ function Composer() {
   // The document as last loaded (blank or a template); anything else counts as an unsaved edit.
   const [baseline, setBaseline] = useState(saved?.baseline ?? joinDoc(BLANK_META, BLANK_BODY));
   const [showPreview, setShowPreview] = usePersistedFlag(PREVIEW_KEY, true);
-  const { html, busy, error, previewUrl, retry: retryPreview, reset: resetPreviewOutput, setError } = useLivePreview(started, doc);
+  const { html, busy, error, retry: retryPreview, reset: resetPreviewOutput, setError } = useLivePreview(started, doc);
   const [templates, setTemplates] = useState<string[]>([]);
   const [layout, saveLayout] = usePanelLayout(LAYOUT_KEY, DEFAULT_LAYOUT);
 
@@ -87,7 +87,6 @@ function Composer() {
     setBody(nextBody);
     setBaseline(joinDoc(data, nextBody));
     resetPreviewOutput();
-    await mm.writeWorking(joinDoc(data, nextBody));
     setStarted(true);
   }
 
@@ -250,14 +249,14 @@ function Composer() {
                   {error && (
                     <div className="m-3 space-y-2 rounded-md border border-destructive/30 bg-background p-3">
                       <pre className="whitespace-pre-wrap text-xs text-destructive">{error}</pre>
-                      {!previewUrl && <Button size="sm" variant="outline" onClick={() => void retryPreview()}>Restart preview</Button>}
+                      <Button size="sm" variant="outline" onClick={retryPreview}>Retry</Button>
                     </div>
                   )}
                   {html && <iframe title="Email preview" sandbox="" srcDoc={html} className="h-full w-full bg-white" />}
                   {!html && !error && (
                     <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-sm text-muted-foreground" role="status">
                       <Loader2 className="size-6 animate-spin" />
-                      <p>{previewUrl ? "Rendering preview…" : "Starting live preview…"}</p>
+                      <p>Rendering preview…</p>
                     </div>
                   )}
                 </div>

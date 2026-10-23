@@ -2,7 +2,7 @@ import { join } from "@tauri-apps/api/path";
 import { exists, mkdir, readFile, remove, writeFile, writeTextFile } from "@tauri-apps/plugin-fs";
 import { ensureWorkspace, workDir, workPath } from "./paths";
 
-const MIME_BY_EXT: Record<string, string> = { png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", gif: "image/gif", webp: "image/webp", svg: "image/svg+xml" };
+export const MIME_BY_EXT: Record<string, string> = { png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", gif: "image/gif", webp: "image/webp", svg: "image/svg+xml" };
 const EXT_BY_MIME: Record<string, string> = {
   ...Object.fromEntries(Object.entries(MIME_BY_EXT).map(([ext, mime]) => [mime, ext])),
   "image/jpeg": "jpg",

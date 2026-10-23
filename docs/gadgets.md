@@ -8,7 +8,7 @@ Gadgets are **local tools** that run inside NTOPIA without Team Orbit. They appe
 
 | Id | Route | Storage | Notes |
 |----|--------|---------|--------|
-| `email` | `/gadgets/email` | App data `email/` + mdmailer sidecar | Markdown → branded HTML / EML / PNG; live preview. Sidecar details in [architecture.md](./architecture.md#gadgets). |
+| `email` | `/gadgets/email` | App data `email/` + `@goatcheese/mdmailer-core` (in-process) | Markdown → branded HTML / EML / PNG; live preview. Details in [architecture.md](./architecture.md#gadgets). |
 | `notes` | `/gadgets/notes` | `plugin-store` key `gadget-notes` | Scratch Markdown notes with folders, soft-delete trash, resizable sidebar |
 | `links` | `/gadgets/links` | `plugin-store` key `gadget-links` | Local bookmark shelf; opens in the system browser |
 | `timer` | `/gadgets/timer` | session only (no persist) | Focus countdown with presets and custom h/m/s |
@@ -29,7 +29,7 @@ Gadgets are **local tools** that run inside NTOPIA without Team Orbit. They appe
 }
 ```
 
-4. Let the TanStack Router plugin regenerate `src/routeTree.gen.ts` (or update it to match existing gadget routes), then restart `pnpm tauri:dev` if needed.
+4. Let the TanStack Router plugin regenerate `src/routeTree.gen.ts` (or update it to match existing gadget routes), then restart `pnpm tauri dev` if needed.
 5. **Shell layout:** Entering any `/gadgets/<id>` auto-collapses the sidebar (`AutoCollapseForGadgets` in [`app-shell.tsx`](../src/components/app-shell.tsx)). If the UI needs the full content pane (no `max-w-4xl` column), add its path to `FULL_BLEED` in the same file (see email and notes).
 6. **Tauri capabilities:** If the gadget needs filesystem, dialogs, shell, opener URLs, etc., extend [`src-tauri/capabilities/default.json`](../src-tauri/capabilities/default.json). Missing scopes often look fine in the browser but fail in the desktop build.
 
@@ -38,7 +38,7 @@ Gadgets are **local tools** that run inside NTOPIA without Team Orbit. They appe
 | Need | Prefer |
 |------|--------|
 | Small JSON (lists, prefs) | `src/lib/storage.ts` + a key loaded in `initStorage` (`src/main.tsx`) |
-| Files, images, sidecar I/O | Tauri FS under `appDataDir()` (see `src/gadgets/email/mdmailer.ts`) |
+| Files and images | Tauri FS under `appDataDir()` (see `src/gadgets/email/mdmailer.ts`) |
 
 Gadgets must not call the Orbit client unless the feature is intentionally Orbit-backed and gated with `RequireAuth` / `useAuth().token`.
 

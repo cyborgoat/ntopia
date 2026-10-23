@@ -85,10 +85,6 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      # Downloads the host Node runtime and installs mdmailer; required before bundling.
-      - name: Prepare mdmailer sidecar
-        run: pnpm sidecar
-
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

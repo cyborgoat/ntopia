@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "NTOPIA",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "identifier": "app.ntopia",
   "build": {
     "beforeDevCommand": "pnpm dev",
@@ -32,12 +32,6 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ],
-    "externalBin": [
-      "binaries/node"
-    ],
-    "resources": [
-      "resources/mdmailer/**/*"
     ]
   }
 }
