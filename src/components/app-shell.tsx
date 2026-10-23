@@ -323,7 +323,6 @@ export function AppShell() {
                         <DropdownMenuGroup>
                           <DropdownMenuItem onClick={() => setPanel("profile")}><UserRound /> Profile</DropdownMenuItem>
                           <DropdownMenuItem onClick={() => setPanel("password")}><KeyRound /> Password</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => setPanel("server")}><Server /> Server</DropdownMenuItem>
                         </DropdownMenuGroup>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem variant="destructive" onClick={logout}><LogOut /> Sign out</DropdownMenuItem>
@@ -334,12 +333,14 @@ export function AppShell() {
                   // Signed in but the profile didn't load (server unreachable): always leave a way out.
                   !loading && (
                     <>
-                      <SidebarMenuItem>
-                        <SidebarMenuButton onClick={() => setPanel("server")} tooltip="Can't reach the server">
-                          <Server />
-                          <span>{unreachable ? "Can't reach server" : "Server"}</span>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
+                      {unreachable && (
+                        <SidebarMenuItem>
+                          <SidebarMenuButton className="pointer-events-none text-muted-foreground" tooltip="Can't reach the server">
+                            <Server />
+                            <span>Can't reach server</span>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      )}
                       <SidebarMenuItem>
                         <SidebarMenuButton onClick={logout} tooltip="Sign out">
                           <LogOut />
@@ -351,12 +352,6 @@ export function AppShell() {
                 )
               ) : (
                 <>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton onClick={() => setPanel("server")} tooltip="Server">
-                      <Server />
-                      <span>Server</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
                   <SidebarMenuItem>
                     <SidebarMenuButton onClick={() => openAuth("login")} tooltip="Sign in">
                       <LogIn />

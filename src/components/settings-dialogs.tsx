@@ -5,11 +5,10 @@ import { Field } from "@/components/form-dialog";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { useAuthDialog } from "@/components/auth-dialog";
 import { useAuth } from "@/lib/auth";
-import { applyServerUrl, errorMessage, getServerUrl, orbit } from "@/lib/orbit";
+import { errorMessage, orbit } from "@/lib/orbit";
 
-export type SettingsPanel = "profile" | "password" | "server";
+export type SettingsPanel = "profile" | "password";
 
 function Section({ title, description, children }: { title: string; description: string; children: React.ReactNode }) {
   return (
@@ -74,32 +73,7 @@ function PasswordSection() {
   );
 }
 
-function ServerSection() {
-  const { user, logout } = useAuth();
-  const openAuth = useAuthDialog();
-  const [server, setServer] = useState(getServerUrl());
-
-  return (
-    <Section title="Server" description="The Team Orbit server this app connects to.">
-      <Field label="Team Orbit URL"><Input type="url" placeholder="https://orbit.example.com" value={server} onChange={(e) => setServer(e.target.value)} /></Field>
-      <div className="flex flex-wrap gap-2">
-        {user ? (
-          <>
-            <Button size="sm" variant="outline" onClick={() => { void applyServerUrl(server); toast.success("Saved. Sign in again to apply."); logout(); }}>Save & sign out</Button>
-            <Button size="sm" variant="ghost" onClick={logout}>Sign out</Button>
-          </>
-        ) : (
-          <>
-            <Button size="sm" variant="outline" onClick={() => { void applyServerUrl(server); toast.success("Server URL saved"); }}>Save</Button>
-            <Button size="sm" onClick={() => openAuth("login")}>Sign in</Button>
-          </>
-        )}
-      </div>
-    </Section>
-  );
-}
-
-const PANELS = { profile: ProfileSection, password: PasswordSection, server: ServerSection };
+const PANELS = { profile: ProfileSection, password: PasswordSection };
 
 export function SettingsDialog({ panel, onClose }: { panel: SettingsPanel | null; onClose: () => void }) {
   const Panel = panel ? PANELS[panel] : null;
