@@ -2,8 +2,8 @@ import { DateChip } from "@/components/date-chip";
 import { useState } from "react";
 import { ListPagination, PAGE_SIZE } from "@/components/list-pagination";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Lock, MapPin, Trash2 } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { History, Lock, MapPin, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,12 +16,19 @@ import { ImageUploadButton } from "@/components/image-upload";
 import { Empty, PageHeader } from "@/components/page-header";
 import { UserPicker, type PickedUser } from "@/components/user-picker";
 import { useAuth } from "@/lib/auth";
+import { usePersistedFlag } from "@/lib/prefs";
+import type { components } from "@goatcheese/teamorbit-client";
 import { orbit, unwrap } from "@/lib/orbit";
 import { formatDateTime } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/events/")({
   component: Events,
 });
+
+type EventItem = components["schemas"]["PaginatedEventsDto"]["items"][number];
+
+const FETCH_SIZE = 50;
+const SHOW_PAST_KEY = "ntopia.events.show-past";
 
 type Audience = "GLOBAL" | "INVITE_ONLY";
 
@@ -44,11 +51,35 @@ function Events() {
   const set = (k: keyof typeof blank) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setF({ ...f, [k]: e.target.value });
   const [page, setPage] = useState(1);
-  const { data } = useQuery({
-    queryKey: ["events", page],
-    queryFn: async () => (await orbit.GET("/api/events", { params: { query: { page, limit: PAGE_SIZE } } })).data,
-    placeholderData: keepPreviousData,
+  const [showPast, setShowPast] = usePersistedFlag(SHOW_PAST_KEY, true);
+  // The API pages in creation order with no date filter or sort, so load every event and order/paginate here.
+  const { data: all } = useQuery({
+    queryKey: ["events"],
+    queryFn: async () => {
+      const items: EventItem[] = [];
+      for (let p = 1; ; p++) {
+        const res = (await orbit.GET("/api/events", { params: { query: { page: p, limit: FETCH_SIZE } } })).data;
+        if (!res) break;
+        items.push(...res.items);
+        if (items.length >= res.total || res.items.length === 0) break;
+      }
+      return items;
+    },
   });
+  // Upcoming events first (soonest on top), then past ones (most recent first).
+  const now = Date.now();
+  const endOf = (ev: { startAt: string; endAt?: string }) => new Date(ev.endAt ?? ev.startAt).getTime();
+  const startOf = (ev: { startAt: string }) => new Date(ev.startAt).getTime();
+  const sorted = all
+    ?.filter((ev) => showPast || endOf(ev) >= now)
+    .sort((a, b) => {
+      const [aPast, bPast] = [endOf(a) < now, endOf(b) < now];
+      if (aPast !== bPast) return aPast ? 1 : -1;
+      return aPast ? startOf(b) - startOf(a) : startOf(a) - startOf(b);
+    });
+  // Deleting the last event on a page must not strand the list on an empty page.
+  const current = Math.min(page, Math.max(1, Math.ceil((sorted?.length ?? 0) / PAGE_SIZE)));
+  const events = sorted?.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE);
   const del = useDeleteMutation(["events"], (id) =>
     orbit.DELETE("/api/events/{id}", { params: { path: { id } } }),
   );
@@ -59,7 +90,16 @@ function Events() {
         title="Events"
         crumbs={[{ label: "Home", to: "/" }, { label: "Events" }]}
         actions={
-          isAdmin && (
+          <>
+            <Button
+              variant={showPast ? "secondary" : "outline"}
+              size="sm"
+              aria-pressed={showPast}
+              onClick={() => { setShowPast(!showPast); setPage(1); }}
+            >
+              <History /> Past events
+            </Button>
+            {isAdmin && (
             <FormDialog
               title="New event"
               triggerLabel="New"
@@ -113,50 +153,53 @@ function Events() {
                 {f.coverImageUrl && <span className="truncate text-xs text-muted-foreground">{f.coverImageUrl}</span>}
               </div>
             </FormDialog>
-          )
+            )}
+          </>
         }
       />
       <div className="space-y-2">
-        {data?.items.length === 0 && <Empty>No events scheduled.</Empty>}
-        {data?.items.map((ev) => (
+        {events?.length === 0 && <Empty>{all?.length ? "No upcoming events." : "No events scheduled."}</Empty>}
+        {events?.map((ev) => (
           <FeedItemMenu
             key={ev.id}
             onOpen={() => void navigate({ to: "/events/$id", params: { id: ev.id } })}
             copy={{ text: ev.title, label: "Title" }}
             onDelete={isAdmin ? () => del.mutate(ev.id) : undefined}
           >
-              <FeedCard
-                to="/events/$id"
-                params={{ id: ev.id }}
-                title={ev.title}
-                author={ev.createdBy.fullName}
-                createdAt={ev.startAt}
-                content={ev.description}
-                leading={<DateChip iso={ev.startAt} className="m-2 self-center" />}
-                meta={
-                  <p className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <span>{formatDateTime(ev.startAt)}</span>
-                    {ev.audience === "INVITE_ONLY" && (
-                      <Badge variant="secondary" className="h-4 gap-1 px-1.5 text-[10px]">
-                        <Lock className="size-2.5" /> Invite only
-                      </Badge>
-                    )}
-                  </p>
-                }
-                footer={
-                  <p className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <MapPin className="size-3 shrink-0" />
-                    <span className="truncate">{ev.location}</span>
-                  </p>
-                }
-                action={isAdmin ? (
-                  <Button variant="ghost" size="icon-xs" onClick={() => del.mutate(ev.id)} aria-label="Delete"><Trash2 /></Button>
-                ) : undefined}
-              />
+              <div className={endOf(ev) < now ? "opacity-60 transition-opacity hover:opacity-100" : undefined}>
+                <FeedCard
+                  to="/events/$id"
+                  params={{ id: ev.id }}
+                  title={ev.title}
+                  author={ev.createdBy.fullName}
+                  createdAt={ev.startAt}
+                  content={ev.description}
+                  leading={<DateChip iso={ev.startAt} muted={endOf(ev) < now} className="m-2 self-center" />}
+                  meta={
+                    <p className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span>{formatDateTime(ev.startAt)}</span>
+                      {ev.audience === "INVITE_ONLY" && (
+                        <Badge variant="secondary" className="h-4 gap-1 px-1.5 text-[10px]">
+                          <Lock className="size-2.5" /> Invite only
+                        </Badge>
+                      )}
+                    </p>
+                  }
+                  footer={
+                    <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <MapPin className="size-3 shrink-0" />
+                      <span className="truncate">{ev.location}</span>
+                    </p>
+                  }
+                  action={isAdmin ? (
+                    <Button variant="ghost" size="icon-xs" onClick={() => del.mutate(ev.id)} aria-label="Delete"><Trash2 /></Button>
+                  ) : undefined}
+                />
+              </div>
           </FeedItemMenu>
         ))}
       </div>
-      <ListPagination page={page} total={data?.total} onPageChange={setPage} />
+      <ListPagination page={current} total={sorted?.length} onPageChange={setPage} />
     </>
   );
 }
