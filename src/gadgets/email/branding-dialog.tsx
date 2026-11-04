@@ -3,6 +3,7 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { ImagePlus, Palette, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Field } from "@/components/form-dialog";
@@ -52,7 +53,10 @@ export function Branding() {
 
   return (
     <Dialog open={openDlg} onOpenChange={setOpenDlg}>
-      <DialogTrigger render={<Button variant="ghost" size="icon-sm" aria-label="Branding" />}><Palette /></DialogTrigger>
+      <Tooltip>
+        <TooltipTrigger render={<DialogTrigger render={<Button variant="ghost" size="icon-sm" aria-label="Branding" />} />}><Palette /></TooltipTrigger>
+        <TooltipContent>Branding</TooltipContent>
+      </Tooltip>
       <DialogContent className="max-w-md">
         <DialogHeader><DialogTitle>Email branding</DialogTitle></DialogHeader>
         <div className="space-y-3">

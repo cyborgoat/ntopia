@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Textarea } from "@/components/ui/textarea";
 import { cn, toMessage } from "@/lib/utils";
 import { stringifyMeta, type Frontmatter } from "./frontmatter";
@@ -54,15 +54,18 @@ function FieldRow({ label, wide, children }: { label: string; wide?: boolean; ch
   );
 }
 
-function Section({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
+/** One collapsible group of fields; `value` identifies it in the accordion. */
+function Section({ value, title, description, children }: { value: string; title: string; description?: string; children: React.ReactNode }) {
   return (
-    <section className="space-y-3">
-      <div>
-        <h3 className="text-sm font-semibold">{title}</h3>
-        {description && <p className="text-xs text-muted-foreground">{description}</p>}
-      </div>
-      {children}
-    </section>
+    <AccordionItem value={value}>
+      <AccordionTrigger className="py-3 hover:no-underline">
+        <span className="flex flex-col gap-0.5">
+          <span className="text-sm font-semibold">{title}</span>
+          {description && <span className="text-xs font-normal text-muted-foreground">{description}</span>}
+        </span>
+      </AccordionTrigger>
+      <AccordionContent className="-mx-1 space-y-3 px-1 pb-4">{children}</AccordionContent>
+    </AccordionItem>
   );
 }
 
@@ -74,8 +77,8 @@ function DetailsForm({ meta, type, onChange }: { meta: Frontmatter; type: string
   const typeInfo = EMAIL_TYPES.find((t) => t.value === type);
 
   return (
-    <div className="space-y-6">
-      <Section title="Basics" description="Subject and appearance.">
+    <Accordion multiple defaultValue={["basics"]}>
+      <Section value="basics" title="Basics" description="Subject and appearance.">
         <FieldRow label="Subject">
           <Input value={str(meta.title)} onChange={(e) => set("title", e.target.value)} />
         </FieldRow>
@@ -113,9 +116,8 @@ function DetailsForm({ meta, type, onChange }: { meta: Frontmatter; type: string
         </div>
       </Section>
 
-      <Separator />
-
       <Section
+        value="content"
         title={isEventType(type) ? "Event details" : type === "notification" ? "Notification" : "Content"}
         description={isEventType(type) ? "Shown in the event card at the top of the email." : type === "notification" ? "Shown as the banner and headline." : "Shown under the title."}
       >
@@ -126,17 +128,14 @@ function DetailsForm({ meta, type, onChange }: { meta: Frontmatter; type: string
 
       {isEventType(type) && (
         <>
-          <Separator />
           <Hosts value={Array.isArray(meta.hosts) ? (meta.hosts as Host[]) : []} onChange={(v) => set("hosts", v.length ? v : undefined)} />
-          <Separator />
           <Agenda value={Array.isArray(meta.agenda) ? (meta.agenda as AgendaItem[]) : []} onChange={(v) => set("agenda", v.length ? v : undefined)} />
         </>
       )}
 
       {Object.keys(other).length > 0 && (
         <>
-          <Separator />
-          <Section title="Other fields" description="Additional frontmatter.">
+          <Section value="other" title="Other fields" description="Additional frontmatter.">
             <YamlEditor
               value={other}
               rows={4}
@@ -148,7 +147,7 @@ function DetailsForm({ meta, type, onChange }: { meta: Frontmatter; type: string
           </Section>
         </>
       )}
-    </div>
+    </Accordion>
   );
 }
 
@@ -166,15 +165,9 @@ function TextField({ def, value, onChange }: { def: FieldDef; value: unknown; on
   );
 }
 
-function SectionHeader({ title, hint, onAdd, addLabel }: { title: string; hint: string; onAdd: () => void; addLabel: string }) {
+function AddButton({ onAdd, label }: { onAdd: () => void; label: string }) {
   return (
-    <div className="flex items-center justify-between">
-      <div>
-        <h3 className="text-sm font-semibold">{title}</h3>
-        <p className="text-xs text-muted-foreground">{hint}</p>
-      </div>
-      <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={onAdd}><Plus /> {addLabel}</Button>
-    </div>
+    <Button variant="ghost" size="sm" className="h-7 w-full justify-start text-xs text-muted-foreground" onClick={onAdd}><Plus /> {label}</Button>
   );
 }
 
@@ -184,10 +177,9 @@ function update<T>(list: T[], i: number, patch: Partial<T>): T[] {
 
 function Hosts({ value, onChange }: { value: Host[]; onChange: (v: Host[]) => void }) {
   return (
-    <div className="space-y-2">
-      <SectionHeader title="Hosts" hint="Shown as host cards with photo, role and bio." addLabel="Add host" onAdd={() => onChange([...value, { name: "" }])} />
+    <Section value="hosts" title={`Hosts${value.length ? ` (${value.length})` : ""}`} description="Shown as host cards with photo, role and bio.">
       {value.map((h, i) => (
-        <div key={i} className="flex gap-3 rounded-md border bg-background p-2">
+        <div key={i} className="flex gap-3 rounded-lg bg-muted/40 p-3">
           <HostPhoto
             src={h.photo}
             onPick={async () => {
@@ -209,7 +201,8 @@ function Hosts({ value, onChange }: { value: Host[]; onChange: (v: Host[]) => vo
           <Button variant="ghost" size="icon-xs" aria-label="Remove host" onClick={() => onChange(value.filter((_, j) => j !== i))}><X /></Button>
         </div>
       ))}
-    </div>
+      <AddButton label="Add host" onAdd={() => onChange([...value, { name: "" }])} />
+    </Section>
   );
 }
 
@@ -237,8 +230,7 @@ function HostPhoto({ src, onPick }: { src?: string; onPick: () => void }) {
 
 function Agenda({ value, onChange }: { value: AgendaItem[]; onChange: (v: AgendaItem[]) => void }) {
   return (
-    <div className="space-y-2">
-      <SectionHeader title="Agenda" hint="Shown as a timeline below the event card." addLabel="Add item" onAdd={() => onChange([...value, { time: "", title: "" }])} />
+    <Section value="agenda" title={`Agenda${value.length ? ` (${value.length})` : ""}`} description="Shown as a timeline below the event card.">
       {value.map((a, i) => (
         <div key={i} className="flex items-center gap-2">
           <Input className="w-24" placeholder="15:30" value={str(a.time)} onChange={(e) => onChange(update(value, i, { time: e.target.value }))} />
@@ -246,7 +238,8 @@ function Agenda({ value, onChange }: { value: AgendaItem[]; onChange: (v: Agenda
           <Button variant="ghost" size="icon-xs" aria-label="Remove item" onClick={() => onChange(value.filter((_, j) => j !== i))}><X /></Button>
         </div>
       ))}
-    </div>
+      <AddButton label="Add item" onAdd={() => onChange([...value, { time: "", title: "" }])} />
+    </Section>
   );
 }
 

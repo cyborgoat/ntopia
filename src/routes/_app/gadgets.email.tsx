@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { cn, toMessage } from "@/lib/utils";
 import { usePanelLayout, usePersistedChoice, usePersistedFlag } from "@/lib/prefs";
 import { createFileRoute } from "@tanstack/react-router";
-import { ChevronDown, Download, Eye, EyeOff, FileCode, FileImage, FileText, FolderOpen, ListChecks, Loader2, Mail, Mailbox, PenLine, X } from "lucide-react";
+import { Download, Eye, EyeOff, FileCode, FileImage, FileText, FolderOpen, ListChecks, Loader2, Mail, Mailbox, PenLine, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -23,6 +23,8 @@ import { useLivePreview } from "@/gadgets/email/use-live-preview";
 import { TemplateGallery, TemplatePicker } from "@/gadgets/email/template-picker";
 import { joinDoc, splitDoc, type Frontmatter } from "@/gadgets/email/frontmatter";
 import { loadDraft, saveDraft } from "@/gadgets/email/draft";
+import { SaveTemplate } from "@/gadgets/email/save-template";
+import { USER_PREFIX, deleteUserTemplate, isUserTemplate, loadUserTemplates, saveUserTemplate } from "@/gadgets/email/user-templates";
 import * as mm from "@/gadgets/email/mdmailer";
 
 export const Route = createFileRoute("/_app/gadgets/email")({ component: EmailGadget });
@@ -57,6 +59,7 @@ function Composer() {
   const [showPreview, setShowPreview] = usePersistedFlag(PREVIEW_KEY, true);
   const { html, busy, error, retry: retryPreview, reset: resetPreviewOutput, setError } = useLivePreview(started, doc);
   const [templates, setTemplates] = useState<string[]>([]);
+  const [userTemplates, setUserTemplates] = useState(loadUserTemplates);
   const [layout, saveLayout] = usePanelLayout(LAYOUT_KEY, DEFAULT_LAYOUT);
 
   const togglePreview = () => setShowPreview((v) => !v);
@@ -92,13 +95,20 @@ function Composer() {
 
   async function loadTemplate(t: string) {
     try {
-      const { data, body: templateBody } = splitDoc(await mm.readTemplate(t));
+      const mine = isUserTemplate(t) ? userTemplates.find((u) => USER_PREFIX + u.id === t) : undefined;
+      if (isUserTemplate(t) && !mine) throw new Error("Template no longer exists");
+      const { data, body: templateBody } = splitDoc(mine ? mine.doc : await mm.readTemplate(t));
       await startDraft(data, templateBody.replace(/^\n+/, ""));
     } catch (e) {
       const msg = toMessage(e);
       setError(msg);
       toast.error(msg);
     }
+  }
+
+  function saveAsTemplate(name: string) {
+    setUserTemplates(saveUserTemplate(name, doc, String(meta.lang ?? "en")));
+    toast.success(`Saved template “${name}”`);
   }
 
   const { exportMd, exportOne, exportAll, openInMail } = useEmailExport(meta, doc);
@@ -121,7 +131,16 @@ function Composer() {
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b px-4 py-2">
         {/* Start: where the draft comes from */}
         <div className="flex items-center gap-1" role="group" aria-label="Start">
-          {started && <TemplatePicker templates={templates} dirty={doc !== baseline} onPick={(t) => void loadTemplate(t)} />}
+          {started && (
+            <TemplatePicker
+              templates={templates}
+              userTemplates={userTemplates}
+              onDeleteUser={(id) => setUserTemplates(deleteUserTemplate(id))}
+              dirty={doc !== baseline}
+              onPick={(t) => void loadTemplate(t)}
+            />
+          )}
+          {started && <SaveTemplate defaultName={meta.title === "Untitled" ? "" : String(meta.title ?? "")} existingNames={userTemplates.map((t) => t.name)} onSave={saveAsTemplate} />}
           <Branding />
         </div>
         <Separator orientation="vertical" className="h-5 self-center" />
@@ -161,9 +180,12 @@ function Composer() {
           {/* Output: Export is secondary, Open in Mail is the primary action */}
           <div className="flex items-center gap-1.5" role="group" aria-label="Output">
           <DropdownMenu>
-            <DropdownMenuTrigger render={<Button variant="outline" size="sm" disabled={!started} />}>
-              <Download /> Export <ChevronDown className="opacity-60" />
-            </DropdownMenuTrigger>
+            <Tooltip>
+              <TooltipTrigger render={<DropdownMenuTrigger render={<Button variant="outline" size="icon-sm" disabled={!started} aria-label="Export" />} />}>
+                <Download />
+              </TooltipTrigger>
+              <TooltipContent>Export</TooltipContent>
+            </Tooltip>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => void exportMd()}><FileText /> Markdown</DropdownMenuItem>
               <DropdownMenuItem onClick={() => void exportOne("html")}><FileCode /> HTML</DropdownMenuItem>
@@ -173,7 +195,12 @@ function Composer() {
               <DropdownMenuItem onClick={() => void exportAll()}><FolderOpen /> Export all…</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button size="sm" disabled={!started} onClick={() => void openInMail()}><Mail /> Open in Mail</Button>
+          <Tooltip>
+            <TooltipTrigger render={<Button size="icon-sm" disabled={!started} aria-label="Open in Mail" onClick={() => void openInMail()} />}>
+              <Mail />
+            </TooltipTrigger>
+            <TooltipContent>Open in Mail</TooltipContent>
+          </Tooltip>
           </div>
         </div>
       </div>
@@ -187,6 +214,8 @@ function Composer() {
             </div>
             <TemplateGallery
               templates={templates}
+              userTemplates={userTemplates}
+              onDeleteUser={(id) => setUserTemplates(deleteUserTemplate(id))}
               dirty={false}
               onPick={(t) => void loadTemplate(t)}
               onBlank={() => void startDraft(BLANK_META, BLANK_BODY).catch((e) => toast.error(toMessage(e)))}

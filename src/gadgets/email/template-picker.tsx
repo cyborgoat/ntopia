@@ -1,15 +1,21 @@
 import { useMemo, useState } from "react";
-import { LayoutTemplate } from "lucide-react";
+import { LayoutTemplate, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { EMAIL_LANGS, TEMPLATE_INFO, parseTemplate } from "./fields";
+import { USER_PREFIX, isUserTemplate, type UserTemplate } from "./user-templates";
 
 type Entry = { file: string; name: string; description: string; lang: string };
 
-function describe(file: string): Entry {
+function describe(file: string, user: UserTemplate[]): Entry {
+  if (isUserTemplate(file)) {
+    const t = user.find((u) => USER_PREFIX + u.id === file);
+    return { file, lang: t?.lang ?? "en", name: t?.name ?? "Template", description: "Your saved template." };
+  }
   const { base, lang } = parseTemplate(file);
   const info = TEMPLATE_INFO[base]?.[lang === "zh" ? "zh" : "en"];
   const fallback = base.replace(/[-_]+/g, " ").replace(/^\w/, (c) => c.toUpperCase());
@@ -27,8 +33,13 @@ export function TemplateGallery({
   dirty,
   onPick,
   onBlank,
+  userTemplates = [],
+  onDeleteUser,
 }: {
   templates: string[];
+  /** Templates the user saved; listed first. */
+  userTemplates?: UserTemplate[];
+  onDeleteUser?: (id: string) => void;
   /** The current draft has edits that picking a template would overwrite. */
   dirty: boolean;
   onPick: (file: string) => void;
@@ -37,7 +48,10 @@ export function TemplateGallery({
 }) {
   const [lang, setLang] = useState<string>("all");
   const [pending, setPending] = useState<Entry | null>(null);
-  const entries = useMemo(() => templates.map(describe), [templates]);
+  const entries = useMemo(
+    () => [...userTemplates.map((u) => USER_PREFIX + u.id), ...templates].map((f) => describe(f, userTemplates)),
+    [templates, userTemplates],
+  );
   const shown = lang === "all" ? entries : entries.filter((e) => e.lang === lang);
 
   function choose(e: Entry) {
@@ -78,18 +92,30 @@ export function TemplateGallery({
             </button>
           )}
           {shown.map((e) => (
-            <button
-              key={e.file}
-              type="button"
-              onClick={() => choose(e)}
-              className="flex flex-col gap-1.5 rounded-lg border p-4 text-left transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <span className="flex items-center gap-2">
-                <span className="font-medium">{e.name}</span>
-                <Badge variant="outline">{EMAIL_LANGS.find((l) => l.value === e.lang)?.label ?? e.lang}</Badge>
-              </span>
-              <span className="text-sm text-muted-foreground">{e.description}</span>
-            </button>
+            <div key={e.file} className="relative">
+              <button
+                type="button"
+                onClick={() => choose(e)}
+                className="flex h-full w-full flex-col gap-1.5 rounded-lg border p-4 text-left transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <span className="flex items-center gap-2 pr-6">
+                  <span className="font-medium">{e.name}</span>
+                  <Badge variant="outline">{EMAIL_LANGS.find((l) => l.value === e.lang)?.label ?? e.lang}</Badge>
+                </span>
+                <span className="text-sm text-muted-foreground">{e.description}</span>
+              </button>
+              {isUserTemplate(e.file) && onDeleteUser && (
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  className="absolute right-2 top-2"
+                  aria-label={`Delete template ${e.name}`}
+                  onClick={() => onDeleteUser(e.file.slice(USER_PREFIX.length))}
+                >
+                  <Trash2 />
+                </Button>
+              )}
+            </div>
           ))}
         </div>
       )}
@@ -102,25 +128,32 @@ export function TemplatePicker({
   templates,
   dirty,
   onPick,
+  userTemplates,
+  onDeleteUser,
 }: {
   templates: string[];
   dirty: boolean;
   onPick: (file: string) => void;
+  userTemplates?: UserTemplate[];
+  onDeleteUser?: (id: string) => void;
 }) {
   const [open, setOpen] = useState(false);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button variant="outline" size="sm" />}>
-        <LayoutTemplate /> Templates
-      </DialogTrigger>
+      <Tooltip>
+        <TooltipTrigger render={<DialogTrigger render={<Button variant="ghost" size="icon-sm" aria-label="Templates" />} />}>
+          <LayoutTemplate />
+        </TooltipTrigger>
+        <TooltipContent>Templates</TooltipContent>
+      </Tooltip>
       <DialogContent className="sm:max-w-4xl">
         <DialogHeader>
           <DialogTitle>Start from a template</DialogTitle>
           <DialogDescription>Pick a ready-made layout. You can change every detail afterwards.</DialogDescription>
         </DialogHeader>
         {/* Remounted per open so the replace-confirm state resets when the dialog closes. */}
-        {open && <TemplateGallery templates={templates} dirty={dirty} onPick={(f) => { setOpen(false); onPick(f); }} />}
+        {open && <TemplateGallery templates={templates} dirty={dirty} userTemplates={userTemplates} onDeleteUser={onDeleteUser} onPick={(f) => { setOpen(false); onPick(f); }} />}
       </DialogContent>
     </Dialog>
   );
