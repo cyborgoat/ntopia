@@ -123,6 +123,7 @@ function FullToolbar({ onPickImage }: { onPickImage?: () => void }) {
                 <Separator />
                 <CreateLink />
                 {onPickImage && <ImageButton onPick={onPickImage} />}
+                <Separator />
                 <InsertTable />
                 <InsertThematicBreak />
                 <InsertCodeBlock />

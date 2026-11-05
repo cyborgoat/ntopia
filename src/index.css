@@ -170,17 +170,17 @@
   color: var(--foreground);
 }
 .md-editor .md-editor-toolbar {
-  @apply gap-0.5 rounded-none border-b bg-muted/40 px-2 py-1;
+  @apply gap-1 rounded-none border-b bg-muted/40 px-3 py-2;
 }
 .md-editor .md-editor-content {
   min-height: 14rem;
-  padding: 0.75rem 1rem;
+  padding: 1.25rem 1.5rem;
   outline: none;
 }
 .md-editor-compact .md-editor-content { min-height: 5rem; padding: 0.5rem 0.75rem; }
 .md-editor .mdxeditor-root-contenteditable [class*="_placeholder_"] {
   @apply pointer-events-none text-muted-foreground select-none;
-  padding: 0.75rem 1rem;
+  padding: 1.25rem 1.5rem;
 }
 .md-editor-compact .mdxeditor-root-contenteditable [class*="_placeholder_"] { padding: 0.5rem 0.75rem; }
 .md-editor .mdxeditor-source-editor { min-height: 14rem; }
@@ -195,3 +195,8 @@
 .md-editor-fill .mdxeditor-root-contenteditable { flex: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; }
 .md-editor-fill .md-editor-content { min-height: 100%; }
 .md-editor-fill .mdxeditor-source-editor { flex: 1; min-height: 0; overflow: auto; }
+
+/* Flush: no frame around the editor. The toolbar becomes a soft rounded bar and the text lines up with the title above it. */
+.md-editor-flush .md-editor-toolbar { @apply rounded-lg border-b-0; }
+.md-editor-flush .md-editor-content { padding: 1.25rem 0.25rem; }
+.md-editor-flush .mdxeditor-root-contenteditable [class*="_placeholder_"] { padding: 1.25rem 0.25rem; }
