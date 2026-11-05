@@ -1,19 +1,23 @@
-import { useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CommentThread } from "@/components/comments";
 import { FeedCard } from "@/components/feed-card";
+import { FeedStats } from "@/components/feed-stats";
 import { FeedItemMenu, useDeleteMutation } from "@/components/feed-item-menu";
 import { Byline, CoverImage, DetailPage, DetailTitle } from "@/components/detail-page";
 import { Markdown } from "@/components/markdown";
-import { ListPagination, PAGE_SIZE } from "@/components/list-pagination";
+import { ListPagination } from "@/components/list-pagination";
+import { SortMenu } from "@/components/sort-menu";
+import { useSortedList } from "@/hooks/use-sorted-list";
 import { Empty, PageHeader } from "@/components/page-header";
 import { PostComposer, type PostDraft } from "@/components/post-composer";
 import { useAuth } from "@/lib/auth";
+import { feedQueries } from "@/lib/feeds";
 import { assetUrl, orbit, unwrap } from "@/lib/orbit";
+import { NEWS_SORT } from "@/lib/sorting";
 
 type Kind = "/news" | "/blog-posts";
 
@@ -23,7 +27,8 @@ const FEED = {
     section: { label: "News", to: "/news" },
     newTo: "/news/new",
     detailTo: "/news/$id",
-    list: async (page: number) => (await orbit.GET("/api/news", { params: { query: { page, limit: PAGE_SIZE } } })).data,
+    all: feedQueries.news,
+    sortKey: "ntopia.sort.news",
     get: async (id: string) => (await orbit.GET("/api/news/{id}", { params: { path: { id } } })).data ?? null,
     remove: (id: string) => orbit.DELETE("/api/news/{id}", { params: { path: { id } } }),
     create: (body: PostDraft) => orbit.POST("/api/news", { body }),
@@ -32,7 +37,8 @@ const FEED = {
     section: { label: "Blog", to: "/blog" },
     newTo: "/blog/new",
     detailTo: "/blog/$id",
-    list: async (page: number) => (await orbit.GET("/api/blog-posts", { params: { query: { page, limit: PAGE_SIZE } } })).data,
+    all: feedQueries.blog,
+    sortKey: "ntopia.sort.blog",
     get: async (id: string) => (await orbit.GET("/api/blog-posts/{id}", { params: { path: { id } } })).data ?? null,
     remove: (id: string) => orbit.DELETE("/api/blog-posts/{id}", { params: { path: { id } } }),
     create: (body: PostDraft) => orbit.POST("/api/blog-posts", { body }),
@@ -47,8 +53,9 @@ export function MarkdownFeed({ kind, title }: { kind: Kind; title: string }) {
   const { isAdmin } = useAuth();
   const navigate = useNavigate();
   const feed = FEED[kind];
-  const [page, setPage] = useState(1);
-  const { data } = useQuery({ queryKey: [kind, "list", page], queryFn: () => feed.list(page), placeholderData: keepPreviousData });
+  // The API cannot sort, so the whole list is loaded and ordered here (newest publish date first by default).
+  const { data: all } = useQuery(feed.all);
+  const list = useSortedList({ storageKey: feed.sortKey, ...NEWS_SORT, items: all });
 
   const del = useDeleteMutation([kind], feed.remove);
 
@@ -58,16 +65,19 @@ export function MarkdownFeed({ kind, title }: { kind: Kind; title: string }) {
         title={title}
         crumbs={[{ label: "Home", to: "/" }, { label: title }]}
         actions={
-          canPublish(kind, isAdmin) && (
-            <Button size="sm" render={<Link to={feed.newTo} />}>
-              <Plus /> New
-            </Button>
-          )
+          <>
+            <SortMenu value={list.sort} options={list.options} onChange={list.setSort} />
+            {canPublish(kind, isAdmin) && (
+              <Button size="sm" render={<Link to={feed.newTo} />}>
+                <Plus /> New
+              </Button>
+            )}
+          </>
         }
       />
       <div className="space-y-2">
-        {data?.items.length === 0 && <Empty>Nothing here yet.</Empty>}
-        {data?.items.map((p) => (
+        {list.total === 0 && <Empty>Nothing here yet.</Empty>}
+        {list.pageItems?.map((p) => (
           <FeedItemMenu
             key={p.id}
             onOpen={() => void navigate({ to: feed.detailTo, params: { id: p.id } })}
@@ -81,9 +91,10 @@ export function MarkdownFeed({ kind, title }: { kind: Kind; title: string }) {
                 author={p.author.fullName}
                 createdAt={p.createdAt}
                 content={p.content}
+                stats={<FeedStats views={p.viewCount} />}
                 leading={p.coverImageUrl ? <img src={assetUrl(p.coverImageUrl)} alt="" className="w-24 shrink-0 object-cover" /> : undefined}
                 footer={p.tags.length > 0 ? (
-                  <div className="flex flex-wrap gap-1">{p.tags.map((t) => <Badge key={t} variant="secondary">{t}</Badge>)}</div>
+                  <div className="flex gap-1 overflow-hidden">{p.tags.map((t) => <Badge key={t} variant="secondary">{t}</Badge>)}</div>
                 ) : undefined}
                 action={isAdmin ? (
                   <Button variant="ghost" size="icon-xs" onClick={() => del.mutate(p.id)} aria-label="Delete"><Trash2 /></Button>
@@ -92,7 +103,7 @@ export function MarkdownFeed({ kind, title }: { kind: Kind; title: string }) {
           </FeedItemMenu>
         ))}
       </div>
-      <ListPagination page={page} total={data?.total} onPageChange={setPage} />
+      <ListPagination page={list.page} total={list.total} onPageChange={list.setPage} />
     </>
   );
 }

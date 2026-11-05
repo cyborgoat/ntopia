@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { ListPagination, PAGE_SIZE } from "@/components/list-pagination";
+import { ListPagination } from "@/components/list-pagination";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,10 @@ import { FeedCard } from "@/components/feed-card";
 import { FeedItemMenu, useDeleteMutation } from "@/components/feed-item-menu";
 import { Field, FormDialog } from "@/components/form-dialog";
 import { Empty, PageHeader } from "@/components/page-header";
+import { SortMenu } from "@/components/sort-menu";
+import { useSortedList } from "@/hooks/use-sorted-list";
+import { feedQueries } from "@/lib/feeds";
+import { ANNOUNCEMENT_SORT } from "@/lib/sorting";
 import { useAuth } from "@/lib/auth";
 import { orbit, unwrap } from "@/lib/orbit";
 
@@ -22,12 +26,9 @@ function Announcements() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const [f, setF] = useState({ title: "", description: "" });
-  const [page, setPage] = useState(1);
-  const { data } = useQuery({
-    queryKey: ["announcements", page],
-    queryFn: async () => (await orbit.GET("/api/announcements", { params: { query: { page, limit: PAGE_SIZE } } })).data,
-    placeholderData: keepPreviousData,
-  });
+  // The API cannot sort, so the whole list is loaded and ordered here (newest first by default).
+  const { data: all } = useQuery(feedQueries.announcements);
+  const list = useSortedList({ storageKey: "ntopia.sort.announcements", ...ANNOUNCEMENT_SORT, items: all });
   const del = useDeleteMutation(["announcements"], (id) =>
     orbit.DELETE("/api/announcements/{id}", { params: { path: { id } } }),
   );
@@ -38,7 +39,9 @@ function Announcements() {
         title="Announcements"
         crumbs={[{ label: "Home", to: "/" }, { label: "Announcements" }]}
         actions={
-          isAdmin && (
+          <>
+          <SortMenu value={list.sort} options={list.options} onChange={list.setSort} />
+          {isAdmin && (
             <FormDialog
               title="New announcement"
               triggerLabel="New"
@@ -51,12 +54,13 @@ function Announcements() {
               <Field label="Title"><Input required value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} /></Field>
               <Field label="Description"><Textarea required rows={5} value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} /></Field>
             </FormDialog>
-          )
+          )}
+          </>
         }
       />
       <div className="space-y-2">
-        {data?.items.length === 0 && <Empty>No announcements yet.</Empty>}
-        {data?.items.map((a) => (
+        {list.total === 0 && <Empty>No announcements yet.</Empty>}
+        {list.pageItems?.map((a) => (
           <FeedItemMenu
             key={a.id}
             onOpen={() => void navigate({ to: "/announcements/$id", params: { id: a.id } })}
@@ -79,7 +83,7 @@ function Announcements() {
           </FeedItemMenu>
         ))}
       </div>
-      <ListPagination page={page} total={data?.total} onPageChange={setPage} />
+      <ListPagination page={list.page} total={list.total} onPageChange={list.setPage} />
     </>
   );
 }

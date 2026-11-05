@@ -1,7 +1,7 @@
 import { DateChip } from "@/components/date-chip";
 import { DateTimeInput } from "@/components/date-time-input";
 import { useState } from "react";
-import { ListPagination, PAGE_SIZE } from "@/components/list-pagination";
+import { ListPagination } from "@/components/list-pagination";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { History, Lock, MapPin, Trash2 } from "lucide-react";
@@ -15,10 +15,13 @@ import { FeedItemMenu, useDeleteMutation } from "@/components/feed-item-menu";
 import { Field, FormDialog } from "@/components/form-dialog";
 import { ImageUploadButton } from "@/components/image-upload";
 import { Empty, PageHeader } from "@/components/page-header";
+import { SortMenu } from "@/components/sort-menu";
+import { useSortedList } from "@/hooks/use-sorted-list";
+import { feedQueries } from "@/lib/feeds";
+import { EVENT_SORT } from "@/lib/sorting";
 import { UserPicker, type PickedUser } from "@/components/user-picker";
 import { useAuth } from "@/lib/auth";
 import { usePersistedFlag } from "@/lib/prefs";
-import type { components } from "@goatcheese/teamorbit-client";
 import { orbit, unwrap } from "@/lib/orbit";
 import { formatDateTime } from "@/lib/utils";
 
@@ -26,9 +29,6 @@ export const Route = createFileRoute("/_app/events/")({
   component: Events,
 });
 
-type EventItem = components["schemas"]["PaginatedEventsDto"]["items"][number];
-
-const FETCH_SIZE = 50;
 const SHOW_PAST_KEY = "ntopia.events.show-past";
 
 type Audience = "GLOBAL" | "INVITE_ONLY";
@@ -51,36 +51,15 @@ function Events() {
   const [f, setF] = useState(blank);
   const set = (k: keyof typeof blank) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setF({ ...f, [k]: e.target.value });
-  const [page, setPage] = useState(1);
   const [showPast, setShowPast] = usePersistedFlag(SHOW_PAST_KEY, true);
   // The API pages in creation order with no date filter or sort, so load every event and order/paginate here.
-  const { data: all } = useQuery({
-    queryKey: ["events"],
-    queryFn: async () => {
-      const items: EventItem[] = [];
-      for (let p = 1; ; p++) {
-        const res = (await orbit.GET("/api/events", { params: { query: { page: p, limit: FETCH_SIZE } } })).data;
-        if (!res) break;
-        items.push(...res.items);
-        if (items.length >= res.total || res.items.length === 0) break;
-      }
-      return items;
-    },
-  });
-  // Upcoming events first (soonest on top), then past ones (most recent first).
+  const { data: all } = useQuery(feedQueries.events);
   const now = Date.now();
   const endOf = (ev: { startAt: string; endAt?: string }) => new Date(ev.endAt ?? ev.startAt).getTime();
-  const startOf = (ev: { startAt: string }) => new Date(ev.startAt).getTime();
-  const sorted = all
-    ?.filter((ev) => showPast || endOf(ev) >= now)
-    .sort((a, b) => {
-      const [aPast, bPast] = [endOf(a) < now, endOf(b) < now];
-      if (aPast !== bPast) return aPast ? 1 : -1;
-      return aPast ? startOf(b) - startOf(a) : startOf(a) - startOf(b);
-    });
-  // Deleting the last event on a page must not strand the list on an empty page.
-  const current = Math.min(page, Math.max(1, Math.ceil((sorted?.length ?? 0) / PAGE_SIZE)));
-  const events = sorted?.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE);
+  const shown = all?.filter((ev) => showPast || endOf(ev) >= now);
+  // Event date is the default order: what's coming first (soonest on top), then what's over (most recent first).
+  const list = useSortedList({ storageKey: "ntopia.sort.events", ...EVENT_SORT, items: shown });
+  const events = list.pageItems;
   const del = useDeleteMutation(["events"], (id) =>
     orbit.DELETE("/api/events/{id}", { params: { path: { id } } }),
   );
@@ -92,11 +71,12 @@ function Events() {
         crumbs={[{ label: "Home", to: "/" }, { label: "Events" }]}
         actions={
           <>
+            <SortMenu value={list.sort} options={list.options} onChange={list.setSort} />
             <Button
               variant={showPast ? "secondary" : "outline"}
               size="sm"
               aria-pressed={showPast}
-              onClick={() => { setShowPast(!showPast); setPage(1); }}
+              onClick={() => { setShowPast(!showPast); list.setPage(1); }}
             >
               <History /> Past events
             </Button>
@@ -198,7 +178,7 @@ function Events() {
           </FeedItemMenu>
         ))}
       </div>
-      <ListPagination page={current} total={sorted?.length} onPageChange={setPage} />
+      <ListPagination page={list.page} total={list.total} onPageChange={list.setPage} />
     </>
   );
 }

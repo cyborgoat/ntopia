@@ -7,7 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { notificationTarget } from "@/lib/notification-link";
+import { feedQueries } from "@/lib/feeds";
 import { orbit } from "@/lib/orbit";
+import { newest } from "@/lib/sorting";
 import { getItem, setItem } from "@/lib/storage";
 import { excerpt, timeAgo } from "@/lib/utils";
 
@@ -90,24 +92,23 @@ function Notifications() {
 /** "What's new" from Team Orbit: unread notifications plus recent announcements, events, posts and discussions. */
 export function HomeDigest() {
   const seen = useLastSeen();
-  const ann = useQuery({ queryKey: ["announcements", "home"], queryFn: async () => (await orbit.GET("/api/announcements", { params: { query: { limit: 3 } } })).data });
+  // Same cached lists as the sections themselves (the API can't sort), cut down to the newest few.
+  const ann = useQuery({ ...feedQueries.announcements, select: (all) => ({ items: [...all].sort(newest).slice(0, 3) }) });
+  // Upcoming events, soonest first.
   const ev = useQuery({
-    queryKey: ["events", "home"],
-    queryFn: async () => {
-      const data = (await orbit.GET("/api/events", { params: { query: { limit: 20 } } })).data;
-      if (!data) return data;
-      const upcoming = data.items.filter((e) => new Date(e.endAt).getTime() >= Date.now()).sort((a, b) => a.startAt.localeCompare(b.startAt));
-      return { ...data, items: upcoming.slice(0, 3) };
-    },
+    ...feedQueries.events,
+    select: (all) => ({
+      items: all.filter((e) => new Date(e.endAt).getTime() >= Date.now()).sort((a, b) => a.startAt.localeCompare(b.startAt)).slice(0, 3),
+    }),
   });
-  const news = useQuery({ queryKey: ["news", "home"], queryFn: async () => (await orbit.GET("/api/news", { params: { query: { limit: 3 } } })).data });
-  const blog = useQuery({ queryKey: ["blog", "home"], queryFn: async () => (await orbit.GET("/api/blog-posts", { params: { query: { limit: 3 } } })).data });
-  const forum = useQuery({ queryKey: ["forum-posts", "home"], queryFn: async () => (await orbit.GET("/api/forum-posts", { params: { query: { limit: 3 } } })).data });
+  const news = useQuery({ ...feedQueries.news, select: (all) => ({ items: [...all].sort(newest).slice(0, 3) }) });
+  const blog = useQuery({ ...feedQueries.blog, select: (all) => ({ items: [...all].sort(newest).slice(0, 3) }) });
+  const forum = useQuery({ ...feedQueries.discussions(), select: (all) => ({ items: [...all].sort(newest).slice(0, 3) }) });
 
   const posts = [
     ...(news.data?.items ?? []).map((p) => ({ ...p, kind: "News" as const })),
     ...(blog.data?.items ?? []).map((p) => ({ ...p, kind: "Blog" as const })),
-  ].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 3);
+  ].sort(newest).slice(0, 3);
   const postsQ: Q = { isPending: news.isPending || blog.isPending, isError: news.isError && blog.isError, data: { items: posts } };
 
   return (
