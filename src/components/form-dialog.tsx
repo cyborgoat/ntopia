@@ -40,7 +40,7 @@ export function FormDialog({
       <DialogTrigger render={<Button size="sm" />}>
         <Plus /> {triggerLabel}
       </DialogTrigger>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>

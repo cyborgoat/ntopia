@@ -1,4 +1,5 @@
 import { DateChip } from "@/components/date-chip";
+import { DateTimeInput } from "@/components/date-time-input";
 import { useState } from "react";
 import { ListPagination, PAGE_SIZE } from "@/components/list-pagination";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
@@ -125,10 +126,8 @@ function Events() {
             >
               <Field label="Title"><Input required value={f.title} onChange={set("title")} /></Field>
               <Field label="Description"><Textarea required rows={3} value={f.description} onChange={set("description")} /></Field>
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Starts"><Input required type="datetime-local" value={f.startAt} onChange={set("startAt")} /></Field>
-                <Field label="Ends"><Input required type="datetime-local" value={f.endAt} onChange={set("endAt")} /></Field>
-              </div>
+              <Field label="Starts"><DateTimeInput required value={f.startAt} onChange={(startAt) => setF((p) => ({ ...p, startAt }))} /></Field>
+              <Field label="Ends"><DateTimeInput required value={f.endAt} onChange={(endAt) => setF((p) => ({ ...p, endAt }))} /></Field>
               <Field label="Location"><Input required value={f.location} onChange={set("location")} /></Field>
               <Field label="Audience">
                 <NativeSelect
