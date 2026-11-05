@@ -13,12 +13,6 @@ export const EMAIL_LANGS = [
   { value: "zh", label: "中文" },
 ] as const;
 export const THEME_PRESETS = ["classic", "navy-gold", "forest-cream"] as const;
-export const THEME_LABELS: Record<(typeof THEME_PRESETS)[number], string> = {
-  classic: "Classic",
-  "navy-gold": "Navy & Gold",
-  "forest-cream": "Forest & Cream",
-};
-export const themeLabel = (t: string) => THEME_LABELS[t as keyof typeof THEME_LABELS] ?? t;
 
 type TemplateText = { name: string; description: string };
 
@@ -56,46 +50,29 @@ export function parseTemplate(file: string): { base: string; lang: string } {
   return m ? { base: m[1], lang: m[2] } : { base: file, lang: "en" };
 }
 
-export type FieldDef = {
-  key: string;
-  label: string;
-  input?: "text" | "date" | "url";
-  placeholder?: string;
-  wide?: boolean;
-};
+export type FieldDef = { key: string; label: string };
 
 const EVENT_TYPES = new Set(["event", "meeting", "webinar", "invitation"]);
 export const isEventType = (type: string) => EVENT_TYPES.has(type);
 
+/** Type-specific frontmatter keys (beyond title, type, lang, theme) that mdmailer reads. */
 export function typeFields(type: string): FieldDef[] {
   if (type === "notification") {
     return [
-      { key: "headline", label: "Headline", placeholder: "Same as subject", wide: true },
-      { key: "banner", label: "Banner", placeholder: "Brief announcement" },
-      { key: "date", label: "Date", input: "date" },
+      { key: "headline", label: "Headline" },
+      { key: "banner", label: "Banner" },
+      { key: "date", label: "Date" },
     ];
   }
   if (isEventType(type)) {
     return [
-      { key: "eventName", label: "Event name", placeholder: "Same as subject", wide: true },
-      { key: "startsAt", label: "Date", input: "date" },
-      { key: "time", label: "Time", placeholder: "15:00–16:00 UTC" },
-      { key: "location", label: "Location", placeholder: "Venue, address, or online" },
-      type === "invitation"
-        ? { key: "rsvpUrl", label: "RSVP link", input: "url", placeholder: "https://example.com" }
-        : { key: "joinUrl", label: "Join link", input: "url", placeholder: "https://example.com" },
-      { key: "kicker", label: "Header label", placeholder: "Label above the title" },
+      { key: "eventName", label: "Event name" },
+      { key: "startsAt", label: "Date" },
+      { key: "time", label: "Time" },
+      { key: "location", label: "Location" },
+      type === "invitation" ? { key: "rsvpUrl", label: "RSVP link" } : { key: "joinUrl", label: "Join link" },
+      { key: "kicker", label: "Header label" },
     ];
   }
-  return [{ key: "date", label: "Date", input: "date" }];
+  return [{ key: "date", label: "Date" }];
 }
-
-/** Keys the details form edits for this type; anything else shows under "Other fields". */
-export function knownKeys(type: string): Set<string> {
-  const keys = ["title", "type", "lang", "theme", ...typeFields(type).map((f) => f.key)];
-  if (isEventType(type)) keys.push("hosts", "agenda");
-  return new Set(keys);
-}
-
-export type Host = { name?: string; role?: string; photo?: string; bio?: string };
-export type AgendaItem = { time?: string; title?: string };

@@ -32,7 +32,7 @@ export function SaveTemplate({
   return (
     <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (o) setName(defaultName); }}>
       <Tooltip>
-        <TooltipTrigger render={<DialogTrigger render={<Button variant="ghost" size="icon-sm" aria-label="Save as template" />} />}>
+        <TooltipTrigger render={<DialogTrigger render={<Button variant="outline" size="icon-sm" aria-label="Save as template" />} />}>
           <BookmarkPlus />
         </TooltipTrigger>
         <TooltipContent>Save as template</TooltipContent>
@@ -41,7 +41,7 @@ export function SaveTemplate({
         <form onSubmit={submit} className="grid gap-4">
           <DialogHeader>
             <DialogTitle>Save as template</DialogTitle>
-            <DialogDescription>Save the current details and message so you can start from them again.</DialogDescription>
+            <DialogDescription>Save this email, frontmatter included, so you can start from it again.</DialogDescription>
           </DialogHeader>
           <Input autoFocus aria-label="Template name" placeholder="Template name" value={name} onChange={(e) => setName(e.target.value)} />
           {replaces && <p className="text-xs text-amber-600 dark:text-amber-400">A template with this name exists and will be replaced.</p>}

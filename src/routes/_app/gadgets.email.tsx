@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { EditorView } from "@codemirror/view";
 import { cn, toMessage } from "@/lib/utils";
-import { usePanelLayout, usePersistedChoice, usePersistedFlag } from "@/lib/prefs";
+import { usePanelLayout, usePersistedFlag } from "@/lib/prefs";
 import { createFileRoute } from "@tanstack/react-router";
-import { Download, Eye, EyeOff, FileCode, FileImage, FileText, FolderOpen, ListChecks, Loader2, Mail, Mailbox, PenLine, X } from "lucide-react";
+import { Download, Eye, EyeOff, FileCode, FileImage, FileText, FolderOpen, Loader2, Mail, Mailbox, PanelTop } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -15,13 +16,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { isTauri } from "@/lib/storage";
-import { DetailsPanel } from "@/gadgets/email/details-panel";
 import { SourceEditor } from "@/gadgets/email/source-editor";
+import { toggleFrontmatter } from "@/gadgets/email/frontmatter-extensions";
 import { Branding } from "@/gadgets/email/branding-dialog";
+import { ImageLibrary } from "@/gadgets/email/image-library";
 import { useEmailExport } from "@/gadgets/email/use-email-export";
 import { useLivePreview } from "@/gadgets/email/use-live-preview";
 import { TemplateGallery, TemplatePicker } from "@/gadgets/email/template-picker";
-import { joinDoc, splitDoc, type Frontmatter } from "@/gadgets/email/frontmatter";
+import { splitDoc } from "@/gadgets/email/frontmatter";
 import { loadDraft, saveDraft } from "@/gadgets/email/draft";
 import { SaveTemplate } from "@/gadgets/email/save-template";
 import { USER_PREFIX, deleteUserTemplate, isUserTemplate, loadUserTemplates, saveUserTemplate } from "@/gadgets/email/user-templates";
@@ -29,16 +31,12 @@ import * as mm from "@/gadgets/email/mdmailer";
 
 export const Route = createFileRoute("/_app/gadgets/email")({ component: EmailGadget });
 
-const BLANK_META: Frontmatter = { title: "Untitled", type: "news", lang: "en" };
-const BLANK_BODY = "## Hello\n\nWrite your message…\n";
+const BLANK_DOC = "---\ntitle: Untitled\ntype: news\nlang: en\n---\n\n## Hello\n\nWrite your message…\n";
 const LAYOUT_KEY = "ntopia.email-composer.layout";
 const PREVIEW_KEY = "ntopia.email-composer.preview";
-const TAB_KEY = "ntopia.email-composer.tab";
-const HINT_KEY = "ntopia.email-composer.hint-dismissed";
+/** Header toggle that is switched on: a clearly darker fill than the hover state. */
+const PRESSED = "bg-foreground/15 text-foreground hover:bg-foreground/20 dark:bg-foreground/20 dark:hover:bg-foreground/25";
 const DEFAULT_LAYOUT = { editor: 50, preview: 50 };
-
-type Tab = "details" | "message";
-const TABS = ["details", "message"] as const;
 
 function EmailGadget() {
   if (!isTauri()) {
@@ -51,44 +49,46 @@ function Composer() {
   // A saved draft is restored on mount; without one the user is asked to pick a template first.
   const [saved] = useState(loadDraft);
   const [started, setStarted] = useState(saved != null);
-  const [meta, setMeta] = useState<Frontmatter>(saved?.meta ?? BLANK_META);
-  const [body, setBody] = useState(saved?.body ?? BLANK_BODY);
-  const doc = useMemo(() => joinDoc(meta, body), [meta, body]);
+  const [doc, setDoc] = useState(saved?.doc ?? BLANK_DOC);
+  // Only the title and language are read out of the frontmatter (file names, template defaults).
+  const meta = useMemo(() => splitDoc(doc).data, [doc]);
+  // Bumped whenever a different document is loaded, so the editor starts fresh (frontmatter collapsed).
+  const [loadId, setLoadId] = useState(0);
   // The document as last loaded (blank or a template); anything else counts as an unsaved edit.
-  const [baseline, setBaseline] = useState(saved?.baseline ?? joinDoc(BLANK_META, BLANK_BODY));
+  const [baseline, setBaseline] = useState(saved?.baseline ?? BLANK_DOC);
   const [showPreview, setShowPreview] = usePersistedFlag(PREVIEW_KEY, true);
   const { html, busy, error, retry: retryPreview, reset: resetPreviewOutput, setError } = useLivePreview(started, doc);
   const [templates, setTemplates] = useState<string[]>([]);
   const [userTemplates, setUserTemplates] = useState(loadUserTemplates);
+  const savedDocs = useMemo(() => userTemplates.map((t) => t.doc), [userTemplates]);
   const [layout, saveLayout] = usePanelLayout(LAYOUT_KEY, DEFAULT_LAYOUT);
 
   const togglePreview = () => setShowPreview((v) => !v);
 
-  const [tab, setTab] = usePersistedChoice<Tab>(TAB_KEY, TABS, "details");
-  const [hintDismissed, setHintDismissed] = usePersistedFlag(HINT_KEY, false);
-
-  const dismissHint = () => setHintDismissed(true);
+  // The editor owns the frontmatter fold; the header button mirrors it.
+  const editorRef = useRef<EditorView | null>(null);
+  const [fmOpen, setFmOpen] = useState(false);
+  const [fmAvailable, setFmAvailable] = useState(true);
 
   // Keep the draft across navigation and restarts; the cleanup flushes the pending write on unmount.
   useEffect(() => {
     if (!started) return;
-    const draft = { meta, body, baseline };
+    const draft = { doc, baseline };
     const t = setTimeout(() => saveDraft(draft), 300);
     return () => {
       clearTimeout(t);
       saveDraft(draft);
     };
-  }, [started, meta, body, baseline]);
+  }, [started, doc, baseline]);
 
   useEffect(() => {
     mm.listTemplates().then(setTemplates).catch(() => {});
   }, []);
 
-  async function startDraft(data: Frontmatter, nextBody: string) {
-    await mm.clearPastedImages();
-    setMeta(data);
-    setBody(nextBody);
-    setBaseline(joinDoc(data, nextBody));
+  async function startDraft(nextDoc: string) {
+    setDoc(nextDoc);
+    setLoadId((n) => n + 1);
+    setBaseline(nextDoc);
     resetPreviewOutput();
     setStarted(true);
   }
@@ -97,8 +97,7 @@ function Composer() {
     try {
       const mine = isUserTemplate(t) ? userTemplates.find((u) => USER_PREFIX + u.id === t) : undefined;
       if (isUserTemplate(t) && !mine) throw new Error("Template no longer exists");
-      const { data, body: templateBody } = splitDoc(mine ? mine.doc : await mm.readTemplate(t));
-      await startDraft(data, templateBody.replace(/^\n+/, ""));
+      await startDraft(mine ? mine.doc : await mm.readTemplate(t));
     } catch (e) {
       const msg = toMessage(e);
       setError(msg);
@@ -140,31 +139,37 @@ function Composer() {
               onPick={(t) => void loadTemplate(t)}
             />
           )}
-          {started && <SaveTemplate defaultName={meta.title === "Untitled" ? "" : String(meta.title ?? "")} existingNames={userTemplates.map((t) => t.name)} onSave={saveAsTemplate} />}
           <Branding />
-        </div>
-        <Separator orientation="vertical" className="h-5 self-center" />
-        {/* Edit: which part of the email is being edited */}
-        <div
-          className={cn("inline-flex items-center gap-0.5 rounded-lg bg-muted p-0.5", !started && "pointer-events-none opacity-50")}
-          role="tablist"
-          aria-label="Email content"
-        >
-          <SegmentButton active={tab === "details"} onClick={() => setTab("details")} hint="Subject, date, location, hosts, theme">
-            <ListChecks /> Details
-          </SegmentButton>
-          <SegmentButton active={tab === "message"} onClick={() => setTab("message")} hint="The Markdown text of the email">
-            <PenLine /> Message
-          </SegmentButton>
+          <ImageLibrary doc={doc} savedDocs={savedDocs} />
         </div>
         <div className="ml-auto flex items-center gap-3">
           {/* View */}
+          <div className="flex items-center gap-1" role="group" aria-label="View">
           <Tooltip>
             <TooltipTrigger
               render={
                 <Button
-                  variant={showPreview ? "secondary" : "ghost"}
+                  variant="ghost"
                   size="icon-sm"
+                  className={cn(fmOpen && PRESSED)}
+                  aria-pressed={fmOpen}
+                  disabled={!started || !fmAvailable}
+                  aria-label={fmOpen ? "Hide details" : "Show details"}
+                  onClick={() => editorRef.current && toggleFrontmatter(editorRef.current)}
+                />
+              }
+            >
+              <PanelTop />
+            </TooltipTrigger>
+            <TooltipContent>{fmOpen ? "Hide details (frontmatter)" : "Edit details (frontmatter)"}</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  className={cn(showPreview && PRESSED)}
                   aria-pressed={showPreview}
                   disabled={!started}
                   aria-label={showPreview ? "Hide preview" : "Show preview"}
@@ -176,8 +181,9 @@ function Composer() {
             </TooltipTrigger>
             <TooltipContent>{showPreview ? "Hide preview" : "Show preview"}</TooltipContent>
           </Tooltip>
+          </div>
           <Separator orientation="vertical" className="h-5 self-center" />
-          {/* Output: Export is secondary, Open in Mail is the primary action */}
+          {/* Output: export, open in Mail, and keep as a template */}
           <div className="flex items-center gap-1.5" role="group" aria-label="Output">
           <DropdownMenu>
             <Tooltip>
@@ -196,11 +202,12 @@ function Composer() {
             </DropdownMenuContent>
           </DropdownMenu>
           <Tooltip>
-            <TooltipTrigger render={<Button size="icon-sm" disabled={!started} aria-label="Open in Mail" onClick={() => void openInMail()} />}>
+            <TooltipTrigger render={<Button variant="outline" size="icon-sm" disabled={!started} aria-label="Open in Mail" onClick={() => void openInMail()} />}>
               <Mail />
             </TooltipTrigger>
             <TooltipContent>Open in Mail</TooltipContent>
           </Tooltip>
+          {started && <SaveTemplate defaultName={meta.title === "Untitled" ? "" : String(meta.title ?? "")} existingNames={userTemplates.map((t) => t.name)} onSave={saveAsTemplate} />}
           </div>
         </div>
       </div>
@@ -218,7 +225,7 @@ function Composer() {
               onDeleteUser={(id) => setUserTemplates(deleteUserTemplate(id))}
               dirty={false}
               onPick={(t) => void loadTemplate(t)}
-              onBlank={() => void startDraft(BLANK_META, BLANK_BODY).catch((e) => toast.error(toMessage(e)))}
+              onBlank={() => void startDraft(BLANK_DOC).catch((e) => toast.error(toMessage(e)))}
             />
           </div>
         </div>
@@ -234,26 +241,18 @@ function Composer() {
       >
         <ResizablePanel id="editor" defaultSize={`${layout.editor}%`} minSize="25%" className="min-w-0">
           <div className="flex h-full min-h-0 flex-col">
-            {!hintDismissed && (
-              <div className="flex items-start gap-2 border-b bg-muted/40 px-4 py-2 text-xs text-muted-foreground">
-                <p className="flex-1">
-                  The preview is built from two parts: <strong className="text-foreground">Details</strong> (the header, event card, hosts
-                  and agenda) and <strong className="text-foreground">Message</strong> (the Markdown body). Switch tabs to edit each;
-                  the preview updates as you type.
-                </p>
-                <Button variant="ghost" size="icon-xs" aria-label="Dismiss" onClick={dismissHint}><X /></Button>
-              </div>
-            )}
-            {tab === "details" ? (
-              <div className="min-h-0 flex-1 pt-1"><DetailsPanel meta={meta} onChange={setMeta} /></div>
-            ) : (
-              <ContextMenu>
-                <ContextMenuTrigger className="flex min-h-0 flex-1 flex-col">
-                  <SourceEditor value={body} onChange={setBody} />
-                </ContextMenuTrigger>
-                <ContextMenuContent>{exportMenuItems}</ContextMenuContent>
-              </ContextMenu>
-            )}
+            <ContextMenu>
+              <ContextMenuTrigger className="flex min-h-0 flex-1 flex-col">
+                <SourceEditor
+                  key={loadId}
+                  value={doc}
+                  onChange={setDoc}
+                  editorRef={editorRef}
+                  onFrontmatterChange={(open, available) => { setFmOpen(open); setFmAvailable(available); }}
+                />
+              </ContextMenuTrigger>
+              <ContextMenuContent>{exportMenuItems}</ContextMenuContent>
+            </ContextMenu>
           </div>
         </ResizablePanel>
         {showPreview && <ResizableHandle withHandle />}
@@ -294,23 +293,3 @@ function Composer() {
     </div>
   );
 }
-
-function SegmentButton({ active, onClick, hint, children }: { active: boolean; onClick: () => void; hint: string; children: React.ReactNode }) {
-  return (
-    <button
-      type="button"
-      role="tab"
-      aria-selected={active}
-      title={hint}
-      onClick={onClick}
-      className={cn(
-        "inline-flex h-6 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring [&_svg]:size-3.5",
-        active ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
-      )}
-    >
-      {children}
-    </button>
-  );
-}
-
-/** Logo tile: the preview itself is the button (click to choose a new file), like an avatar upload. */

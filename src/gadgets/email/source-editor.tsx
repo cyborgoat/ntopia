@@ -8,6 +8,8 @@ import { Bold, Code, Code2, Heading2, ImagePlus, Italic, Link2, List, ListOrdere
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useIsDark } from "@/hooks/use-is-dark";
+import { frontmatterExtensions, hasFrontmatter, isFrontmatterOpen } from "./frontmatter-extensions";
+import { insertImageRef } from "./image-refs";
 import * as mm from "./mdmailer";
 
 const IMAGE_EXTS = ["png", "jpg", "jpeg", "gif", "webp", "svg"];
@@ -82,33 +84,37 @@ function ToolButton({ label, onClick, children }: { label: string; onClick: () =
 
 const errText = toMessage;
 
-/** Plain Markdown source editor for the email body, with image import (button, paste and drop). */
-export function SourceEditor({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+/** Markdown editor for the whole email file (frontmatter + body), with image import (button, paste and drop). */
+export function SourceEditor({
+  value,
+  onChange,
+  editorRef,
+  onFrontmatterChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  /** Receives the editor view, so the page header can drive it (e.g. show or hide the frontmatter). */
+  editorRef?: React.MutableRefObject<EditorView | null>;
+  /** Called when the frontmatter is expanded or collapsed, or appears or disappears. */
+  onFrontmatterChange?: (open: boolean, available: boolean) => void;
+}) {
+  const onFmRef = useRef(onFrontmatterChange);
+  onFmRef.current = onFrontmatterChange;
   const viewRef = useRef<EditorView | null>(null);
   const dark = useIsDark();
 
-  const insertAtCursor = useCallback((text: string, view = viewRef.current) => {
+  /** Add each file to the image library and reference it at the cursor (a `photo:` line, or the body). */
+  const insertImages = useCallback(async (files: File[], view = viewRef.current) => {
     if (!view) return;
-    const { from, to } = view.state.selection.main;
-    view.dispatch({ changes: { from, to, insert: text }, selection: { anchor: from + text.length }, scrollIntoView: true });
-    view.focus();
-  }, []);
-
-  const insertImages = useCallback(
-    async (files: File[], view = viewRef.current) => {
-      try {
-        const lines: string[] = [];
-        for (const f of files) {
-          const rel = await mm.savePastedImage(new Uint8Array(await f.arrayBuffer()), f.type || "image/png");
-          lines.push(`![${f.name.replace(/\.[^.]+$/, "") || "image"}](${rel})`);
-        }
-        insertAtCursor(`${lines.join("\n")}\n`, view);
-      } catch (e) {
-        toast.error(errText(e));
+    try {
+      for (const f of files) {
+        const rel = await mm.savePastedImage(new Uint8Array(await f.arrayBuffer()), f.type || "image/png", f.name);
+        insertImageRef(view, rel, f.name.replace(/\.[^.]+$/, "") || "image");
       }
-    },
-    [insertAtCursor],
-  );
+    } catch (e) {
+      toast.error(errText(e));
+    }
+  }, []);
 
   const run = (fn: (v: EditorView) => void) => () => {
     if (viewRef.current) fn(viewRef.current);
@@ -118,6 +124,7 @@ export function SourceEditor({ value, onChange }: { value: string; onChange: (v:
     const imageFiles = (dt: DataTransfer | null) => Array.from(dt?.files ?? []).filter((f) => f.type.startsWith("image/"));
     return [
       markdown(),
+      frontmatterExtensions((open, available) => onFmRef.current?.(open, available)),
       EditorView.lineWrapping,
       keymap.of([
         { key: "Mod-b", run: (v) => (wrap(v, "**"), true) },
@@ -146,15 +153,12 @@ export function SourceEditor({ value, onChange }: { value: string; onChange: (v:
   async function pickImage() {
     try {
       const picked = await open({ multiple: true, filters: [{ name: "Images", extensions: IMAGE_EXTS }] });
-      if (!picked) return;
-      const paths = Array.isArray(picked) ? picked : [picked];
-      const lines: string[] = [];
-      for (const p of paths) {
-        const rel = await mm.importWorkAsset(p);
+      const view = viewRef.current;
+      if (!picked || !view) return;
+      for (const p of Array.isArray(picked) ? picked : [picked]) {
         const name = p.split(/[\\/]/).pop() ?? "image";
-        lines.push(`![${name.replace(/\.[^.]+$/, "")}](${rel})`);
+        insertImageRef(view, await mm.importWorkAsset(p), name.replace(/\.[^.]+$/, ""));
       }
-      insertAtCursor(`${lines.join("\n")}\n`);
     } catch (e) {
       toast.error(errText(e));
     }
@@ -177,16 +181,20 @@ export function SourceEditor({ value, onChange }: { value: string; onChange: (v:
         <ToolButton label="Code block" onClick={run((v) => insertBlock(v, "```\n\n```\n", 4))}><Code2 /></ToolButton>
         <ToolButton label="Divider" onClick={run((v) => insertBlock(v, "---\n"))}><Minus /></ToolButton>
         <Sep />
-        <ToolButton label="Import image" onClick={() => void pickImage()}><ImagePlus /></ToolButton>
+        <ToolButton label="Import image to the library" onClick={() => void pickImage()}><ImagePlus /></ToolButton>
       </div>
       <div className="min-h-0 flex-1 overflow-auto text-sm">
         <CodeMirror
           value={value}
           theme={dark ? "dark" : "light"}
           extensions={extensions}
-          basicSetup={{ lineNumbers: false, foldGutter: false }}
+          basicSetup={{ lineNumbers: false, foldGutter: false, autocompletion: false }}
           onChange={onChange}
-          onCreateEditor={(view) => { viewRef.current = view; }}
+          onCreateEditor={(view) => {
+            viewRef.current = view;
+            if (editorRef) editorRef.current = view;
+            onFmRef.current?.(isFrontmatterOpen(view.state), hasFrontmatter(view.state));
+          }}
           height="100%"
           style={{ height: "100%" }}
         />

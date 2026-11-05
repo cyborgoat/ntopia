@@ -1,5 +1,6 @@
 import { buildConfig } from "./branding";
 import { imageIO } from "./image-io";
+import { withDefaults } from "../frontmatter";
 
 // react-email and friends are heavy; keep them out of the startup bundle.
 const loadCore = () => import("@goatcheese/mdmailer-core");
@@ -17,6 +18,8 @@ export type RenderOutput = {
   html: string;
   eml?: string;
   png?: Uint8Array;
+  /** What was filled in or corrected so the email could render (a missing or misspelled type or language). */
+  defaults: string[];
 };
 
 // One hidden iframe at a time: image sizes are measured from layout, and parallel renders would race.
@@ -29,7 +32,8 @@ export function renderMarkdown(markdown: string, request: RenderRequest = {}): P
   return run;
 }
 
-async function renderNow(markdown: string, { eml, png }: RenderRequest): Promise<RenderOutput> {
+async function renderNow(source: string, { eml, png }: RenderRequest): Promise<RenderOutput> {
+  const { text: markdown, applied } = withDefaults(source);
   const core = await loadCore();
   const config = core.parseConfig(await buildConfig());
   const rendered = await core.renderEmail(markdown, { config, images: imageIO, plainText: Boolean(eml) });
@@ -46,7 +50,7 @@ async function renderNow(markdown: string, { eml, png }: RenderRequest): Promise
 
     const { qrImages } = await core.postProcessDocument(doc);
     const html = core.serializeDocument(doc);
-    const out: RenderOutput = { title: rendered.title, html };
+    const out: RenderOutput = { title: rendered.title, html, defaults: applied };
     if (eml) {
       out.eml = core.buildEml({
         subject: rendered.title,
