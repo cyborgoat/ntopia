@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { Bookmark, Mail, StickyNote, Timer } from "lucide-react";
+import { Mail, StickyNote, Timer } from "lucide-react";
 
 export type Gadget = { id: string; name: string; description: string; icon: LucideIcon; to: string };
 
@@ -15,16 +15,9 @@ export const gadgets: Gadget[] = [
   {
     id: "notes",
     name: "Notes",
-    description: "Scratch Markdown notes stored on this device.",
+    description: "Browse and edit text and images in a folder on this computer.",
     icon: StickyNote,
     to: "/gadgets/notes",
-  },
-  {
-    id: "links",
-    name: "Links",
-    description: "Pin runbooks, dashboards, and portals you open often.",
-    icon: Bookmark,
-    to: "/gadgets/links",
   },
   {
     id: "timer",

@@ -6,11 +6,10 @@ import { routeTree } from "./routeTree.gen";
 import { AuthProvider } from "@/lib/auth";
 import { AuthDialogProvider } from "@/components/auth-dialog";
 import { TODO_STORAGE_KEY } from "@/features/todo/store";
-import { LINKS_STORAGE_KEY } from "@/gadgets/links/store";
-import { NOTES_STORAGE_KEY } from "@/gadgets/notes/store";
+import { NOTES_DIR_KEY } from "@/gadgets/notes/workdir";
 import { HOME_SEEN_KEY } from "@/components/home-digest";
 import { STORAGE_KEYS, resetOrbit } from "@/lib/orbit";
-import { initStorage } from "@/lib/storage";
+import { initStorage, setItem } from "@/lib/storage";
 import "@mdxeditor/editor/style.css";
 import "./index.css";
 
@@ -25,7 +24,10 @@ declare module "@tanstack/react-router" {
   }
 }
 
-initStorage([...STORAGE_KEYS, TODO_STORAGE_KEY, HOME_SEEN_KEY, NOTES_STORAGE_KEY, LINKS_STORAGE_KEY]).then(() => {
+initStorage([...STORAGE_KEYS, TODO_STORAGE_KEY, HOME_SEEN_KEY, NOTES_DIR_KEY]).then(() => {
+  // Retired gadget data: the old in-app notes and the Links gadget.
+  void setItem("gadget-notes", null);
+  void setItem("gadget-links", null);
   // The client was built at import time, before storage loaded: rebuild it with the saved server URL.
   resetOrbit();
   ReactDOM.createRoot(document.getElementById("root")!).render(
