@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
+import { Route as AppNotebookRouteImport } from './routes/_app/notebook'
 import { Route as AppNotificationsRouteImport } from './routes/_app/notifications'
 import { Route as AppTodoRouteImport } from './routes/_app/todo'
 import { Route as AppAnnouncementsIndexRouteImport } from './routes/_app/announcements.index'
@@ -24,7 +25,6 @@ import { Route as AppDiscussionsNewRouteImport } from './routes/_app/discussions
 import { Route as AppEventsIndexRouteImport } from './routes/_app/events.index'
 import { Route as AppEventsIdRouteImport } from './routes/_app/events.$id'
 import { Route as AppGadgetsEmailRouteImport } from './routes/_app/gadgets.email'
-import { Route as AppGadgetsNotesRouteImport } from './routes/_app/gadgets.notes'
 import { Route as AppGadgetsTimerRouteImport } from './routes/_app/gadgets.timer'
 import { Route as AppNewsIndexRouteImport } from './routes/_app/news.index'
 import { Route as AppNewsIdRouteImport } from './routes/_app/news.$id'
@@ -37,6 +37,11 @@ const AppRoute = AppRouteImport.update({
 const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppNotebookRoute = AppNotebookRouteImport.update({
+  id: '/notebook',
+  path: '/notebook',
   getParentRoute: () => AppRoute,
 } as any)
 const AppNotificationsRoute = AppNotificationsRouteImport.update({
@@ -104,11 +109,6 @@ const AppGadgetsEmailRoute = AppGadgetsEmailRouteImport.update({
   path: '/gadgets/email',
   getParentRoute: () => AppRoute,
 } as any)
-const AppGadgetsNotesRoute = AppGadgetsNotesRouteImport.update({
-  id: '/gadgets/notes',
-  path: '/gadgets/notes',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppGadgetsTimerRoute = AppGadgetsTimerRouteImport.update({
   id: '/gadgets/timer',
   path: '/gadgets/timer',
@@ -132,6 +132,7 @@ const AppNewsNewRoute = AppNewsNewRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
+  '/notebook': typeof AppNotebookRoute
   '/notifications': typeof AppNotificationsRoute
   '/todo': typeof AppTodoRoute
   '/announcements/$id': typeof AppAnnouncementsIdRoute
@@ -141,7 +142,6 @@ export interface FileRoutesByFullPath {
   '/discussions/new': typeof AppDiscussionsNewRoute
   '/events/$id': typeof AppEventsIdRoute
   '/gadgets/email': typeof AppGadgetsEmailRoute
-  '/gadgets/notes': typeof AppGadgetsNotesRoute
   '/gadgets/timer': typeof AppGadgetsTimerRoute
   '/news/$id': typeof AppNewsIdRoute
   '/news/new': typeof AppNewsNewRoute
@@ -152,6 +152,7 @@ export interface FileRoutesByFullPath {
   '/news/': typeof AppNewsIndexRoute
 }
 export interface FileRoutesByTo {
+  '/notebook': typeof AppNotebookRoute
   '/notifications': typeof AppNotificationsRoute
   '/todo': typeof AppTodoRoute
   '/': typeof AppIndexRoute
@@ -162,7 +163,6 @@ export interface FileRoutesByTo {
   '/discussions/new': typeof AppDiscussionsNewRoute
   '/events/$id': typeof AppEventsIdRoute
   '/gadgets/email': typeof AppGadgetsEmailRoute
-  '/gadgets/notes': typeof AppGadgetsNotesRoute
   '/gadgets/timer': typeof AppGadgetsTimerRoute
   '/news/$id': typeof AppNewsIdRoute
   '/news/new': typeof AppNewsNewRoute
@@ -175,6 +175,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
+  '/_app/notebook': typeof AppNotebookRoute
   '/_app/notifications': typeof AppNotificationsRoute
   '/_app/todo': typeof AppTodoRoute
   '/_app/': typeof AppIndexRoute
@@ -185,7 +186,6 @@ export interface FileRoutesById {
   '/_app/discussions/new': typeof AppDiscussionsNewRoute
   '/_app/events/$id': typeof AppEventsIdRoute
   '/_app/gadgets/email': typeof AppGadgetsEmailRoute
-  '/_app/gadgets/notes': typeof AppGadgetsNotesRoute
   '/_app/gadgets/timer': typeof AppGadgetsTimerRoute
   '/_app/news/$id': typeof AppNewsIdRoute
   '/_app/news/new': typeof AppNewsNewRoute
@@ -199,6 +199,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/notebook'
     | '/notifications'
     | '/todo'
     | '/announcements/$id'
@@ -208,7 +209,6 @@ export interface FileRouteTypes {
     | '/discussions/new'
     | '/events/$id'
     | '/gadgets/email'
-    | '/gadgets/notes'
     | '/gadgets/timer'
     | '/news/$id'
     | '/news/new'
@@ -219,6 +219,7 @@ export interface FileRouteTypes {
     | '/news/'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/notebook'
     | '/notifications'
     | '/todo'
     | '/'
@@ -229,7 +230,6 @@ export interface FileRouteTypes {
     | '/discussions/new'
     | '/events/$id'
     | '/gadgets/email'
-    | '/gadgets/notes'
     | '/gadgets/timer'
     | '/news/$id'
     | '/news/new'
@@ -241,6 +241,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/_app'
+    | '/_app/notebook'
     | '/_app/notifications'
     | '/_app/todo'
     | '/_app/'
@@ -251,7 +252,6 @@ export interface FileRouteTypes {
     | '/_app/discussions/new'
     | '/_app/events/$id'
     | '/_app/gadgets/email'
-    | '/_app/gadgets/notes'
     | '/_app/gadgets/timer'
     | '/_app/news/$id'
     | '/_app/news/new'
@@ -280,6 +280,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/notebook': {
+      id: '/_app/notebook'
+      path: '/notebook'
+      fullPath: '/notebook'
+      preLoaderRoute: typeof AppNotebookRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/notifications': {
@@ -373,13 +380,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppGadgetsEmailRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/gadgets/notes': {
-      id: '/_app/gadgets/notes'
-      path: '/gadgets/notes'
-      fullPath: '/gadgets/notes'
-      preLoaderRoute: typeof AppGadgetsNotesRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/_app/gadgets/timer': {
       id: '/_app/gadgets/timer'
       path: '/gadgets/timer'
@@ -412,6 +412,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppRouteChildren {
+  AppNotebookRoute: typeof AppNotebookRoute
   AppNotificationsRoute: typeof AppNotificationsRoute
   AppTodoRoute: typeof AppTodoRoute
   AppIndexRoute: typeof AppIndexRoute
@@ -422,7 +423,6 @@ interface AppRouteChildren {
   AppDiscussionsNewRoute: typeof AppDiscussionsNewRoute
   AppEventsIdRoute: typeof AppEventsIdRoute
   AppGadgetsEmailRoute: typeof AppGadgetsEmailRoute
-  AppGadgetsNotesRoute: typeof AppGadgetsNotesRoute
   AppGadgetsTimerRoute: typeof AppGadgetsTimerRoute
   AppNewsIdRoute: typeof AppNewsIdRoute
   AppNewsNewRoute: typeof AppNewsNewRoute
@@ -434,6 +434,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppNotebookRoute: AppNotebookRoute,
   AppNotificationsRoute: AppNotificationsRoute,
   AppTodoRoute: AppTodoRoute,
   AppIndexRoute: AppIndexRoute,
@@ -444,7 +445,6 @@ const AppRouteChildren: AppRouteChildren = {
   AppDiscussionsNewRoute: AppDiscussionsNewRoute,
   AppEventsIdRoute: AppEventsIdRoute,
   AppGadgetsEmailRoute: AppGadgetsEmailRoute,
-  AppGadgetsNotesRoute: AppGadgetsNotesRoute,
   AppGadgetsTimerRoute: AppGadgetsTimerRoute,
   AppNewsIdRoute: AppNewsIdRoute,
   AppNewsNewRoute: AppNewsNewRoute,

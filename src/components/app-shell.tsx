@@ -3,7 +3,7 @@ import { RequireAuth } from "@/components/require-auth";
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Bell, BookOpen, CalendarDays, ChevronRight, ChevronsUpDown, Home, KeyRound, ListTodo, LogIn, LogOut, Megaphone, MessagesSquare, Newspaper, Server, Toolbox, UserRound,
+  Bell, BookOpen, CalendarDays, ChevronRight, ChevronsUpDown, Home, KeyRound, ListTodo, LogIn, LogOut, Megaphone, MessagesSquare, Newspaper, NotebookText, Server, Toolbox, UserRound,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -56,6 +56,7 @@ import { useNotificationsSocket } from "@/lib/realtime";
 const localNav = [
   { to: "/", label: "Home", icon: Home },
   { to: "/todo", label: "Todo", icon: ListTodo },
+  { to: "/notebook", label: "Notebook", icon: NotebookText },
 ] as const;
 
 const orbitNav = [
@@ -68,7 +69,7 @@ const orbitNav = [
 
 /** Team Orbit areas: guests see a sign-in prompt here instead of failing API calls. */
 const ORBIT_PATHS = [...orbitNav.map((n) => n.to), "/notifications"];
-const FULL_BLEED = ["/gadgets/email", "/gadgets/notes", "/todo", "/blog/new", "/news/new", "/discussions/new"];
+const FULL_BLEED = ["/gadgets/email", "/notebook", "/todo", "/blog/new", "/news/new", "/discussions/new"];
 const MARK = "text-[1.65rem] font-semibold tracking-[-0.06em]";
 
 /** In the icon rail, a click expands the sidebar instead of navigating. */

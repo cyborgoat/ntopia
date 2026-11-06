@@ -6,7 +6,7 @@ import { routeTree } from "./routeTree.gen";
 import { AuthProvider } from "@/lib/auth";
 import { AuthDialogProvider } from "@/components/auth-dialog";
 import { TODO_STORAGE_KEY } from "@/features/todo/store";
-import { NOTES_DIR_KEY } from "@/gadgets/notes/workdir";
+import { NOTES_DIR_KEY } from "@/gadgets/notebook/workdir";
 import { HOME_SEEN_KEY } from "@/components/home-digest";
 import { STORAGE_KEYS, resetOrbit } from "@/lib/orbit";
 import { initStorage, setItem } from "@/lib/storage";

@@ -11,14 +11,15 @@ import { SidebarPill } from "@/components/sidebar-pill";
 import { usePanelLayout, usePersistedFlag } from "@/lib/prefs";
 import { isTauri } from "@/lib/storage";
 import { toMessage } from "@/lib/utils";
-import { ConfirmDialog, type Confirm } from "@/gadgets/notes/confirm-dialog";
-import { FileTree } from "@/gadgets/notes/file-tree";
-import { FileViewer } from "@/gadgets/notes/file-viewer";
-import { removeEntry } from "@/gadgets/notes/fs";
-import { getWorkDir, setWorkDir } from "@/gadgets/notes/workdir";
+import { ConfirmDialog, type Confirm } from "@/gadgets/notebook/confirm-dialog";
+import { FileTree } from "@/gadgets/notebook/file-tree";
+import { FileViewer } from "@/gadgets/notebook/file-viewer";
+import { removeEntry } from "@/gadgets/notebook/fs";
+import { getWorkDir, setWorkDir } from "@/gadgets/notebook/workdir";
 
-export const Route = createFileRoute("/_app/gadgets/notes")({ component: NotesGadget });
+export const Route = createFileRoute("/_app/notebook")({ component: NotebookPage });
 
+// Storage keys keep their original "notes" names so saved folder and layout carry over.
 const LAYOUT_KEY = "ntopia.notes.layout";
 const COLLAPSE_KEY = "ntopia.notes.sidebar-collapsed";
 const DEFAULT_LAYOUT = { sidebar: 24, editor: 76 };
@@ -26,7 +27,7 @@ const DEFAULT_LAYOUT = { sidebar: 24, editor: 76 };
 const baseName = (p: string) => p.split(/[\\/]/).filter(Boolean).pop() ?? p;
 const within = (path: string, dir: string) => path === dir || path.startsWith(dir + "/") || path.startsWith(dir + "\\");
 
-function NotesGadget() {
+function NotebookPage() {
   const [root, setRoot] = useState(() => getWorkDir());
   // Null while the saved folder is being checked; false when it can't be opened any more.
   const [rootOk, setRootOk] = useState<boolean | null>(root ? null : false);
@@ -46,7 +47,7 @@ function NotesGadget() {
 
   async function chooseFolder() {
     try {
-      const picked = await open({ directory: true, multiple: false, defaultPath: root || undefined, title: "Choose the notes working folder" });
+      const picked = await open({ directory: true, multiple: false, defaultPath: root || undefined, title: "Choose the notebook working folder" });
       if (typeof picked !== "string") return;
       await setWorkDir(picked);
       setSelected(null);
@@ -73,7 +74,7 @@ function NotesGadget() {
   if (!isTauri() || !root || rootOk === false) {
     return (
       <div className="flex h-full min-h-0 flex-col">
-        <PageHeader title="Notes" />
+        <PageHeader title="Notebook" />
         <div className="flex flex-1 items-center justify-center border-t p-8">
           <div className="flex max-w-sm flex-col items-center gap-3 text-center">
             <FolderOpen className="size-10 text-muted-foreground" />
@@ -85,7 +86,7 @@ function NotesGadget() {
                 <p className="text-sm text-muted-foreground">
                   {root
                     ? `Can't open “${root}”. It may have been moved or deleted.`
-                    : "Notes shows the files in a folder on this computer. Text and Markdown files can be edited, and images are previewed."}
+                    : "Notebook shows the files in a folder on this computer. Text and Markdown files can be edited, and images are previewed."}
                 </p>
                 <Button onClick={() => void chooseFolder()}><FolderOpen /> Choose folder</Button>
               </>
@@ -128,7 +129,7 @@ function NotesGadget() {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <PageHeader title="Notes" />
+      <PageHeader title="Notebook" />
       <div className="relative flex min-h-0 flex-1 border-t">
         {collapsed ? (
           <>
