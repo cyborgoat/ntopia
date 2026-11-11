@@ -1,6 +1,6 @@
 # NTOPIA
 
-Desktop team hub: optional Team Orbit sign-in for announcements, events, news, blog, discussions, and live notifications — plus **local gadgets** (email, notes, links, timer) and a Todo feature that work offline without an account.
+Desktop team hub: optional Team Orbit sign-in for announcements, events, news, blog, discussions, and live notifications — plus **local gadgets** (email, notes, links) and a Todo feature that work offline without an account.
 
 Built with **Tauri v2**, **React + TanStack Router/Query**, **Tailwind v4 + shadcn/ui**.
 
@@ -41,10 +41,6 @@ Scratch Markdown notes on this device (`plugin-store`), with folders, trash, and
 ### Links (`/gadgets/links`)
 
 Local bookmark shelf for runbooks and dashboards; opens in the system browser.
-
-### Timer (`/gadgets/timer`)
-
-Focus / break countdown with 25 / 5 / 15 presets or a custom hours–minutes–seconds duration. Session-only; nothing persisted.
 
 ### Todo (`/todo`, sidebar)
 

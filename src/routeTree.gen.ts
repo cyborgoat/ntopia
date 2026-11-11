@@ -26,7 +26,6 @@ import { Route as AppDiscussionsNewRouteImport } from './routes/_app/discussions
 import { Route as AppEventsIndexRouteImport } from './routes/_app/events.index'
 import { Route as AppEventsIdRouteImport } from './routes/_app/events.$id'
 import { Route as AppGadgetsEmailRouteImport } from './routes/_app/gadgets.email'
-import { Route as AppGadgetsTimerRouteImport } from './routes/_app/gadgets.timer'
 import { Route as AppNewsIndexRouteImport } from './routes/_app/news.index'
 import { Route as AppNewsIdRouteImport } from './routes/_app/news.$id'
 import { Route as AppNewsNewRouteImport } from './routes/_app/news.new'
@@ -115,11 +114,6 @@ const AppGadgetsEmailRoute = AppGadgetsEmailRouteImport.update({
   path: '/gadgets/email',
   getParentRoute: () => AppRoute,
 } as any)
-const AppGadgetsTimerRoute = AppGadgetsTimerRouteImport.update({
-  id: '/gadgets/timer',
-  path: '/gadgets/timer',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppNewsIndexRoute = AppNewsIndexRouteImport.update({
   id: '/news/',
   path: '/news/',
@@ -149,7 +143,6 @@ export interface FileRoutesByFullPath {
   '/discussions/new': typeof AppDiscussionsNewRoute
   '/events/$id': typeof AppEventsIdRoute
   '/gadgets/email': typeof AppGadgetsEmailRoute
-  '/gadgets/timer': typeof AppGadgetsTimerRoute
   '/news/$id': typeof AppNewsIdRoute
   '/news/new': typeof AppNewsNewRoute
   '/announcements/': typeof AppAnnouncementsIndexRoute
@@ -171,7 +164,6 @@ export interface FileRoutesByTo {
   '/discussions/new': typeof AppDiscussionsNewRoute
   '/events/$id': typeof AppEventsIdRoute
   '/gadgets/email': typeof AppGadgetsEmailRoute
-  '/gadgets/timer': typeof AppGadgetsTimerRoute
   '/news/$id': typeof AppNewsIdRoute
   '/news/new': typeof AppNewsNewRoute
   '/announcements': typeof AppAnnouncementsIndexRoute
@@ -195,7 +187,6 @@ export interface FileRoutesById {
   '/_app/discussions/new': typeof AppDiscussionsNewRoute
   '/_app/events/$id': typeof AppEventsIdRoute
   '/_app/gadgets/email': typeof AppGadgetsEmailRoute
-  '/_app/gadgets/timer': typeof AppGadgetsTimerRoute
   '/_app/news/$id': typeof AppNewsIdRoute
   '/_app/news/new': typeof AppNewsNewRoute
   '/_app/announcements/': typeof AppAnnouncementsIndexRoute
@@ -219,7 +210,6 @@ export interface FileRouteTypes {
     | '/discussions/new'
     | '/events/$id'
     | '/gadgets/email'
-    | '/gadgets/timer'
     | '/news/$id'
     | '/news/new'
     | '/announcements/'
@@ -241,7 +231,6 @@ export interface FileRouteTypes {
     | '/discussions/new'
     | '/events/$id'
     | '/gadgets/email'
-    | '/gadgets/timer'
     | '/news/$id'
     | '/news/new'
     | '/announcements'
@@ -264,7 +253,6 @@ export interface FileRouteTypes {
     | '/_app/discussions/new'
     | '/_app/events/$id'
     | '/_app/gadgets/email'
-    | '/_app/gadgets/timer'
     | '/_app/news/$id'
     | '/_app/news/new'
     | '/_app/announcements/'
@@ -399,13 +387,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppGadgetsEmailRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/gadgets/timer': {
-      id: '/_app/gadgets/timer'
-      path: '/gadgets/timer'
-      fullPath: '/gadgets/timer'
-      preLoaderRoute: typeof AppGadgetsTimerRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/_app/news/': {
       id: '/_app/news/'
       path: '/news'
@@ -443,7 +424,6 @@ interface AppRouteChildren {
   AppDiscussionsNewRoute: typeof AppDiscussionsNewRoute
   AppEventsIdRoute: typeof AppEventsIdRoute
   AppGadgetsEmailRoute: typeof AppGadgetsEmailRoute
-  AppGadgetsTimerRoute: typeof AppGadgetsTimerRoute
   AppNewsIdRoute: typeof AppNewsIdRoute
   AppNewsNewRoute: typeof AppNewsNewRoute
   AppAnnouncementsIndexRoute: typeof AppAnnouncementsIndexRoute
@@ -466,7 +446,6 @@ const AppRouteChildren: AppRouteChildren = {
   AppDiscussionsNewRoute: AppDiscussionsNewRoute,
   AppEventsIdRoute: AppEventsIdRoute,
   AppGadgetsEmailRoute: AppGadgetsEmailRoute,
-  AppGadgetsTimerRoute: AppGadgetsTimerRoute,
   AppNewsIdRoute: AppNewsIdRoute,
   AppNewsNewRoute: AppNewsNewRoute,
   AppAnnouncementsIndexRoute: AppAnnouncementsIndexRoute,

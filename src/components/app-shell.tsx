@@ -49,6 +49,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { PageChromeProvider, usePageChrome } from "@/components/page-chrome";
 import { useAuthDialog } from "@/components/auth-dialog";
 import { useAuth } from "@/lib/auth";
+import { isPrivileged } from "@/lib/roles";
 import { orbit } from "@/lib/orbit";
 import { useNotificationsSocket } from "@/lib/realtime";
 
@@ -114,11 +115,15 @@ function NavItems({
 /** "Gadgets" parent item that expands in place to list each gadget; each entry opens the gadget directly. */
 function GadgetsMenu({ pathname }: { pathname: string }) {
   const { state, setOpen } = useSidebar();
+  const { user } = useAuth();
+  const visible = gadgets.filter((g) => !g.privileged || isPrivileged(user));
   const inGadget = pathname.startsWith("/gadgets");
   const [open, setOpenGroup] = useState(inGadget);
   useEffect(() => {
     if (inGadget) setOpenGroup(true);
   }, [inGadget]);
+
+  if (visible.length === 0) return null;
 
   return (
     <SidebarMenu>
@@ -143,7 +148,7 @@ function GadgetsMenu({ pathname }: { pathname: string }) {
         </CollapsibleTrigger>
         <CollapsibleContent>
           <SidebarMenuSub>
-            {gadgets.map((g) => (
+            {visible.map((g) => (
               <SidebarMenuSubItem key={g.id}>
                 <SidebarMenuSubButton render={<Link to={g.to} />} isActive={pathname === g.to || pathname.startsWith(`${g.to}/`)}>
                   <g.icon />

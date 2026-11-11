@@ -8,10 +8,9 @@ Gadgets are **local tools** that run inside NTOPIA without Team Orbit. They appe
 
 | Id | Route | Storage | Notes |
 |----|--------|---------|--------|
-| `email` | `/gadgets/email` | App data `email/` + `@goatcheese/mdmailer-core` (in-process) | Markdown → branded HTML / EML / PNG; live preview. Details in [architecture.md](./architecture.md#gadgets). |
+| `email` | `/gadgets/email` | App data `email/` + `@goatcheese/mdmailer-core` (in-process) | Admin and superuser only. Language-first template picker (default templates fixed, user templates addable/deletable) and a help dialog. Markdown → branded HTML / EML / PNG; live preview. Details in [architecture.md](./architecture.md#gadgets). |
 | `notes` | `/gadgets/notes` | `plugin-store` key `gadget-notes` | Scratch Markdown notes with folders, soft-delete trash, resizable sidebar |
 | `links` | `/gadgets/links` | `plugin-store` key `gadget-links` | Local bookmark shelf; opens in the system browser |
-| `timer` | `/gadgets/timer` | session only (no persist) | Focus countdown with presets and custom h/m/s |
 
 ## Adding a gadget
 

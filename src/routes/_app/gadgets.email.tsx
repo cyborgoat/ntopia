@@ -15,6 +15,9 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
+import { PageHeader } from "@/components/page-header";
+import { useAuth } from "@/lib/auth";
+import { isPrivileged } from "@/lib/roles";
 import { isTauri } from "@/lib/storage";
 import { SourceEditor } from "@/gadgets/email/source-editor";
 import { toggleFrontmatter } from "@/gadgets/email/frontmatter-extensions";
@@ -26,12 +29,14 @@ import { TemplateGallery, TemplatePicker } from "@/gadgets/email/template-picker
 import { splitDoc } from "@/gadgets/email/frontmatter";
 import { loadDraft, saveDraft } from "@/gadgets/email/draft";
 import { SaveTemplate } from "@/gadgets/email/save-template";
+import { EmailHelp } from "@/gadgets/email/help-dialog";
 import { USER_PREFIX, deleteUserTemplate, isUserTemplate, loadUserTemplates, saveUserTemplate } from "@/gadgets/email/user-templates";
 import * as mm from "@/gadgets/email/mdmailer";
 
 export const Route = createFileRoute("/_app/gadgets/email")({ component: EmailGadget });
 
-const BLANK_DOC = "---\ntitle: Untitled\ntype: news\nlang: en\n---\n\n## Hello\n\nWrite your message…\n";
+const blankDoc = (lang = "en") => `---\ntitle: Untitled\ntype: news\nlang: ${lang}\n---\n\n## Hello\n\nWrite your message…\n`;
+const BLANK_DOC = blankDoc();
 const LAYOUT_KEY = "ntopia.email-composer.layout";
 const PREVIEW_KEY = "ntopia.email-composer.preview";
 /** Header toggle that is switched on: a clearly darker fill than the hover state. */
@@ -39,6 +44,15 @@ const PRESSED = "bg-foreground/15 text-foreground hover:bg-foreground/20 dark:bg
 const DEFAULT_LAYOUT = { editor: 50, preview: 50 };
 
 function EmailGadget() {
+  const { user } = useAuth();
+  if (!isPrivileged(user)) {
+    return (
+      <>
+        <PageHeader title="Email composer" />
+        <p className="text-sm text-muted-foreground">The email composer is available to admins only.</p>
+      </>
+    );
+  }
   if (!isTauri()) {
     return <p className="text-sm text-muted-foreground">The email composer needs the desktop app (run with <code>pnpm tauri dev</code>).</p>;
   }
@@ -110,6 +124,11 @@ function Composer() {
     toast.success(`Saved template “${name}”`);
   }
 
+  function addUserTemplate(name: string, templateDoc: string, lang: string) {
+    setUserTemplates(saveUserTemplate(name, templateDoc, lang));
+    toast.success(`Added template “${name}”`);
+  }
+
   const { exportMd, exportOne, exportAll, openInMail } = useEmailExport(meta, doc);
 
   const exportMenuItems = (
@@ -135,12 +154,14 @@ function Composer() {
               templates={templates}
               userTemplates={userTemplates}
               onDeleteUser={(id) => setUserTemplates(deleteUserTemplate(id))}
+              onAddUser={addUserTemplate}
               dirty={doc !== baseline}
               onPick={(t) => void loadTemplate(t)}
             />
           )}
           <Branding />
           <ImageLibrary doc={doc} savedDocs={savedDocs} />
+          <EmailHelp />
         </div>
         <div className="ml-auto flex items-center gap-3">
           {/* View */}
@@ -223,9 +244,10 @@ function Composer() {
               templates={templates}
               userTemplates={userTemplates}
               onDeleteUser={(id) => setUserTemplates(deleteUserTemplate(id))}
+              onAddUser={addUserTemplate}
               dirty={false}
               onPick={(t) => void loadTemplate(t)}
-              onBlank={() => void startDraft(BLANK_DOC).catch((e) => toast.error(toMessage(e)))}
+              onBlank={(lang) => void startDraft(blankDoc(lang)).catch((e) => toast.error(toMessage(e)))}
             />
           </div>
         </div>

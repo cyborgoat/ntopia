@@ -1,7 +1,15 @@
 import type { LucideIcon } from "lucide-react";
-import { Mail, Timer } from "lucide-react";
+import { Mail } from "lucide-react";
 
-export type Gadget = { id: string; name: string; description: string; icon: LucideIcon; to: string };
+export type Gadget = {
+  id: string;
+  name: string;
+  description: string;
+  icon: LucideIcon;
+  to: string;
+  /** Only admins and superusers see and can open this gadget. */
+  privileged?: boolean;
+};
 
 /** Add a gadget: create a route under routes/_app/gadgets.<id>.tsx and register it here. */
 export const gadgets: Gadget[] = [
@@ -11,12 +19,6 @@ export const gadgets: Gadget[] = [
     description: "Write Markdown and turn it into a branded HTML / EML / PNG email.",
     icon: Mail,
     to: "/gadgets/email",
-  },
-  {
-    id: "timer",
-    name: "Timer",
-    description: "Focus and break countdowns.",
-    icon: Timer,
-    to: "/gadgets/timer",
+    privileged: true,
   },
 ];

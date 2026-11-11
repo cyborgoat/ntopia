@@ -1,6 +1,6 @@
 # Architecture
 
-NTOPIA is a **Tauri v2 desktop client**. Auth and team data live in a separate **[team-orbit](https://github.com/cyborgoat/team-orbit)** backend; this repo only talks to it through `@goatcheese/teamorbit-client`. Local gadgets (email, notes, links, timer) and Todo work without signing in.
+NTOPIA is a **Tauri v2 desktop client**. Auth and team data live in a separate **[team-orbit](https://github.com/cyborgoat/team-orbit)** backend; this repo only talks to it through `@goatcheese/teamorbit-client`. Local gadgets (email, notes, links) and Todo work without signing in.
 
 ## Stack
 
@@ -65,7 +65,7 @@ Login is **optional**.
 
 | State | What you get |
 |--------|----------------|
-| Guest (no token) | Home hub, Todo, Gadgets (email, notes, links, timer), and the sign-in / server URL dialog. Team Orbit nav hidden. |
+| Guest (no token) | Home hub, Todo, Gadgets (email composer for admins only; notes, links), and the sign-in / server URL dialog. Team Orbit nav hidden. |
 | Signed in | Orbit nav + notifications + home feed. Profile/password in Settings. |
 
 - `_app` always renders `AppShell` after auth bootstrap (`src/routes/_app.tsx`). It does **not** redirect guests to `/login`.
@@ -90,7 +90,7 @@ File routes under `src/routes/`; generated tree in `src/routeTree.gen.ts`.
 |------|--------|--------|
 | Public | `/login`, `/register` | Outside the shell; login can “Continue without signing in” |
 | Shell | `/_app` → `AppShell` | Pathless layout; URLs stay `/`, `/gadgets`, … |
-| Local | `/`, `/gadgets/email`, `/gadgets/notes`, `/gadgets/links`, `/gadgets/timer`, `/todo` | No Orbit API required |
+| Local | `/`, `/gadgets/email`, `/gadgets/notes`, `/gadgets/links`, `/todo` | No Orbit API required |
 | Orbit | `/announcements`, `/events`, `/news`, `/news/new`, `/blog`, `/blog/new`, `/discussions/*`, `/notifications`; detail pages `/announcements/$id`, `/events/$id`, `/news/$id`, `/blog/$id`, `/discussions/$postId` | Behind `RequireAuth`; `*/new` composers are full-bleed (`FULL_BLEED` in `app-shell.tsx`) |
 
 ### Orbit feature notes (`@goatcheese/teamorbit-client` ≥ 0.2.3)
@@ -118,7 +118,7 @@ File routes under `src/routes/`; generated tree in `src/routeTree.gen.ts`.
 
 Gadgets are small local tools under the Gadgets sidebar menu. Register one in `src/gadgets/registry.ts` and add `src/routes/_app/gadgets.<id>.tsx`. First-class local features (Todo) stay in `src/features/` with their own nav item — see [gadgets.md](./gadgets.md).
 
-Built-ins: **email** (in-process mdmailer-core), **notes** (`gadget-notes` store with folders + trash, Markdown editor, full-bleed resizable sidebar), **links** (`gadget-links` store + system browser), **timer** (in-session countdown).
+Built-ins: **email** (in-process mdmailer-core), **notes** (`gadget-notes` store with folders + trash, Markdown editor, full-bleed resizable sidebar), **links** (`gadget-links` store + system browser).
 
 ### Email composer (`/gadgets/email`)
 
