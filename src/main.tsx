@@ -10,6 +10,7 @@ import { NOTES_DIR_KEY } from "@/gadgets/notebook/workdir";
 import { HOME_SEEN_KEY } from "@/components/home-digest";
 import { STORAGE_KEYS, resetOrbit } from "@/lib/orbit";
 import { initStorage, setItem } from "@/lib/storage";
+import { applySavedAppearance } from "@/features/settings/prefs";
 import "@mdxeditor/editor/style.css";
 import "./index.css";
 
@@ -30,6 +31,7 @@ initStorage([...STORAGE_KEYS, TODO_STORAGE_KEY, HOME_SEEN_KEY, NOTES_DIR_KEY]).t
   void setItem("gadget-links", null);
   // The client was built at import time, before storage loaded: rebuild it with the saved server URL.
   resetOrbit();
+  applySavedAppearance();
   ReactDOM.createRoot(document.getElementById("root")!).render(
     <React.StrictMode>
       <QueryClientProvider client={queryClient}>

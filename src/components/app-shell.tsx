@@ -1,9 +1,9 @@
 import { Fragment, type MouseEvent, useEffect, useState } from "react";
 import { RequireAuth } from "@/components/require-auth";
-import { Link, Outlet, useRouterState } from "@tanstack/react-router";
+import { Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Bell, BookOpen, CalendarDays, ChevronRight, ChevronsUpDown, Home, KeyRound, ListTodo, LogIn, LogOut, Megaphone, MessagesSquare, Newspaper, NotebookText, Server, Toolbox, UserRound,
+  Bell, BookOpen, CalendarDays, ChevronRight, ChevronsUpDown, Home, ListTodo, LogIn, LogOut, Megaphone, MessagesSquare, Newspaper, NotebookText, Server, Settings, Toolbox, UserRound,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -46,7 +46,6 @@ import {
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { gadgets } from "@/gadgets/registry";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { SettingsDialog, type SettingsPanel } from "@/components/settings-dialogs";
 import { PageChromeProvider, usePageChrome } from "@/components/page-chrome";
 import { useAuthDialog } from "@/components/auth-dialog";
 import { useAuth } from "@/lib/auth";
@@ -238,7 +237,7 @@ function InsetHeader({ fullBleed }: { fullBleed: boolean }) {
 export function AppShell() {
   const { user, token, logout, loading, unreachable } = useAuth();
   const openAuth = useAuthDialog();
-  const [panel, setPanel] = useState<SettingsPanel | null>(null);
+  const navigate = useNavigate();
   useNotificationsSocket();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const needsAuth = ORBIT_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
@@ -292,6 +291,16 @@ export function AppShell() {
               {token && (
                 <NotificationsItem pathname={pathname} unread={unread} />
               )}
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  render={<Link to="/settings" search={{ section: "appearance" }} />}
+                  isActive={pathname === "/settings"}
+                  tooltip="Settings"
+                >
+                  <Settings />
+                  <span>Settings</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
               {token ? (
                 user ? (
                   <SidebarMenuItem>
@@ -322,8 +331,8 @@ export function AppShell() {
                         </DropdownMenuGroup>
                         <DropdownMenuSeparator />
                         <DropdownMenuGroup>
-                          <DropdownMenuItem onClick={() => setPanel("profile")}><UserRound /> Profile</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => setPanel("password")}><KeyRound /> Password</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => void navigate({ to: "/settings", search: { section: "account" } })}><UserRound /> Account</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => void navigate({ to: "/settings", search: { section: "appearance" } })}><Settings /> Settings</DropdownMenuItem>
                         </DropdownMenuGroup>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem variant="destructive" onClick={logout}><LogOut /> Sign out</DropdownMenuItem>
@@ -382,7 +391,6 @@ export function AppShell() {
             </div>
           </SidebarInset>
         </PageChromeProvider>
-        <SettingsDialog panel={panel} onClose={() => setPanel(null)} />
       </SidebarProvider>
     </TooltipProvider>
   );

@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { toast } from "sonner";
 import { isPermissionGranted, requestPermission, sendNotification } from "@tauri-apps/plugin-notification";
+import { notifyEnabled } from "@/features/settings/prefs";
 import { isTauri } from "@/lib/storage";
 import { dueAt } from "./dates";
 import { listTodos, REMIND_OPTIONS, updateTodoSilently } from "./store";
@@ -9,8 +10,9 @@ const CHECK_MS = 30_000;
 export const TODO_REMINDER_EVENT = "todos:changed";
 
 async function notify(title: string, body?: string) {
+  if (!notifyEnabled("todo")) return;
   toast.message(title, { description: body });
-  if (!isTauri()) return;
+  if (!isTauri() || !notifyEnabled("native")) return;
   try {
     const granted = (await isPermissionGranted()) || (await requestPermission()) === "granted";
     if (granted) sendNotification({ title, body });

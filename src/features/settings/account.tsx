@@ -2,33 +2,20 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { AvatarSettings } from "@/components/avatar-settings";
 import { Field } from "@/components/form-dialog";
+import { SignInNotice } from "@/components/sign-in-notice";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/auth";
-import { errorMessage, orbit } from "@/lib/orbit";
+import { errorMessage, getServerUrl, orbit } from "@/lib/orbit";
+import { Group } from "./layout";
 
-export type SettingsPanel = "profile" | "password";
-
-function Section({ title, description, children }: { title: string; description: string; children: React.ReactNode }) {
-  return (
-    <>
-      <DialogHeader>
-        <DialogTitle>{title}</DialogTitle>
-        <DialogDescription>{description}</DialogDescription>
-      </DialogHeader>
-      <div className="space-y-5">{children}</div>
-    </>
-  );
-}
-
-function ProfileSection() {
+function ProfileForm() {
   const { user, setUser } = useAuth();
   const [name, setName] = useState(user?.fullName ?? "");
   const [email, setEmail] = useState(user?.email ?? "");
 
   return (
-    <Section title="Profile" description="How you appear to your team.">
+    <Group title="Profile" description="How you appear to your team.">
       <div className="flex items-center gap-4">
         <AvatarSettings />
         <div className="text-sm">
@@ -37,7 +24,7 @@ function ProfileSection() {
         </div>
       </div>
       <form
-        className="space-y-4"
+        className="max-w-sm space-y-4"
         onSubmit={async (e) => {
           e.preventDefault();
           const { data, error } = await orbit.PATCH("/api/auth/me", { body: { fullName: name, email: email.trim() || null } });
@@ -48,17 +35,17 @@ function ProfileSection() {
         <Field label="Email (optional)"><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></Field>
         <Button type="submit" size="sm">Save profile</Button>
       </form>
-    </Section>
+    </Group>
   );
 }
 
-function PasswordSection() {
+function PasswordForm() {
   const [pw, setPw] = useState({ currentPassword: "", newPassword: "" });
 
   return (
-    <Section title="Password" description="Change the password you use to sign in.">
+    <Group title="Password" description="Change the password you use to sign in.">
       <form
-        className="space-y-4"
+        className="max-w-sm space-y-4"
         onSubmit={async (e) => {
           e.preventDefault();
           const { error } = await orbit.POST("/api/auth/change-password", { body: pw });
@@ -69,17 +56,31 @@ function PasswordSection() {
         <Field label="New password"><Input type="password" required value={pw.newPassword} onChange={(e) => setPw({ ...pw, newPassword: e.target.value })} /></Field>
         <Button type="submit" size="sm">Change password</Button>
       </form>
-    </Section>
+    </Group>
   );
 }
 
-const PANELS = { profile: ProfileSection, password: PasswordSection };
+export function AccountSettings() {
+  const { token, user, unreachable, logout } = useAuth();
 
-export function SettingsDialog({ panel, onClose }: { panel: SettingsPanel | null; onClose: () => void }) {
-  const Panel = panel ? PANELS[panel] : null;
+  if (!token) {
+    return <SignInNotice>Sign in to manage your Team Orbit profile and password.</SignInNotice>;
+  }
   return (
-    <Dialog open={!!panel} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="sm:max-w-md">{Panel && <Panel />}</DialogContent>
-    </Dialog>
+    <>
+      {user && <ProfileForm />}
+      {user && <PasswordForm />}
+      <Group title="Connection" description="The Team Orbit server this app talks to.">
+        <div className="text-sm">
+          <div className="break-all font-mono text-xs">{getServerUrl() || "Not set"}</div>
+          <div className={unreachable ? "mt-1 text-destructive" : "mt-1 text-muted-foreground"}>
+            {unreachable ? "Can't reach the server." : user ? "Connected." : "Connecting…"}
+          </div>
+        </div>
+      </Group>
+      <Group title="Sign out" description="You'll need to sign in again to use Team Orbit.">
+        <Button variant="outline" size="sm" onClick={logout}>Sign out</Button>
+      </Group>
+    </>
   );
 }
