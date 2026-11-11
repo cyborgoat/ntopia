@@ -11,9 +11,11 @@ import { uploadImage } from "@/components/image-upload";
 import { useAuth } from "@/lib/auth";
 import { errorMessage, orbit } from "@/lib/orbit";
 import { cn, toMessage } from "@/lib/utils";
+import { useT } from "@/i18n";
 
 /** Settings avatar: click it to pick a preset (the default preset restores the default) or upload an image. */
 export function AvatarSettings() {
+  const tr = useT();
   const { user, setUser } = useAuth();
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
@@ -34,7 +36,7 @@ export function AvatarSettings() {
       const { data, error } = await orbit.PATCH("/api/auth/me", { body: { avatarUrl } });
       if (data) {
         setUser(data);
-        toast.success("Avatar updated");
+        toast.success(tr("avatar.updated"));
         setOpen(false);
       } else toast.error(errorMessage(error));
     } catch (e) {
@@ -59,7 +61,7 @@ export function AvatarSettings() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger
-        aria-label="Change avatar"
+        aria-label={tr("avatar.change")}
         className="group relative block size-16 shrink-0 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <Avatar className="size-16">
@@ -72,11 +74,11 @@ export function AvatarSettings() {
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Choose your avatar</DialogTitle>
-          <DialogDescription>Pick a preset or upload your own image.</DialogDescription>
+          <DialogTitle>{tr("avatar.choose")}</DialogTitle>
+          <DialogDescription>{tr("avatar.chooseHint")}</DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-4 gap-3" role="radiogroup" aria-label="Avatar presets">
+        <div className="grid grid-cols-4 gap-3" role="radiogroup" aria-label={tr("avatar.presets")}>
           {presets.map((p) => {
             const selected = p.url === user.avatarUrl;
             return (
@@ -112,7 +114,7 @@ export function AvatarSettings() {
           }}
         />
         <Button type="button" variant="outline" disabled={busy} onClick={() => input.current?.click()}>
-          <Upload /> Upload your own
+          <Upload /> {tr("avatar.upload")}
         </Button>
       </DialogContent>
     </Dialog>

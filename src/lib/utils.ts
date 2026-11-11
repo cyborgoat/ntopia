@@ -1,6 +1,7 @@
 import { clsx, type ClassValue } from "clsx";
 import { toast } from "sonner";
 import { twMerge } from "tailwind-merge";
+import { dateLocale, t } from "@/i18n";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -24,23 +25,23 @@ export function toMessage(e: unknown): string {
 }
 
 export function formatDateTime(d: string) {
-  return new Date(d).toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
+  return new Date(d).toLocaleString(dateLocale(), { dateStyle: "medium", timeStyle: "short" });
 }
 
 /** "just now", "5m ago", "3h ago", "2d ago", then a short date. */
 export function timeAgo(iso: string, now = Date.now()) {
   const mins = Math.max(0, Math.round((now - new Date(iso).getTime()) / 60_000));
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  if (mins < 60 * 24) return `${Math.floor(mins / 60)}h ago`;
-  if (mins < 60 * 24 * 7) return `${Math.floor(mins / (60 * 24))}d ago`;
-  return new Date(iso).toLocaleDateString([], { month: "short", day: "numeric" });
+  if (mins < 1) return t("common.justNow");
+  if (mins < 60) return t("common.minAgo", { n: mins });
+  if (mins < 60 * 24) return t("common.hourAgo", { n: Math.floor(mins / 60) });
+  if (mins < 60 * 24 * 7) return t("common.dayAgo", { n: Math.floor(mins / (60 * 24)) });
+  return new Date(iso).toLocaleDateString(dateLocale(), { month: "short", day: "numeric" });
 }
 
 /** Copies text to the clipboard and confirms with a toast, e.g. `copyText(url, "Link")` → "Link copied". */
 export function copyText(text: string, label: string) {
   navigator.clipboard.writeText(text).then(
-    () => toast.success(`${label} copied`),
-    () => toast.error("Could not copy to clipboard"),
+    () => toast.success(t("common.copied", { label })),
+    () => toast.error(t("common.copyFailed")),
   );
 }

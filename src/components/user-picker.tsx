@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { orbit } from "@/lib/orbit";
+import { useT } from "@/i18n";
 
 export type PickedUser = { id: string; fullName: string };
 
@@ -21,6 +22,7 @@ export function UserPicker({
   onChange: (next: PickedUser[]) => void;
   excludeIds?: string[];
 }) {
+  const tr = useT();
   const [q, setQ] = useState("");
   const selected = new Set(value.map((u) => u.id));
   const excluded = new Set(excludeIds);
@@ -47,7 +49,7 @@ export function UserPicker({
                 type="button"
                 className="rounded-full p-0.5 hover:bg-muted"
                 onClick={() => remove(u.id)}
-                aria-label={`Remove ${u.fullName}`}
+                aria-label={tr("user.remove", { name: u.fullName })}
               >
                 <X className="size-3" />
               </button>
@@ -58,12 +60,12 @@ export function UserPicker({
       <Input
         value={q}
         onChange={(e) => setQ(e.target.value)}
-        placeholder="Search members…"
+        placeholder={tr("user.search")}
         className="h-8"
       />
       <ul className="max-h-36 overflow-auto rounded-lg border">
         {results.length === 0 ? (
-          <li className="px-3 py-2 text-xs text-muted-foreground">{q ? "No matches." : "Type to search, or pick below."}</li>
+          <li className="px-3 py-2 text-xs text-muted-foreground">{q ? tr("user.noMatches") : tr("user.typeToSearch")}</li>
         ) : (
           results.map((u) => (
             <li key={u.id}>

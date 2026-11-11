@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useT } from "@/i18n";
 import { writePref } from "@/lib/prefs";
 import { isTauri } from "@/lib/storage";
 import { Group, Row, Toggle } from "./layout";
@@ -18,17 +19,18 @@ function Switch({ id, label, hint }: { id: NotifyKey; label: string; hint: strin
 }
 
 export function NotificationSettings() {
+  const tr = useT();
   return (
     <>
-      <Group title="Alerts" description="Choose what interrupts you. In-app toasts always follow these switches too.">
-        <Switch id="todo" label="Todo reminders" hint="Alert when a todo with a reminder comes due." />
-        <Switch id="orbit" label="Team Orbit activity" hint="Alert on new announcements, comments and mentions." />
+      <Group title={tr("settings.alerts")} description={tr("settings.alertsHint")}>
+        <Switch id="todo" label={tr("settings.todoReminders")} hint={tr("settings.todoRemindersHint")} />
+        <Switch id="orbit" label={tr("settings.orbitActivity")} hint={tr("settings.orbitActivityHint")} />
       </Group>
-      <Group title="Desktop" description="System notifications sent while the app is running.">
+      <Group title={tr("settings.desktop")} description={tr("settings.desktopHint")}>
         <Switch
           id="native"
-          label="Desktop notifications"
-          hint={isTauri() ? "Show OS notifications for the alerts above." : "Only available in the desktop app."}
+          label={tr("settings.desktopNotifications")}
+          hint={isTauri() ? tr("settings.desktopNotificationsHint") : tr("settings.desktopOnly")}
         />
       </Group>
     </>

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { errorMessage, orbit } from "@/lib/orbit";
+import { useT } from "@/i18n";
 
 /** Uploads an image to team-orbit and returns its server-relative URL. */
 export async function uploadImage(file: File): Promise<string> {
@@ -42,7 +43,8 @@ export function releaseStagedImages(markdown: string) {
   }
 }
 
-export function ImageUploadButton({ onUploaded, label = "Upload image" }: { onUploaded: (url: string) => void; label?: string }) {
+export function ImageUploadButton({ onUploaded, label }: { onUploaded: (url: string) => void; label?: string }) {
+  const tr = useT();
   const [busy, setBusy] = useState(false);
   return (
     <label>
@@ -63,7 +65,7 @@ export function ImageUploadButton({ onUploaded, label = "Upload image" }: { onUp
         }}
       />
       <Button type="button" variant="outline" size="sm" disabled={busy} onClick={(e) => e.currentTarget.parentElement?.querySelector("input")?.click()}>
-        {busy ? "Uploading…" : label}
+        {busy ? tr("upload.uploading") : (label ?? tr("upload.image"))}
       </Button>
     </label>
   );

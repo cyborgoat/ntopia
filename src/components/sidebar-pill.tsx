@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { t } from "@/i18n";
 
 /** Small pill on a panel edge that collapses or expands the panel. */
 export function SidebarPill({
@@ -15,7 +16,7 @@ export function SidebarPill({
   return (
     <button
       type="button"
-      aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+      aria-label={collapsed ? t("sidebar.expand") : t("sidebar.collapse")}
       onPointerDown={(e) => e.stopPropagation()}
       onClick={onToggle}
       className={cn(

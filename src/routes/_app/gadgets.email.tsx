@@ -32,10 +32,14 @@ import { SaveTemplate } from "@/gadgets/email/save-template";
 import { EmailHelp } from "@/gadgets/email/help-dialog";
 import { USER_PREFIX, deleteUserTemplate, isUserTemplate, loadUserTemplates, saveUserTemplate } from "@/gadgets/email/user-templates";
 import * as mm from "@/gadgets/email/mdmailer";
+import { useT } from "@/i18n";
 
 export const Route = createFileRoute("/_app/gadgets/email")({ component: EmailGadget });
 
-const blankDoc = (lang = "en") => `---\ntitle: Untitled\ntype: news\nlang: ${lang}\n---\n\n## Hello\n\nWrite your message…\n`;
+const blankDoc = (lang = "en") => {
+  const zh = lang === "zh";
+  return `---\ntitle: ${zh ? "无标题" : "Untitled"}\ntype: news\nlang: ${lang}\n---\n\n## ${zh ? "你好" : "Hello"}\n\n${zh ? "在此撰写你的邮件…" : "Write your message…"}\n`;
+};
 const BLANK_DOC = blankDoc();
 const LAYOUT_KEY = "ntopia.email-composer.layout";
 const PREVIEW_KEY = "ntopia.email-composer.preview";
@@ -45,21 +49,23 @@ const DEFAULT_LAYOUT = { editor: 50, preview: 50 };
 
 function EmailGadget() {
   const { user } = useAuth();
+  const tr = useT();
   if (!isPrivileged(user)) {
     return (
       <>
-        <PageHeader title="Email composer" />
-        <p className="text-sm text-muted-foreground">The email composer is available to admins only.</p>
+        <PageHeader title={tr("gadget.email.name")} />
+        <p className="text-sm text-muted-foreground">{tr("email.adminOnly")}</p>
       </>
     );
   }
   if (!isTauri()) {
-    return <p className="text-sm text-muted-foreground">The email composer needs the desktop app (run with <code>pnpm tauri dev</code>).</p>;
+    return <p className="text-sm text-muted-foreground">{tr("email.desktopOnly")}</p>;
   }
   return <Composer />;
 }
 
 function Composer() {
+  const tr = useT();
   // A saved draft is restored on mount; without one the user is asked to pick a template first.
   const [saved] = useState(loadDraft);
   const [started, setStarted] = useState(saved != null);
@@ -110,7 +116,7 @@ function Composer() {
   async function loadTemplate(t: string) {
     try {
       const mine = isUserTemplate(t) ? userTemplates.find((u) => USER_PREFIX + u.id === t) : undefined;
-      if (isUserTemplate(t) && !mine) throw new Error("Template no longer exists");
+      if (isUserTemplate(t) && !mine) throw new Error(tr("email.templateGone"));
       await startDraft(mine ? mine.doc : await mm.readTemplate(t));
     } catch (e) {
       const msg = toMessage(e);
@@ -121,26 +127,26 @@ function Composer() {
 
   function saveAsTemplate(name: string) {
     setUserTemplates(saveUserTemplate(name, doc, String(meta.lang ?? "en")));
-    toast.success(`Saved template “${name}”`);
+    toast.success(tr("email.savedTemplate", { name }));
   }
 
   function addUserTemplate(name: string, templateDoc: string, lang: string) {
     setUserTemplates(saveUserTemplate(name, templateDoc, lang));
-    toast.success(`Added template “${name}”`);
+    toast.success(tr("email.addedTemplate", { name }));
   }
 
   const { exportMd, exportOne, exportAll, openInMail } = useEmailExport(meta, doc);
 
   const exportMenuItems = (
     <>
-      <ContextMenuItem onClick={() => void openInMail()}><Mail /> Open in Mail</ContextMenuItem>
+      <ContextMenuItem onClick={() => void openInMail()}><Mail /> {tr("email.menu.openMail")}</ContextMenuItem>
       <ContextMenuSeparator />
-      <ContextMenuItem onClick={() => void exportMd()}><FileText /> Markdown</ContextMenuItem>
+      <ContextMenuItem onClick={() => void exportMd()}><FileText /> {tr("email.menu.markdown")}</ContextMenuItem>
       <ContextMenuItem onClick={() => void exportOne("html")}><FileCode /> HTML</ContextMenuItem>
       <ContextMenuItem onClick={() => void exportOne("eml")}><Mailbox /> EML</ContextMenuItem>
       <ContextMenuItem onClick={() => void exportOne("png")}><FileImage /> PNG</ContextMenuItem>
       <ContextMenuSeparator />
-      <ContextMenuItem onClick={() => void exportAll()}><FolderOpen /> Export all…</ContextMenuItem>
+      <ContextMenuItem onClick={() => void exportAll()}><FolderOpen /> {tr("email.menu.exportAll")}</ContextMenuItem>
     </>
   );
 
@@ -148,7 +154,7 @@ function Composer() {
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b px-4 py-2">
         {/* Start: where the draft comes from */}
-        <div className="flex items-center gap-1" role="group" aria-label="Start">
+        <div className="flex items-center gap-1" role="group" aria-label={tr("email.group.start")}>
           {started && (
             <TemplatePicker
               templates={templates}
@@ -165,7 +171,7 @@ function Composer() {
         </div>
         <div className="ml-auto flex items-center gap-3">
           {/* View */}
-          <div className="flex items-center gap-1" role="group" aria-label="View">
+          <div className="flex items-center gap-1" role="group" aria-label={tr("email.group.view")}>
           <Tooltip>
             <TooltipTrigger
               render={
@@ -175,14 +181,14 @@ function Composer() {
                   className={cn(fmOpen && PRESSED)}
                   aria-pressed={fmOpen}
                   disabled={!started || !fmAvailable}
-                  aria-label={fmOpen ? "Hide details" : "Show details"}
+                  aria-label={fmOpen ? tr("email.hideDetails") : tr("email.showDetails")}
                   onClick={() => editorRef.current && toggleFrontmatter(editorRef.current)}
                 />
               }
             >
               <PanelTop />
             </TooltipTrigger>
-            <TooltipContent>{fmOpen ? "Hide details (frontmatter)" : "Edit details (frontmatter)"}</TooltipContent>
+            <TooltipContent>{fmOpen ? tr("email.hideDetailsTip") : tr("email.editDetailsTip")}</TooltipContent>
           </Tooltip>
           <Tooltip>
             <TooltipTrigger
@@ -193,42 +199,42 @@ function Composer() {
                   className={cn(showPreview && PRESSED)}
                   aria-pressed={showPreview}
                   disabled={!started}
-                  aria-label={showPreview ? "Hide preview" : "Show preview"}
+                  aria-label={showPreview ? tr("email.hidePreview") : tr("email.showPreview")}
                   onClick={togglePreview}
                 />
               }
             >
               {showPreview ? <EyeOff /> : <Eye />}
             </TooltipTrigger>
-            <TooltipContent>{showPreview ? "Hide preview" : "Show preview"}</TooltipContent>
+            <TooltipContent>{showPreview ? tr("email.hidePreview") : tr("email.showPreview")}</TooltipContent>
           </Tooltip>
           </div>
           <Separator orientation="vertical" className="h-5 self-center" />
           {/* Output: export, open in Mail, and keep as a template */}
-          <div className="flex items-center gap-1.5" role="group" aria-label="Output">
+          <div className="flex items-center gap-1.5" role="group" aria-label={tr("email.group.output")}>
           <DropdownMenu>
             <Tooltip>
-              <TooltipTrigger render={<DropdownMenuTrigger render={<Button variant="outline" size="icon-sm" disabled={!started} aria-label="Export" />} />}>
+              <TooltipTrigger render={<DropdownMenuTrigger render={<Button variant="outline" size="icon-sm" disabled={!started} aria-label={tr("email.menu.export")} />} />}>
                 <Download />
               </TooltipTrigger>
-              <TooltipContent>Export</TooltipContent>
+              <TooltipContent>{tr("email.menu.export")}</TooltipContent>
             </Tooltip>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => void exportMd()}><FileText /> Markdown</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => void exportMd()}><FileText /> {tr("email.menu.markdown")}</DropdownMenuItem>
               <DropdownMenuItem onClick={() => void exportOne("html")}><FileCode /> HTML</DropdownMenuItem>
               <DropdownMenuItem onClick={() => void exportOne("eml")}><Mailbox /> EML</DropdownMenuItem>
               <DropdownMenuItem onClick={() => void exportOne("png")}><FileImage /> PNG</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => void exportAll()}><FolderOpen /> Export all…</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => void exportAll()}><FolderOpen /> {tr("email.menu.exportAll")}</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
           <Tooltip>
-            <TooltipTrigger render={<Button variant="outline" size="icon-sm" disabled={!started} aria-label="Open in Mail" onClick={() => void openInMail()} />}>
+            <TooltipTrigger render={<Button variant="outline" size="icon-sm" disabled={!started} aria-label={tr("email.menu.openMail")} onClick={() => void openInMail()} />}>
               <Mail />
             </TooltipTrigger>
-            <TooltipContent>Open in Mail</TooltipContent>
+            <TooltipContent>{tr("email.menu.openMail")}</TooltipContent>
           </Tooltip>
-          {started && <SaveTemplate defaultName={meta.title === "Untitled" ? "" : String(meta.title ?? "")} existingNames={userTemplates.map((t) => t.name)} onSave={saveAsTemplate} />}
+          {started && <SaveTemplate defaultName={meta.title === "Untitled" || meta.title === "无标题" ? "" : String(meta.title ?? "")} existingNames={userTemplates.map((t) => t.name)} onSave={saveAsTemplate} />}
           </div>
         </div>
       </div>
@@ -237,8 +243,8 @@ function Composer() {
         <div className="min-h-0 flex-1 overflow-auto">
           <div className="mx-auto flex max-w-4xl flex-col gap-4 px-4 py-8">
             <div className="space-y-1">
-              <h2 className="text-lg font-semibold">Choose a template to start</h2>
-              <p className="text-sm text-muted-foreground">Pick a ready-made layout. You can change every detail afterwards.</p>
+              <h2 className="text-lg font-semibold">{tr("email.chooseTemplate")}</h2>
+              <p className="text-sm text-muted-foreground">{tr("email.chooseTemplateHint")}</p>
             </div>
             <TemplateGallery
               templates={templates}
@@ -283,10 +289,10 @@ function Composer() {
             <ContextMenuTrigger className="flex h-full min-h-0 flex-col">
               <section className="flex h-full min-h-0 flex-col">
                 <div className="flex h-10 items-center justify-between gap-2 border-b px-4">
-                  <span className="text-sm font-medium">Preview</span>
+                  <span className="text-sm font-medium">{tr("email.preview")}</span>
                   {busy && (
                     <span className="flex items-center gap-1.5 text-xs text-muted-foreground" role="status">
-                      <Loader2 className="size-3.5 animate-spin" /> Rendering…
+                      <Loader2 className="size-3.5 animate-spin" /> {tr("email.rendering")}
                     </span>
                   )}
                 </div>
@@ -294,14 +300,14 @@ function Composer() {
                   {error && (
                     <div className="m-3 space-y-2 rounded-md border border-destructive/30 bg-background p-3">
                       <pre className="whitespace-pre-wrap text-xs text-destructive">{error}</pre>
-                      <Button size="sm" variant="outline" onClick={retryPreview}>Retry</Button>
+                      <Button size="sm" variant="outline" onClick={retryPreview}>{tr("common.retry")}</Button>
                     </div>
                   )}
-                  {html && <iframe title="Email preview" sandbox="" srcDoc={html} className="h-full w-full bg-white" />}
+                  {html && <iframe title={tr("email.previewTitle")} sandbox="" srcDoc={html} className="h-full w-full bg-white" />}
                   {!html && !error && (
                     <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-sm text-muted-foreground" role="status">
                       <Loader2 className="size-6 animate-spin" />
-                      <p>Rendering preview…</p>
+                      <p>{tr("email.renderingPreview")}</p>
                     </div>
                   )}
                 </div>

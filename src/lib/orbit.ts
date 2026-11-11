@@ -1,6 +1,7 @@
 import { createTeamOrbitClient } from "@goatcheese/teamorbit-client";
 import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
 import { getItem, isTauri, setItem } from "./storage";
+import { t } from "@/i18n";
 
 /** Preset via VITE_DEFAULT_SERVER; dev builds fall back to a local server, release builds start blank. */
 const DEFAULT_SERVER: string =
@@ -60,11 +61,11 @@ export function errorMessage(error: unknown, response?: Response): string {
   if (m) return Array.isArray(m) ? m.join(", ") : m;
   // No parseable error body, e.g. a proxy/gateway error page.
   if (response?.status && response.status >= 500)
-    return `The server at ${getServerUrl()} is unavailable (HTTP ${response.status}). Try again later.`;
+    return t("err.unavailable", { url: getServerUrl(), status: response.status });
   if (response?.status === 404)
-    return `No Team Orbit API found at ${getServerUrl()} (HTTP 404). Check the server URL.`;
-  if (response?.status) return `Request failed (HTTP ${response.status}).`;
-  return "Something went wrong";
+    return t("err.notFound", { url: getServerUrl() });
+  if (response?.status) return t("err.failed", { status: response.status });
+  return t("err.generic");
 }
 
 /** Resolves with the response data; an API error response becomes a thrown `Error` with a readable message. */
@@ -80,6 +81,6 @@ export async function reachable<T>(call: Promise<T>): Promise<T> {
     return await call;
   } catch (e) {
     const reason = e instanceof Error ? e.message : String(e);
-    throw new Error(`Can't reach the server at ${getServerUrl()} (${reason}). Check the server URL and that it is running.`);
+    throw new Error(t("err.unreachable", { url: getServerUrl(), reason }));
   }
 }

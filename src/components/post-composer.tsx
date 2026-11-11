@@ -9,6 +9,7 @@ import { TagInput, addTags } from "@/components/tag-input";
 import { releaseStagedImages, stageImage, uploadImage, uploadStagedImages } from "@/components/image-upload";
 import { usePageCrumbs, usePageTitle } from "@/components/page-chrome";
 import { assetUrl, imagePreviewUrl } from "@/lib/orbit";
+import { t, useT } from "@/i18n";
 
 export type PostDraft = { title: string; content: string; tags: string[]; coverImageUrl?: string };
 
@@ -20,7 +21,7 @@ const SUBMIT_HINT = typeof navigator !== "undefined" && /mac/i.test(navigator.pl
 export function PostComposer({
   pageTitle,
   backTo,
-  submitLabel = "Publish",
+  submitLabel,
   fields = { tags: true, cover: true },
   onPublish,
 }: {
@@ -31,9 +32,11 @@ export function PostComposer({
   /** Persists the post; throw to show an error. */
   onPublish: (draft: PostDraft) => Promise<void>;
 }) {
+  const tr = useT();
+  const submitText = submitLabel ?? tr("composer.publish");
   usePageTitle(pageTitle);
-  const section = { "/blog": "Blog", "/news": "News", "/discussions": "Discussions" }[backTo];
-  usePageCrumbs([{ label: "Home", to: "/" }, { label: section, to: backTo }, { label: "New" }]);
+  const section = tr({ "/blog": "nav.blog", "/news": "nav.news", "/discussions": "nav.discussions" }[backTo] as "nav.blog");
+  usePageCrumbs([{ label: tr("nav.home"), to: "/" }, { label: section, to: backTo }, { label: tr("common.new") }]);
   const navigate = useNavigate();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -51,15 +54,15 @@ export function PostComposer({
 
   const dirty = !!(title.trim() || content.trim() || tags.length || tagDraft.trim() || cover);
   useBlocker({
-    shouldBlockFn: () => dirty && !published.current && !window.confirm("Discard this draft?"),
+    shouldBlockFn: () => dirty && !published.current && !window.confirm(t("composer.discard")),
     enableBeforeUnload: () => dirty && !published.current,
   });
 
   async function publish() {
     if (busy) return;
     const next: Errors = {};
-    if (!title.trim()) next.title = "Give your post a title.";
-    if (!content.trim()) next.content = "Write something before publishing.";
+    if (!title.trim()) next.title = t("composer.needTitle");
+    if (!content.trim()) next.content = t("composer.needContent");
     setErrors(next);
     if (next.title) return titleInput.current?.focus();
     if (next.content) return editor.current?.focus();
@@ -103,8 +106,8 @@ export function PostComposer({
           <Input
             ref={titleInput}
             autoFocus
-            aria-label="Title"
-            placeholder="Title"
+            aria-label={tr("composer.title")}
+            placeholder={tr("composer.title")}
             value={title}
             aria-invalid={!!errors.title}
             onChange={(e) => {
@@ -126,7 +129,7 @@ export function PostComposer({
                   onChange={setTags}
                   draft={tagDraft}
                   onDraftChange={setTagDraft}
-                  placeholder="Add tags"
+                  placeholder={tr("composer.addTags")}
                   className="min-h-8 flex-1 border-transparent bg-transparent px-0 py-0 focus-within:border-transparent focus-within:ring-0 dark:bg-transparent"
                 />
               </div>
@@ -144,12 +147,12 @@ export function PostComposer({
                     if (f) void pickCover(f);
                   }}
                 />
-                {cover && <img src={assetUrl(cover)} alt="Cover preview" className="aspect-video h-8 rounded border object-cover" />}
+                {cover && <img src={assetUrl(cover)} alt={tr("composer.coverPreview")} className="aspect-video h-8 rounded border object-cover" />}
                 <Button type="button" variant="ghost" size="sm" disabled={coverBusy} onClick={() => coverInput.current?.click()}>
-                  <ImagePlus /> {coverBusy ? "Uploading…" : cover ? "Change cover" : "Add cover"}
+                  <ImagePlus /> {coverBusy ? tr("upload.uploading") : cover ? tr("composer.changeCover") : tr("composer.addCover")}
                 </Button>
                 {cover && (
-                  <Button type="button" variant="ghost" size="icon-sm" aria-label="Remove cover" title="Remove cover" onClick={() => setCover(undefined)}>
+                  <Button type="button" variant="ghost" size="icon-sm" aria-label={tr("composer.removeCover")} title={tr("composer.removeCover")} onClick={() => setCover(undefined)}>
                     <X />
                   </Button>
                 )}
@@ -167,7 +170,7 @@ export function PostComposer({
               setContent(v);
               if (errors.content) setErrors((x) => ({ ...x, content: undefined }));
             }}
-            placeholder="Write your post…"
+            placeholder={tr("composer.placeholder")}
             imageUploadHandler={stageImage}
             imagePreviewHandler={imagePreviewUrl}
             onSubmit={() => void publish()}
@@ -182,11 +185,11 @@ export function PostComposer({
           {errors.general ? (
             <p className="min-w-0 truncate text-sm text-destructive" role="alert" title={errors.general}>{errors.general}</p>
           ) : (
-            <p className="text-xs text-muted-foreground">{SUBMIT_HINT} to {submitLabel.toLowerCase()}</p>
+            <p className="text-xs text-muted-foreground">{tr("composer.toSubmit", { key: SUBMIT_HINT, action: submitText.toLowerCase() })}</p>
           )}
           <div className="flex shrink-0 items-center gap-2">
-            <Button variant="ghost" render={<Link to={backTo} />}>Cancel</Button>
-            <Button disabled={busy} onClick={() => void publish()}>{busy ? "Publishing…" : submitLabel}</Button>
+            <Button variant="ghost" render={<Link to={backTo} />}>{tr("common.cancel")}</Button>
+            <Button disabled={busy} onClick={() => void publish()}>{busy ? tr("composer.publishing") : submitText}</Button>
           </div>
         </div>
       </div>

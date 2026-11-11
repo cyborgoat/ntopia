@@ -1,5 +1,6 @@
 import { dirname, join } from "@tauri-apps/api/path";
 import { exists, mkdir, readDir, readFile, readTextFile, remove, rename, stat, writeTextFile } from "@tauri-apps/plugin-fs";
+import { t } from "@/i18n";
 
 export type FileKind = "markdown" | "text" | "image" | "other";
 export type Entry = { name: string; path: string; isDir: boolean };
@@ -32,7 +33,7 @@ export function kindOf(name: string): FileKind {
 /** A single file or folder name: no separators, no traversal. */
 export function validName(name: string): string {
   const n = name.trim();
-  if (!n || n === "." || n === ".." || /[\\/]/.test(n)) throw new Error(`"${name}" is not a valid name.`);
+  if (!n || n === "." || n === ".." || /[\\/]/.test(n)) throw new Error(t("notebook.invalidName", { name }));
   return n;
 }
 
@@ -48,7 +49,7 @@ export async function listDir(dir: string): Promise<Entry[]> {
 export const fileSize = async (path: string) => (await stat(path)).size;
 
 export async function readText(path: string): Promise<string> {
-  if ((await fileSize(path)) > MAX_TEXT_BYTES) throw new Error("This file is too large to open here (over 2 MB).");
+  if ((await fileSize(path)) > MAX_TEXT_BYTES) throw new Error(t("notebook.tooLarge"));
   return readTextFile(path);
 }
 
@@ -57,14 +58,14 @@ export const writeText = (path: string, content: string) => writeTextFile(path, 
 /** Create an empty file; fails rather than overwrite an existing one. */
 export async function createFile(dir: string, name: string): Promise<string> {
   const path = await join(dir, validName(name));
-  if (await exists(path)) throw new Error(`"${name}" already exists.`);
+  if (await exists(path)) throw new Error(t("notebook.exists", { name }));
   await writeTextFile(path, "");
   return path;
 }
 
 export async function createFolder(dir: string, name: string): Promise<string> {
   const path = await join(dir, validName(name));
-  if (await exists(path)) throw new Error(`"${name}" already exists.`);
+  if (await exists(path)) throw new Error(t("notebook.exists", { name }));
   await mkdir(path);
   return path;
 }
@@ -72,7 +73,7 @@ export async function createFolder(dir: string, name: string): Promise<string> {
 export async function renameEntry(path: string, name: string): Promise<string> {
   const next = await join(await dirname(path), validName(name));
   if (next === path) return path;
-  if (await exists(next)) throw new Error(`"${name}" already exists.`);
+  if (await exists(next)) throw new Error(t("notebook.exists", { name }));
   await rename(path, next);
   return next;
 }
@@ -85,11 +86,11 @@ export const isWithin = (path: string, dir: string) => path === dir || path.star
 
 /** Move a file or folder into another folder, keeping its name. Returns the new path. */
 export async function moveEntry(path: string, targetDir: string): Promise<string> {
-  if (isWithin(targetDir, path)) throw new Error("A folder can't be moved into itself.");
+  if (isWithin(targetDir, path)) throw new Error(t("notebook.moveIntoSelf"));
   const name = path.split(SEP).pop()!;
   const next = await join(targetDir, name);
   if (next === path) return path;
-  if (await exists(next)) throw new Error(`"${name}" already exists in that folder.`);
+  if (await exists(next)) throw new Error(t("notebook.existsInFolder", { name }));
   await rename(path, next);
   return next;
 }

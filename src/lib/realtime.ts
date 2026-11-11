@@ -7,6 +7,7 @@ import { notifyEnabled } from "@/features/settings/prefs";
 import { useAuth } from "./auth";
 import { getServerUrl } from "./orbit";
 import { isTauri } from "./storage";
+import { t } from "@/i18n";
 
 /** Live notifications from team-orbit: toast, refresh queries, native alert when unfocused. */
 export function useNotificationsSocket() {
@@ -19,7 +20,7 @@ export function useNotificationsSocket() {
     socket.on("notification:new", async (p: { title?: string; body?: string }) => {
       qc.invalidateQueries();
       if (!notifyEnabled("orbit")) return;
-      toast.message(p.title ?? "Notification", { description: p.body });
+      toast.message(p.title ?? t("notif.fallbackTitle"), { description: p.body });
       if (isTauri() && notifyEnabled("native") && !document.hasFocus() && (await isPermissionGranted())) {
         sendNotification({ title: p.title ?? "NTOPIA", body: p.body });
       }

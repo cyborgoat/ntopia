@@ -1,22 +1,23 @@
 import { createStore, newId, nowIso } from "@/lib/create-store";
+import type { MessageKey } from "@/i18n";
 
 const store = createStore<TodoItem[]>("todos", () => []);
 export const TODO_STORAGE_KEY = store.key;
 
 export type Remind = "none" | "at" | "10m" | "1h" | "1d";
 
-export const REMIND_OPTIONS: { value: Remind; label: string; ms: number }[] = [
-  { value: "none", label: "No reminder", ms: 0 },
-  { value: "at", label: "At due time", ms: 0 },
-  { value: "10m", label: "10 minutes before", ms: 10 * 60_000 },
-  { value: "1h", label: "1 hour before", ms: 60 * 60_000 },
-  { value: "1d", label: "1 day before", ms: 24 * 60 * 60_000 },
+export const REMIND_OPTIONS: { value: Remind; label: MessageKey; ms: number }[] = [
+  { value: "none", label: "todo.remind.none", ms: 0 },
+  { value: "at", label: "todo.remind.at", ms: 0 },
+  { value: "10m", label: "todo.remind.10m", ms: 10 * 60_000 },
+  { value: "1h", label: "todo.remind.1h", ms: 60 * 60_000 },
+  { value: "1d", label: "todo.remind.1d", ms: 24 * 60 * 60_000 },
 ];
 
 export type Urgency = "none" | "low" | "medium" | "high";
 
-export const URGENCY_OPTIONS: { value: Urgency; label: string; rank: number }[] = [
-  { value: "none", label: "None", rank: 0 },
+export const URGENCY_OPTIONS: { value: Urgency; label: string | MessageKey; rank: number }[] = [
+  { value: "none", label: "todo.urgency.none", rank: 0 },
   { value: "low", label: "!", rank: 1 },
   { value: "medium", label: "!!", rank: 2 },
   { value: "high", label: "!!!", rank: 3 },

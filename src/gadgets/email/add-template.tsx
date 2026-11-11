@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toMessage } from "@/lib/utils";
 import { EMAIL_LANGS } from "./fields";
 import { joinDoc, splitDoc } from "./frontmatter";
+import { useT } from "@/i18n";
 
 const STARTER = "---\ntitle: My template\ntype: news\n---\n\n## Hello\n\nWrite your message…\n";
 
@@ -50,6 +51,7 @@ function Form({
   onCancel: () => void;
   onSave: (name: string, doc: string, lang: string) => void;
 }) {
+  const tr = useT();
   const [name, setName] = useState("");
   const [lang, setLang] = useState(EMAIL_LANGS.find((l) => l.value === initialLang)?.value ?? "en");
   const [source, setSource] = useState(STARTER);
@@ -78,12 +80,12 @@ function Form({
   return (
     <form onSubmit={submit} className="grid gap-4">
       <DialogHeader>
-        <DialogTitle>Add template</DialogTitle>
-        <DialogDescription>Write Markdown with frontmatter, or import a .md file. It's saved on this device.</DialogDescription>
+        <DialogTitle>{tr("email.tpl.add")}</DialogTitle>
+        <DialogDescription>{tr("email.tpl.addHint")}</DialogDescription>
       </DialogHeader>
       <div className="flex gap-3">
-        <Input autoFocus aria-label="Template name" placeholder="Template name" value={name} onChange={(e) => setName(e.target.value)} />
-        <div className="flex shrink-0 gap-1 rounded-lg border p-1" role="radiogroup" aria-label="Language">
+        <Input autoFocus aria-label={tr("email.tpl.nameField")} placeholder={tr("email.tpl.nameField")} value={name} onChange={(e) => setName(e.target.value)} />
+        <div className="flex shrink-0 gap-1 rounded-lg border p-1" role="radiogroup" aria-label={tr("settings.language")}>
           {EMAIL_LANGS.map((l) => (
             <button
               key={l.value}
@@ -99,17 +101,17 @@ function Form({
         </div>
       </div>
       <Textarea
-        aria-label="Template Markdown"
+        aria-label={tr("email.tpl.sourceField")}
         className="max-h-[45vh] min-h-48 font-mono text-xs"
         spellCheck={false}
         value={source}
         onChange={(e) => setSource(e.target.value)}
       />
-      {replaces && <p className="text-xs text-amber-600 dark:text-amber-400">A template with this name exists and will be replaced.</p>}
+      {replaces && <p className="text-xs text-amber-600 dark:text-amber-400">{tr("email.tpl.exists")}</p>}
       <DialogFooter>
-        <Button type="button" variant="outline" className="mr-auto" onClick={() => void importFile()}><FileUp /> Import .md file…</Button>
-        <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
-        <Button type="submit" disabled={!trimmed || !source.trim()}>{replaces ? "Replace" : "Add"}</Button>
+        <Button type="button" variant="outline" className="mr-auto" onClick={() => void importFile()}><FileUp /> {tr("email.tpl.import")}</Button>
+        <Button type="button" variant="outline" onClick={onCancel}>{tr("common.cancel")}</Button>
+        <Button type="submit" disabled={!trimmed || !source.trim()}>{replaces ? tr("email.tpl.replace") : tr("common.add")}</Button>
       </DialogFooter>
     </form>
   );

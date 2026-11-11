@@ -18,13 +18,14 @@ import { useAuth } from "@/lib/auth";
 import { feedQueries } from "@/lib/feeds";
 import { assetUrl, orbit, unwrap } from "@/lib/orbit";
 import { NEWS_SORT } from "@/lib/sorting";
+import { useT } from "@/i18n";
 
 type Kind = "/news" | "/blog-posts";
 
 /** Everything that differs between the two feeds: route targets and the typed API calls. */
 const FEED = {
   "/news": {
-    section: { label: "News", to: "/news" },
+    section: { label: "nav.news", to: "/news" },
     newTo: "/news/new",
     detailTo: "/news/$id",
     all: feedQueries.news,
@@ -34,7 +35,7 @@ const FEED = {
     create: (body: PostDraft) => orbit.POST("/api/news", { body }),
   },
   "/blog-posts": {
-    section: { label: "Blog", to: "/blog" },
+    section: { label: "nav.blog", to: "/blog" },
     newTo: "/blog/new",
     detailTo: "/blog/$id",
     all: feedQueries.blog,
@@ -49,10 +50,12 @@ const FEED = {
 const canPublish = (kind: Kind, isAdmin: boolean) => kind === "/blog-posts" || isAdmin;
 
 /** News and blog posts share one shape, so they share one page. */
-export function MarkdownFeed({ kind, title }: { kind: Kind; title: string }) {
+export function MarkdownFeed({ kind }: { kind: Kind }) {
+  const tr = useT();
   const { isAdmin } = useAuth();
   const navigate = useNavigate();
   const feed = FEED[kind];
+  const title = tr(feed.section.label);
   // The API cannot sort, so the whole list is loaded and ordered here (newest publish date first by default).
   const { data: all } = useQuery(feed.all);
   const list = useSortedList({ storageKey: feed.sortKey, ...NEWS_SORT, items: all });
@@ -63,25 +66,25 @@ export function MarkdownFeed({ kind, title }: { kind: Kind; title: string }) {
     <>
       <PageHeader
         title={title}
-        crumbs={[{ label: "Home", to: "/" }, { label: title }]}
+        crumbs={[{ label: tr("nav.home"), to: "/" }, { label: title }]}
         actions={
           <>
             <SortMenu value={list.sort} options={list.options} onChange={list.setSort} />
             {canPublish(kind, isAdmin) && (
               <Button size="sm" render={<Link to={feed.newTo} />}>
-                <Plus /> New
+                <Plus /> {tr("common.new")}
               </Button>
             )}
           </>
         }
       />
       <div className="space-y-2">
-        {list.total === 0 && <Empty>Nothing here yet.</Empty>}
+        {list.total === 0 && <Empty>{tr("feed.nothingYet")}</Empty>}
         {list.pageItems?.map((p) => (
           <FeedItemMenu
             key={p.id}
             onOpen={() => void navigate({ to: feed.detailTo, params: { id: p.id } })}
-            copy={{ text: p.title, label: "Title" }}
+            copy={{ text: p.title, label: tr("feed.title") }}
             onDelete={isAdmin ? () => del.mutate(p.id) : undefined}
           >
               <FeedCard
@@ -97,7 +100,7 @@ export function MarkdownFeed({ kind, title }: { kind: Kind; title: string }) {
                   <div className="flex gap-1 overflow-hidden">{p.tags.map((t) => <Badge key={t} variant="secondary">{t}</Badge>)}</div>
                 ) : undefined}
                 action={isAdmin ? (
-                  <Button variant="ghost" size="icon-xs" onClick={() => del.mutate(p.id)} aria-label="Delete"><Trash2 /></Button>
+                  <Button variant="ghost" size="icon-xs" onClick={() => del.mutate(p.id)} aria-label={tr("common.delete")}><Trash2 /></Button>
                 ) : undefined}
               />
           </FeedItemMenu>
@@ -139,13 +142,15 @@ export function FeedPostDetail({ kind, id }: { kind: Kind; id: string }) {
 }
 
 /** Full-page composer for a new news (admins only) or blog (any member) post. */
-export function NewFeedPost({ kind, title }: { kind: Kind; title: string }) {
+export function NewFeedPost({ kind }: { kind: Kind }) {
+  const tr = useT();
+  const title = tr(FEED[kind].section.label);
   const { isAdmin } = useAuth();
   const qc = useQueryClient();
-  if (!canPublish(kind, isAdmin)) return <Empty>Only admins can publish {title.toLowerCase()} posts.</Empty>;
+  if (!canPublish(kind, isAdmin)) return <Empty>{tr("feed.only", { section: title })}</Empty>;
   return (
     <PostComposer
-      pageTitle={`New ${title.toLowerCase()} post`}
+      pageTitle={tr("feed.newPost", { section: title })}
       backTo={kind === "/news" ? "/news" : "/blog"}
       onPublish={async (body) => {
         await unwrap(FEED[kind].create(body));

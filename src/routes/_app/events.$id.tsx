@@ -6,12 +6,14 @@ import { CoverImage, DetailPage, DetailTitle } from "@/components/detail-page";
 import { useDeleteMutation } from "@/components/feed-item-menu";
 import { orbit } from "@/lib/orbit";
 import { formatDateTime } from "@/lib/utils";
+import { useT } from "@/i18n";
 
 export const Route = createFileRoute("/_app/events/$id")({
   component: EventDetail,
 });
 
 function EventDetail() {
+  const tr = useT();
   const { id } = Route.useParams();
   const { data, isPending } = useQuery({
     queryKey: ["events", id],
@@ -23,7 +25,7 @@ function EventDetail() {
 
   return (
     <DetailPage
-      section={{ label: "Events", to: "/events" }}
+      section={{ label: "nav.events", to: "/events" }}
       itemTitle={data?.title}
       loading={isPending}
       notFound={!data}
@@ -35,7 +37,7 @@ function EventDetail() {
           <div className="flex flex-wrap items-center gap-2">
             <DetailTitle>{data.title}</DetailTitle>
             <Badge variant={data.audience === "INVITE_ONLY" ? "secondary" : "outline"} className="gap-1">
-              {data.audience === "INVITE_ONLY" ? <><Lock className="size-3" /> Invite only</> : "Everyone"}
+              {data.audience === "INVITE_ONLY" ? <><Lock className="size-3" /> {tr("events.inviteOnly")}</> : tr("events.everyone")}
             </Badge>
           </div>
           <div className="space-y-1 text-sm text-muted-foreground">

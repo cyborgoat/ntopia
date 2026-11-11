@@ -14,6 +14,7 @@ import { Markdown } from "@/components/markdown";
 import { MarkdownEditor, type MarkdownEditorHandle } from "@/components/markdown-editor";
 import { releaseStagedImages, stageImage, uploadStagedImages } from "@/components/image-upload";
 import { errorMessage, imagePreviewUrl, orbit } from "@/lib/orbit";
+import { useT } from "@/i18n";
 
 export type Vote = 1 | -1 | 0;
 type ResourceType = "announcement" | "event" | "news" | "blog" | "forum";
@@ -39,6 +40,7 @@ function CommentItem({
   onVote: (id: string, value: Vote) => Promise<void>;
   onReply?: () => void;
 }) {
+  const tr = useT();
   return (
     <ContextMenu>
       <ContextMenuTrigger className="block">
@@ -47,7 +49,7 @@ function CommentItem({
           <Markdown>{comment.content}</Markdown>
           <div className="mt-2 flex items-center gap-2">
             <VoteBar score={comment.score} mine={comment.myVote} onVote={(v) => onVote(comment.id, v)} />
-            {onReply && <Button variant="ghost" size="sm" onClick={onReply}>Reply</Button>}
+            {onReply && <Button variant="ghost" size="sm" onClick={onReply}>{tr("comments.reply")}</Button>}
           </div>
         </div>
       </ContextMenuTrigger>
@@ -60,6 +62,7 @@ function CommentItem({
 
 // Solid arrow = the current user's vote; outlined = not voted.
 export function VoteBar({ score, mine, onVote }: { score: number; mine: Vote; onVote: (v: Vote) => void }) {
+  const tr = useT();
   const arrow = (dir: 1 | -1) => {
     const active = mine === dir;
     const Icon = dir === 1 ? ArrowBigUp : ArrowBigDown;
@@ -67,7 +70,7 @@ export function VoteBar({ score, mine, onVote }: { score: number; mine: Vote; on
       <Button
         variant="ghost"
         size="icon-sm"
-        aria-label={dir === 1 ? "Upvote" : "Downvote"}
+        aria-label={dir === 1 ? tr("comments.upvote") : tr("comments.downvote")}
         aria-pressed={active}
         className={active ? "text-primary" : "text-muted-foreground"}
         onClick={() => onVote(active ? 0 : dir)}
@@ -94,15 +97,16 @@ export function VoteMenuItems({
   onVote: (v: Vote) => void;
   onReply?: () => void;
 }) {
+  const tr = useT();
   return (
     <>
-      <ContextMenuItem onClick={() => onVote(1)}><ArrowBigUp className={mine === 1 ? "fill-current" : undefined} /> Upvote</ContextMenuItem>
-      <ContextMenuItem onClick={() => onVote(-1)}><ArrowBigDown className={mine === -1 ? "fill-current" : undefined} /> Downvote</ContextMenuItem>
-      <ContextMenuItem disabled={mine === 0} onClick={() => onVote(0)}><Undo2 /> Clear vote</ContextMenuItem>
+      <ContextMenuItem onClick={() => onVote(1)}><ArrowBigUp className={mine === 1 ? "fill-current" : undefined} /> {tr("comments.upvote")}</ContextMenuItem>
+      <ContextMenuItem onClick={() => onVote(-1)}><ArrowBigDown className={mine === -1 ? "fill-current" : undefined} /> {tr("comments.downvote")}</ContextMenuItem>
+      <ContextMenuItem disabled={mine === 0} onClick={() => onVote(0)}><Undo2 /> {tr("comments.clearVote")}</ContextMenuItem>
       {onReply && (
         <>
           <ContextMenuSeparator />
-          <ContextMenuItem onClick={onReply}><MessageSquare /> Reply</ContextMenuItem>
+          <ContextMenuItem onClick={onReply}><MessageSquare /> {tr("comments.reply")}</ContextMenuItem>
         </>
       )}
     </>
@@ -117,6 +121,7 @@ export function CommentThread({
   resourceType: ResourceType;
   resourceId: string;
 }) {
+  const tr = useT();
   const qc = useQueryClient();
   const key = ["comments", resourceType, resourceId];
   const [text, setText] = useState("");
@@ -170,7 +175,7 @@ export function CommentThread({
   return (
     <section>
       <Divider />
-      <h2 className="mb-4 text-sm font-medium">{total} {total === 1 ? "comment" : "comments"}</h2>
+      <h2 className="mb-4 text-sm font-medium">{tr(total === 1 ? "comments.count1" : "comments.countN", { n: total })}</h2>
       <div className="space-y-6">
         {comments.map((c) => (
           <div key={c.id} className="space-y-3">
@@ -186,14 +191,14 @@ export function CommentThread({
       <div className="space-y-2">
         {replyTo && (
           <p className="text-xs text-muted-foreground">
-            Replying to a comment · <button className="underline" onClick={() => setReplyTo(null)}>cancel</button>
+            {tr("comments.replyingTo")} <button className="underline" onClick={() => setReplyTo(null)}>{tr("comments.cancel")}</button>
           </p>
         )}
         <div ref={composerBox}>
           <MarkdownEditor
             ref={composerRef}
             variant="compact"
-            placeholder="Write a comment…"
+            placeholder={tr("comments.placeholder")}
             value={text}
             onChange={setText}
             onSubmit={() => void send()}
@@ -202,7 +207,7 @@ export function CommentThread({
           />
         </div>
         {error && <p className="text-sm text-destructive">{error}</p>}
-        <Button size="sm" disabled={!text.trim()} onClick={() => void send()}>Comment</Button>
+        <Button size="sm" disabled={!text.trim()} onClick={() => void send()}>{tr("comments.send")}</Button>
       </div>
     </section>
   );

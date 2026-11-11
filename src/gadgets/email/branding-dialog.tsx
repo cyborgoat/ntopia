@@ -8,8 +8,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input";
 import { Field } from "@/components/form-dialog";
 import * as mm from "@/gadgets/email/mdmailer";
+import { useT } from "@/i18n";
 
 function LogoPicker({ name, onPick, onReset }: { name: string; onPick: () => void; onReset?: () => void }) {
+  const tr = useT();
   const [url, setUrl] = useState<string>();
   useEffect(() => {
     let live = true;
@@ -29,23 +31,24 @@ function LogoPicker({ name, onPick, onReset }: { name: string; onPick: () => voi
       <button
         type="button"
         onClick={onPick}
-        aria-label="Change logo"
+        aria-label={tr("email.branding.change")}
         className="group relative flex h-14 w-36 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted/40 p-2 outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
-        {url ? <img src={url} alt="Logo preview" className="max-h-full max-w-full object-contain" /> : <ImagePlus className="size-5 text-muted-foreground" />}
+        {url ? <img src={url} alt={tr("email.branding.logoPreview")} className="max-h-full max-w-full object-contain" /> : <ImagePlus className="size-5 text-muted-foreground" />}
         <span className="absolute inset-0 flex items-center justify-center gap-1.5 bg-background/80 text-xs font-medium opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
-          <Upload className="size-3.5" /> Change
+          <Upload className="size-3.5" /> {tr("email.branding.change2")}
         </span>
       </button>
       <div className="min-w-0 space-y-0.5 text-xs text-muted-foreground">
-        <p>Shown in the email header. SVG, PNG or JPG.</p>
-        {onReset && <button type="button" onClick={onReset} className="underline underline-offset-2 hover:text-foreground">Use default logo</button>}
+        <p>{tr("email.branding.logoHint")}</p>
+        {onReset && <button type="button" onClick={onReset} className="underline underline-offset-2 hover:text-foreground">{tr("email.branding.useDefault")}</button>}
       </div>
     </div>
   );
 }
 
 export function Branding() {
+  const tr = useT();
   const [b, setB] = useState<mm.Branding>(mm.DEFAULT_BRANDING);
   const [openDlg, setOpenDlg] = useState(false);
   useEffect(() => { if (openDlg) mm.loadBranding().then(setB); }, [openDlg]);
@@ -54,16 +57,16 @@ export function Branding() {
   return (
     <Dialog open={openDlg} onOpenChange={setOpenDlg}>
       <Tooltip>
-        <TooltipTrigger render={<DialogTrigger render={<Button variant="ghost" size="icon-sm" aria-label="Branding" />} />}><Palette /></TooltipTrigger>
-        <TooltipContent>Branding</TooltipContent>
+        <TooltipTrigger render={<DialogTrigger render={<Button variant="ghost" size="icon-sm" aria-label={tr("email.branding.tip")} />} />}><Palette /></TooltipTrigger>
+        <TooltipContent>{tr("email.branding.tip")}</TooltipContent>
       </Tooltip>
       <DialogContent className="max-w-md">
-        <DialogHeader><DialogTitle>Email branding</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{tr("email.branding.title")}</DialogTitle></DialogHeader>
         <div className="space-y-3">
-          <Field label="Organization"><Input value={b.organization} onChange={set("organization")} /></Field>
-          <Field label="Tagline"><Input value={b.tagline} onChange={set("tagline")} /></Field>
-          <Field label="Footer"><Input value={b.footerText} onChange={set("footerText")} /></Field>
-          <Field label="Logo">
+          <Field label={tr("email.branding.org")}><Input value={b.organization} onChange={set("organization")} /></Field>
+          <Field label={tr("email.branding.tagline")}><Input value={b.tagline} onChange={set("tagline")} /></Field>
+          <Field label={tr("email.branding.footer")}><Input value={b.footerText} onChange={set("footerText")} /></Field>
+          <Field label={tr("email.branding.logo")}>
             <LogoPicker
               name={b.logo}
               onPick={async () => {
@@ -73,7 +76,7 @@ export function Branding() {
               onReset={b.logo.startsWith("logo-custom") ? () => setB({ ...b, logo: mm.DEFAULT_BRANDING.logo }) : undefined}
             />
           </Field>
-          <Button className="w-full" onClick={async () => { await mm.saveBranding(b); toast.success("Branding saved"); setOpenDlg(false); }}>Save</Button>
+          <Button className="w-full" onClick={async () => { await mm.saveBranding(b); toast.success(tr("email.branding.saved")); setOpenDlg(false); }}>{tr("common.save")}</Button>
         </div>
       </DialogContent>
     </Dialog>

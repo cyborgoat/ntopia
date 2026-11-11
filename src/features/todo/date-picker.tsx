@@ -4,15 +4,17 @@ import { CalendarDays, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { addDays, fromDateKey, startOfWeek, toDateKey } from "./dates";
+import { dateLocale, useT } from "@/i18n";
 
-const WEEKDAYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
+/** Monday-first short weekday names in the current language. */
+const weekdays = () => Array.from({ length: 7 }, (_, i) => new Date(2024, 0, 1 + i).toLocaleDateString(dateLocale(), { weekday: "short" }));
 
 /** Compact date field whose calendar opens above the field (the native picker always drops down). */
 export function DatePicker({
   value,
   onChange,
   className,
-  placeholder = "No date",
+  placeholder,
 }: {
   /** `YYYY-MM-DD` or "". */
   value: string;
@@ -20,6 +22,7 @@ export function DatePicker({
   className?: string;
   placeholder?: string;
 }) {
+  const tr = useT();
   const [open, setOpen] = useState(false);
   const selected = value ? fromDateKey(value) : null;
   const [month, setMonth] = useState(() => new Date((selected ?? new Date()).getFullYear(), (selected ?? new Date()).getMonth(), 1));
@@ -52,19 +55,19 @@ export function DatePicker({
       >
         <CalendarDays className="size-3.5 shrink-0 text-muted-foreground" />
         <span className="truncate">
-          {selected ? selected.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", year: "numeric" }) : placeholder}
+          {selected ? selected.toLocaleDateString(dateLocale(), { weekday: "short", month: "short", day: "numeric", year: "numeric" }) : (placeholder ?? tr("date.noDate"))}
         </span>
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Positioner side="top" align="start" sideOffset={6} collisionAvoidance={{ side: "none" }} className="isolate z-[60]">
           <Popover.Popup className="w-64 rounded-xl bg-popover p-3 text-sm text-popover-foreground shadow-md ring-1 ring-foreground/10 outline-none">
             <div className="mb-2 flex items-center justify-between">
-              <Button type="button" variant="ghost" size="icon-xs" aria-label="Previous month" onClick={() => shiftMonth(-1)}><ChevronLeft /></Button>
-              <span className="text-sm font-medium">{month.toLocaleDateString(undefined, { month: "long", year: "numeric" })}</span>
-              <Button type="button" variant="ghost" size="icon-xs" aria-label="Next month" onClick={() => shiftMonth(1)}><ChevronRight /></Button>
+              <Button type="button" variant="ghost" size="icon-xs" aria-label={tr("date.prevMonth")} onClick={() => shiftMonth(-1)}><ChevronLeft /></Button>
+              <span className="text-sm font-medium">{month.toLocaleDateString(dateLocale(), { month: "long", year: "numeric" })}</span>
+              <Button type="button" variant="ghost" size="icon-xs" aria-label={tr("date.nextMonth")} onClick={() => shiftMonth(1)}><ChevronRight /></Button>
             </div>
             <div className="grid grid-cols-7 gap-0.5 text-center">
-              {WEEKDAYS.map((d) => <span key={d} className="py-1 text-[11px] text-muted-foreground">{d}</span>)}
+              {weekdays().map((d) => <span key={d} className="py-1 text-[11px] text-muted-foreground">{d}</span>)}
               {days.slice(0, rows * 7).map((d) => {
                 const key = toDateKey(d);
                 const inMonth = d.getMonth() === month.getMonth();
@@ -86,8 +89,8 @@ export function DatePicker({
               })}
             </div>
             <div className="mt-2 flex justify-between border-t pt-2">
-              <Button type="button" variant="ghost" size="xs" onClick={() => pick(todayKey)}>Today</Button>
-              <Button type="button" variant="ghost" size="xs" disabled={!value} onClick={() => pick("")}><X /> Clear</Button>
+              <Button type="button" variant="ghost" size="xs" onClick={() => pick(todayKey)}>{tr("todo.today")}</Button>
+              <Button type="button" variant="ghost" size="xs" disabled={!value} onClick={() => pick("")}><X /> {tr("date.clear")}</Button>
             </div>
           </Popover.Popup>
         </Popover.Positioner>

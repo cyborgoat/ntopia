@@ -2,13 +2,16 @@ import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { dateLocale, useT } from "@/i18n";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 const iso = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+/** Sunday-first short weekday names in the current language. */
+const weekdays = () => Array.from({ length: 7 }, (_, i) => new Date(2024, 0, 7 + i).toLocaleDateString(dateLocale(), { weekday: "short" }));
 
 /** Month grid for picking one day. `value` and `onSelect` use `YYYY-MM-DD`. */
 export function Calendar({ value, onSelect }: { value?: string; onSelect: (iso: string) => void }) {
+  const tr = useT();
   const selected = value ? new Date(`${value}T00:00:00`) : null;
   const [month, setMonth] = useState(() => {
     const base = selected && !Number.isNaN(selected.getTime()) ? selected : new Date();
@@ -23,12 +26,12 @@ export function Calendar({ value, onSelect }: { value?: string; onSelect: (iso: 
   return (
     <div className="w-[15.5rem] space-y-2">
       <div className="flex items-center justify-between">
-        <Button type="button" variant="ghost" size="icon-xs" aria-label="Previous month" onClick={() => shift(-1)}><ChevronLeft /></Button>
-        <span className="text-sm font-medium">{month.toLocaleDateString([], { month: "long", year: "numeric" })}</span>
-        <Button type="button" variant="ghost" size="icon-xs" aria-label="Next month" onClick={() => shift(1)}><ChevronRight /></Button>
+        <Button type="button" variant="ghost" size="icon-xs" aria-label={tr("date.prevMonth")} onClick={() => shift(-1)}><ChevronLeft /></Button>
+        <span className="text-sm font-medium">{month.toLocaleDateString(dateLocale(), { month: "long", year: "numeric" })}</span>
+        <Button type="button" variant="ghost" size="icon-xs" aria-label={tr("date.nextMonth")} onClick={() => shift(1)}><ChevronRight /></Button>
       </div>
       <div className="grid grid-cols-7 text-center text-[11px] text-muted-foreground">
-        {WEEKDAYS.map((w) => <span key={w}>{w}</span>)}
+        {weekdays().map((w) => <span key={w}>{w}</span>)}
       </div>
       <div className="grid grid-cols-7 gap-y-0.5">
         {cells.map((d, i) =>

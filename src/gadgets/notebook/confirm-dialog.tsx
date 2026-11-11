@@ -2,26 +2,28 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useT } from "@/i18n";
 
 export type Confirm = { path: string; name: string; isDir: boolean } | null;
 
 /** Confirmation before deleting a file or folder from disk. */
 export function ConfirmDialog({ confirm, onCancel, onConfirm }: { confirm: Confirm; onCancel: () => void; onConfirm: () => void }) {
+  const tr = useT();
   return (
     <AlertDialog open={!!confirm} onOpenChange={(open) => !open && onCancel()}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>{confirm?.isDir ? "Delete folder?" : "Delete file?"}</AlertDialogTitle>
+          <AlertDialogTitle>{confirm?.isDir ? tr("notebook.deleteFolderTitle") : tr("notebook.deleteFileTitle")}</AlertDialogTitle>
           <AlertDialogDescription>
             {confirm?.isDir
-              ? `“${confirm.name}” and everything inside it will be permanently deleted from disk.`
-              : `“${confirm?.name}” will be permanently deleted from disk.`}{" "}
-            This cannot be undone.
+              ? tr("notebook.deleteFolderBody", { name: confirm.name })
+              : tr("notebook.deleteFileBody", { name: confirm?.name ?? "" })}{" "}
+            {tr("notebook.cannotUndo")}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction variant="destructive" onClick={onConfirm}>Delete</AlertDialogAction>
+          <AlertDialogCancel>{tr("common.cancel")}</AlertDialogCancel>
+          <AlertDialogAction variant="destructive" onClick={onConfirm}>{tr("common.delete")}</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

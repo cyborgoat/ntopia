@@ -1,3 +1,4 @@
+import { dateLocale, t } from "@/i18n";
 import { addDays, fromDateKey, startOfWeek, toDateKey } from "./dates";
 import { urgencyRank, type TodoItem } from "./store";
 
@@ -28,8 +29,8 @@ export function groupTodos(items: TodoItem[], now: Date): TodoSection[] {
   const open = items.filter((t) => !t.done).sort(byDue);
 
   const sections: TodoSection[] = [
-    { id: "overdue", label: "Overdue", tone: "overdue", items: open.filter((t) => t.dueDate && t.dueDate < today) },
-    { id: "today", label: "Today", tone: "today", hint: now.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" }), items: open.filter((t) => t.dueDate === today) },
+    { id: "overdue", label: t("todo.overdue"), tone: "overdue", items: open.filter((t) => t.dueDate && t.dueDate < today) },
+    { id: "today", label: t("todo.today"), tone: "today", hint: now.toLocaleDateString(dateLocale(), { weekday: "long", month: "short", day: "numeric" }), items: open.filter((t) => t.dueDate === today) },
   ];
 
   for (let i = 1; toDateKey(addDays(now, i)) <= weekEnd; i++) {
@@ -37,16 +38,16 @@ export function groupTodos(items: TodoItem[], now: Date): TodoSection[] {
     const key = toDateKey(day);
     sections.push({
       id: key,
-      label: i === 1 ? "Tomorrow" : day.toLocaleDateString(undefined, { weekday: "long" }),
-      hint: day.toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+      label: i === 1 ? t("todo.tomorrow") : day.toLocaleDateString(dateLocale(), { weekday: "long" }),
+      hint: day.toLocaleDateString(dateLocale(), { month: "short", day: "numeric" }),
       items: open.filter((t) => t.dueDate === key),
     });
   }
 
   sections.push(
-    { id: "upcoming", label: "Upcoming", items: open.filter((t) => t.dueDate && t.dueDate > weekEnd) },
-    { id: "nodate", label: "No date", items: open.filter((t) => !t.dueDate) },
-    { id: "done", label: "Completed", items: items.filter((t) => t.done).sort((a, b) => b.createdAt.localeCompare(a.createdAt)) },
+    { id: "upcoming", label: t("todo.upcoming"), items: open.filter((t) => t.dueDate && t.dueDate > weekEnd) },
+    { id: "nodate", label: t("todo.noDate"), items: open.filter((t) => !t.dueDate) },
+    { id: "done", label: t("todo.completed"), items: items.filter((t) => t.done).sort((a, b) => b.createdAt.localeCompare(a.createdAt)) },
   );
   return sections.filter((s) => s.items.length > 0);
 }
@@ -56,9 +57,9 @@ export function dueLabel(dueDate: string, dueTime: string | undefined, now: Date
   const today = toDateKey(now);
   const d = fromDateKey(dueDate);
   const day =
-    dueDate === today ? "Today"
-    : dueDate === toDateKey(addDays(now, 1)) ? "Tomorrow"
-    : dueDate === toDateKey(addDays(now, -1)) ? "Yesterday"
-    : d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+    dueDate === today ? t("todo.today")
+    : dueDate === toDateKey(addDays(now, 1)) ? t("todo.tomorrow")
+    : dueDate === toDateKey(addDays(now, -1)) ? t("todo.yesterday")
+      : d.toLocaleDateString(dateLocale(), { weekday: "short", month: "short", day: "numeric" });
   return dueTime ? `${day}, ${dueTime}` : day;
 }

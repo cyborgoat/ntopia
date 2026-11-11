@@ -4,6 +4,7 @@ import { StateEffect, StateField, type EditorState, type Extension } from "@code
 import { Decoration, EditorView, WidgetType, type DecorationSet } from "@codemirror/view";
 import { EMAIL_LANGS, EMAIL_TYPES, THEME_PRESETS, isEventType, typeFields } from "./fields";
 import { checkDoc, findFrontmatter, splitDoc } from "./frontmatter";
+import { t, type MessageKey } from "@/i18n";
 
 // ---------------------------------------------------------------------------------------------
 // Folding: the frontmatter collapses to a one-line summary chip; click it (or use the toolbar) to edit.
@@ -14,7 +15,8 @@ const setFolded = StateEffect.define<boolean>();
 function summarize(doc: string, warn: boolean): string {
   const { data } = splitDoc(doc);
   const type = String(data.type ?? "").toLowerCase().trim();
-  const label = EMAIL_TYPES.find((t) => t.value === type)?.label ?? (type || "No type");
+  const typeLabel = EMAIL_TYPES.find((x) => x.value === type)?.label;
+  const label = typeLabel ? t(typeLabel) : (type || t("email.noType"));
   const date = data.date ?? data.startsAt;
   const parts = [label, data.lang ?? data.locale ?? data.language, date, data.title].filter((p) => p != null && String(p).trim() !== "");
   return `${warn ? "⚠ " : ""}${parts.join(" · ")}`;
@@ -31,7 +33,7 @@ class SummaryWidget extends WidgetType {
     const chip = document.createElement("button");
     chip.type = "button";
     chip.className = "cm-frontmatter-chip" + (this.warn ? " cm-frontmatter-chip-warn" : "");
-    chip.title = "Frontmatter — click to edit";
+    chip.title = t("email.chipTitle");
     chip.textContent = this.text;
     chip.onmousedown = (e) => e.preventDefault();
     chip.onclick = () => {
@@ -114,28 +116,28 @@ const chipTheme = EditorView.baseTheme({
 // Autocomplete between the fences: keys at the start of a line, values after `type:`, `lang:`, `theme:`.
 // ---------------------------------------------------------------------------------------------
 
-const BASE_KEYS: { key: string; detail: string }[] = [
-  { key: "title", detail: "Subject line" },
-  { key: "type", detail: "Kind of email" },
-  { key: "lang", detail: "en or zh" },
-  { key: "theme", detail: "Color theme" },
+const BASE_KEYS: { key: string; detail: MessageKey }[] = [
+  { key: "title", detail: "email.key.title" },
+  { key: "type", detail: "email.key.type" },
+  { key: "lang", detail: "email.key.lang" },
+  { key: "theme", detail: "email.key.theme" },
 ];
 
 function keyCompletions(doc: string, present: Set<string>): Completion[] {
   const type = String(splitDoc(doc).data.type ?? "").toLowerCase().trim();
-  const options: Completion[] = BASE_KEYS.map(({ key, detail }) => ({ label: key, detail, apply: `${key}: `, type: "property" }));
-  for (const f of typeFields(type)) options.push({ label: f.key, detail: f.label, apply: `${f.key}: `, type: "property" });
+  const options: Completion[] = BASE_KEYS.map(({ key, detail }) => ({ label: key, detail: t(detail), apply: `${key}: `, type: "property" }));
+  for (const f of typeFields(type)) options.push({ label: f.key, detail: t(f.label), apply: `${f.key}: `, type: "property" });
   if (isEventType(type)) {
     options.push(
-      snippetCompletion("hosts:\n  - name: ${}\n    role: ${}", { label: "hosts", detail: "People hosting", type: "property" }),
-      snippetCompletion("agenda:\n  - time: ${}\n    title: ${}", { label: "agenda", detail: "Schedule", type: "property" }),
+      snippetCompletion("hosts:\n  - name: ${}\n    role: ${}", { label: "hosts", detail: t("email.key.hosts"), type: "property" }),
+      snippetCompletion("agenda:\n  - time: ${}\n    title: ${}", { label: "agenda", detail: t("email.key.agenda"), type: "property" }),
     );
   }
   return options.filter((o) => !present.has(o.label));
 }
 
 const VALUES: Record<string, Completion[]> = {
-  type: EMAIL_TYPES.map((t) => ({ label: t.value, detail: t.label, info: t.description, type: "enum" })),
+  type: EMAIL_TYPES.map((x) => ({ label: x.value, detail: t(x.label), info: t(x.description), type: "enum" })),
   lang: EMAIL_LANGS.map((l) => ({ label: l.value, detail: l.label, type: "enum" })),
   theme: THEME_PRESETS.map((t) => ({ label: t, type: "enum" })),
 };

@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth";
 import { applyServerUrl, getServerUrl } from "@/lib/orbit";
+import { useT } from "@/i18n";
 
 type Mode = "login" | "register";
 
@@ -44,6 +45,7 @@ function Header({ title }: { title: string }) {
 }
 
 function LoginForm({ onMode, onClose }: { onMode: (m: Mode) => void; onClose: () => void }) {
+  const tr = useT();
   const { login } = useAuth();
   const [server, setServer] = useState(getServerUrl());
   const [username, setUsername] = useState("");
@@ -68,24 +70,24 @@ function LoginForm({ onMode, onClose }: { onMode: (m: Mode) => void; onClose: ()
 
   return (
     <>
-      <Header title="Sign in" />
+      <Header title={tr("auth.signIn")} />
       <form onSubmit={submit} className="space-y-4">
         <div className="space-y-1.5">
-          <Label htmlFor="server">Server</Label>
+          <Label htmlFor="server">{tr("auth.server")}</Label>
           <Input id="server" type="url" required placeholder="https://orbit.example.com" value={server} onChange={(e) => setServer(e.target.value)} />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="username">Username or email</Label>
+          <Label htmlFor="username">{tr("auth.usernameOrEmail")}</Label>
           <Input id="username" autoComplete="username" required value={username} onChange={(e) => setUsername(e.target.value)} />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="password">Password</Label>
+          <Label htmlFor="password">{tr("auth.password")}</Label>
           <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
         </div>
         {error && <p className="text-sm text-destructive">{error}</p>}
-        <Button type="submit" className="w-full" disabled={busy}>{busy ? "Signing in…" : "Sign in"}</Button>
+        <Button type="submit" className="w-full" disabled={busy}>{busy ? tr("auth.signingIn") : tr("auth.signIn")}</Button>
         <p className="text-center text-sm text-muted-foreground">
-          No account? <button type="button" className="underline" onClick={() => onMode("register")}>Register</button>
+          {tr("auth.noAccount")} <button type="button" className="underline" onClick={() => onMode("register")}>{tr("auth.register")}</button>
         </p>
       </form>
     </>
@@ -93,6 +95,7 @@ function LoginForm({ onMode, onClose }: { onMode: (m: Mode) => void; onClose: ()
 }
 
 function RegisterForm({ onMode }: { onMode: (m: Mode) => void }) {
+  const tr = useT();
   const { register } = useAuth();
   const [f, setF] = useState({ username: "", fullName: "", email: "", password: "" });
   const [error, setError] = useState("");
@@ -113,28 +116,28 @@ function RegisterForm({ onMode }: { onMode: (m: Mode) => void }) {
   if (done)
     return (
       <>
-        <Header title="Request received" />
+        <Header title={tr("auth.requestReceived")} />
         <p className="text-sm text-muted-foreground">
-          Your account is pending activation. An admin needs to approve it before you can sign in.
+          {tr("auth.pending")}
         </p>
-        <Button variant="outline" className="w-full" onClick={() => onMode("login")}>Back to sign in</Button>
+        <Button variant="outline" className="w-full" onClick={() => onMode("login")}>{tr("auth.backToSignIn")}</Button>
       </>
     );
 
   return (
     <>
-      <Header title="Create account" />
+      <Header title={tr("auth.createAccount")} />
       <form onSubmit={submit} className="space-y-4">
         {(["fullName", "username", "email", "password"] as const).map((k) => (
           <div key={k} className="space-y-1.5">
-            <Label htmlFor={k}>{k === "fullName" ? "Full name" : k[0].toUpperCase() + k.slice(1)}{k === "email" && " (optional)"}</Label>
+            <Label htmlFor={k}>{k === "email" ? tr("auth.emailOptional") : tr(`auth.${k}` as "auth.fullName")}</Label>
             <Input id={k} required={k !== "email"} type={k === "password" ? "password" : k === "email" ? "email" : "text"} value={f[k]} onChange={set(k)} />
           </div>
         ))}
         {error && <p className="text-sm text-destructive">{error}</p>}
-        <Button type="submit" className="w-full">Register</Button>
+        <Button type="submit" className="w-full">{tr("auth.register")}</Button>
         <p className="text-center text-sm text-muted-foreground">
-          Have an account? <button type="button" className="underline" onClick={() => onMode("login")}>Sign in</button>
+          {tr("auth.haveAccount")} <button type="button" className="underline" onClick={() => onMode("login")}>{tr("auth.signIn")}</button>
         </p>
       </form>
     </>

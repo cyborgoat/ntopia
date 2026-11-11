@@ -7,6 +7,7 @@ import { InlineRename } from "@/components/inline-rename";
 import { cn, toMessage } from "@/lib/utils";
 import { createFile, createFolder, isWithin, kindOf, listDir, moveEntry, parentOf, renameEntry, type Entry } from "./fs";
 import type { Confirm } from "./confirm-dialog";
+import { t, useT } from "@/i18n";
 
 type Creating = { dir: string; kind: "file" | "folder" } | null;
 
@@ -62,7 +63,7 @@ function Children({ dir, depth, ctx }: { dir: string; depth: number; ctx: Ctx })
   if (!entries) return null;
   const adding = ctx.creating?.dir === dir ? ctx.creating.kind : null;
   if (entries.length === 0 && !adding) {
-    return <p className="py-1 text-xs text-muted-foreground" style={{ paddingLeft: 8 + depth * 14 + 20 }}>Empty</p>;
+    return <p className="py-1 text-xs text-muted-foreground" style={{ paddingLeft: 8 + depth * 14 + 20 }}>{t("notebook.empty")}</p>;
   }
   return (
     <ul>
@@ -127,14 +128,14 @@ function Row({ entry, depth, ctx }: { entry: Entry; depth: number; ctx: Ctx }) {
         <ContextMenuContent>
           {entry.isDir && (
             <>
-              <ContextMenuItem onClick={() => ctx.startCreate(entry.path, "file")}><FilePlus /> New file</ContextMenuItem>
-              <ContextMenuItem onClick={() => ctx.startCreate(entry.path, "folder")}><FolderPlus /> New folder</ContextMenuItem>
+              <ContextMenuItem onClick={() => ctx.startCreate(entry.path, "file")}><FilePlus /> {t("notebook.newFile")}</ContextMenuItem>
+              <ContextMenuItem onClick={() => ctx.startCreate(entry.path, "folder")}><FolderPlus /> {t("notebook.newFolder")}</ContextMenuItem>
               <ContextMenuSeparator />
             </>
           )}
-          <ContextMenuItem onClick={() => ctx.setRenaming(entry.path)}><Pencil /> Rename</ContextMenuItem>
+          <ContextMenuItem onClick={() => ctx.setRenaming(entry.path)}><Pencil /> {t("notebook.rename")}</ContextMenuItem>
           <ContextMenuItem variant="destructive" onClick={() => ctx.askDelete({ path: entry.path, name: entry.name, isDir: entry.isDir })}>
-            <Trash2 /> Delete
+            <Trash2 /> {t("common.delete")}
           </ContextMenuItem>
         </ContextMenuContent>
       </ContextMenu>
@@ -165,6 +166,7 @@ export function FileTree({
   /** Bump to reload the listing after a change made outside the tree (e.g. a delete). */
   reloadKey: number;
 }) {
+  useT();
   const [open, setOpen] = useState<Set<string>>(() => new Set([root]));
   const [version, setVersion] = useState(0);
   const [creating, setCreating] = useState<Creating>(null);
@@ -278,15 +280,15 @@ export function FileTree({
         <button
           type="button"
           onClick={onChangeFolder}
-          title={`${root} — click to change folder`}
+          title={t("notebook.changeFolder", { root })}
           className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1 text-left text-sm font-medium hover:bg-muted/60"
         >
           <FolderOpen className="size-4 shrink-0 text-muted-foreground" />
           <span className="truncate">{rootName}</span>
         </button>
-        <Button type="button" variant="ghost" size="icon-sm" aria-label="New file" title="New file" onClick={() => ctx.startCreate(root, "file")}><FilePlus /></Button>
-        <Button type="button" variant="ghost" size="icon-sm" aria-label="New folder" title="New folder" onClick={() => ctx.startCreate(root, "folder")}><FolderPlus /></Button>
-        <Button type="button" variant="ghost" size="icon-sm" aria-label="Refresh" title="Refresh" onClick={refresh}><RefreshCw /></Button>
+        <Button type="button" variant="ghost" size="icon-sm" aria-label={t("notebook.newFile")} title={t("notebook.newFile")} onClick={() => ctx.startCreate(root, "file")}><FilePlus /></Button>
+        <Button type="button" variant="ghost" size="icon-sm" aria-label={t("notebook.newFolder")} title={t("notebook.newFolder")} onClick={() => ctx.startCreate(root, "folder")}><FolderPlus /></Button>
+        <Button type="button" variant="ghost" size="icon-sm" aria-label={t("notebook.refresh")} title={t("notebook.refresh")} onClick={refresh}><RefreshCw /></Button>
       </div>
       <div className={cn("min-h-0 flex-1 overflow-auto p-1.5", dropTarget === root && "bg-accent/40")} {...dropProps(root)}>
         <Children dir={root} depth={0} ctx={ctx} />

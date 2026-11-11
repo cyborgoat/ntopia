@@ -1,4 +1,5 @@
 import { PAGE_SIZE } from "@/components/list-pagination";
+import type { MessageKey } from "@/i18n";
 
 /** What every Team Orbit item has: when it was published (the API has no separate publish date) and a stable id. */
 type Dated = { id: string; createdAt: string };
@@ -7,7 +8,7 @@ type Viewed = Titled & { viewCount: number };
 type Thread = Viewed & { score: number; commentCount: number };
 type Scheduled = Titled & { startAt: string; endAt?: string };
 
-export type SortOption<K extends string> = { value: K; label: string };
+export type SortOption<K extends string> = { value: K; label: MessageKey };
 type Compare<T> = (a: T, b: T) => number;
 
 const time = (iso: string) => new Date(iso).getTime();
@@ -23,10 +24,10 @@ const most = <T extends Dated>(get: (t: T) => number): Compare<T> => (a, b) => g
 /** Each section: its options (first is the default) and how to order items for each. */
 export const NEWS_SORT = {
   options: [
-    { value: "newest", label: "Newest first" },
-    { value: "oldest", label: "Oldest first" },
-    { value: "views", label: "Most viewed" },
-    { value: "title", label: "Title A–Z" },
+    { value: "newest", label: "sort.newest" },
+    { value: "oldest", label: "sort.oldest" },
+    { value: "views", label: "sort.views" },
+    { value: "title", label: "sort.titleAz" },
   ] as const satisfies readonly SortOption<string>[],
   compare: (key: "newest" | "oldest" | "views" | "title"): Compare<Viewed> =>
     ({ newest, oldest, views: most<Viewed>((p) => p.viewCount), title: byTitle })[key],
@@ -34,11 +35,11 @@ export const NEWS_SORT = {
 
 export const DISCUSSION_SORT = {
   options: [
-    { value: "newest", label: "Newest first" },
-    { value: "oldest", label: "Oldest first" },
-    { value: "top", label: "Top voted" },
-    { value: "comments", label: "Most comments" },
-    { value: "views", label: "Most viewed" },
+    { value: "newest", label: "sort.newest" },
+    { value: "oldest", label: "sort.oldest" },
+    { value: "top", label: "sort.top" },
+    { value: "comments", label: "sort.comments" },
+    { value: "views", label: "sort.views" },
   ] as const satisfies readonly SortOption<string>[],
   compare: (key: "newest" | "oldest" | "top" | "comments" | "views"): Compare<Thread> =>
     ({
@@ -52,9 +53,9 @@ export const DISCUSSION_SORT = {
 
 export const ANNOUNCEMENT_SORT = {
   options: [
-    { value: "newest", label: "Newest first" },
-    { value: "oldest", label: "Oldest first" },
-    { value: "title", label: "Title A–Z" },
+    { value: "newest", label: "sort.newest" },
+    { value: "oldest", label: "sort.oldest" },
+    { value: "title", label: "sort.titleAz" },
   ] as const satisfies readonly SortOption<string>[],
   compare: (key: "newest" | "oldest" | "title"): Compare<Titled> => ({ newest, oldest, title: byTitle })[key],
 };
@@ -62,11 +63,11 @@ export const ANNOUNCEMENT_SORT = {
 /** Events are ordered by when they happen, not when they were posted. */
 export const EVENT_SORT = {
   options: [
-    { value: "upcoming", label: "Upcoming first" },
-    { value: "latest", label: "Event date, latest" },
-    { value: "earliest", label: "Event date, earliest" },
-    { value: "added", label: "Recently added" },
-    { value: "title", label: "Title A–Z" },
+    { value: "upcoming", label: "sort.upcoming" },
+    { value: "latest", label: "sort.latest" },
+    { value: "earliest", label: "sort.earliest" },
+    { value: "added", label: "sort.added" },
+    { value: "title", label: "sort.titleAz" },
   ] as const satisfies readonly SortOption<string>[],
   compare: (key: "upcoming" | "latest" | "earliest" | "added" | "title", now = Date.now()): Compare<Scheduled> => {
     const start = (e: Scheduled) => time(e.startAt);

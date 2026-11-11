@@ -7,6 +7,7 @@ import { usePageCrumbs, usePageTitle } from "@/components/page-chrome";
 import { useAuth } from "@/lib/auth";
 import { assetUrl } from "@/lib/orbit";
 import { formatDateTime } from "@/lib/utils";
+import { t, useT, type MessageKey } from "@/i18n";
 
 /** Page title of a single item. */
 export function DetailTitle({ children }: { children: React.ReactNode }) {
@@ -15,10 +16,11 @@ export function DetailTitle({ children }: { children: React.ReactNode }) {
 
 /** "Author · date" line, optionally followed by a view count. */
 export function Byline({ author, createdAt, views }: { author: string; createdAt: string; views?: number }) {
+  useT();
   return (
     <p className="text-xs text-muted-foreground">
       {author} · {formatDateTime(createdAt)}
-      {views !== undefined && ` · ${views} ${views === 1 ? "view" : "views"}`}
+      {views !== undefined && ` · ${t(views === 1 ? "stat.view1" : "stat.viewN", { n: views })}`}
     </p>
   );
 }
@@ -44,7 +46,7 @@ export function DetailPage({
   onDelete,
   children,
 }: {
-  section: { label: string; to: "/announcements" | "/events" | "/news" | "/blog" | "/discussions" };
+  section: { label: MessageKey; to: "/announcements" | "/events" | "/news" | "/blog" | "/discussions" };
   itemTitle?: string;
   loading: boolean;
   notFound: boolean;
@@ -53,11 +55,12 @@ export function DetailPage({
 }) {
   const { isAdmin } = useAuth();
   const navigate = useNavigate();
-  usePageTitle(section.label);
+  const tr = useT();
+  usePageTitle(tr(section.label));
   usePageCrumbs([
-    { label: "Home", to: "/" },
-    { label: section.label, to: section.to },
-    { label: itemTitle ?? (notFound ? "Not found" : "…") },
+    { label: tr("nav.home"), to: "/" },
+    { label: tr(section.label), to: section.to },
+    { label: itemTitle ?? (notFound ? tr("feed.notFound") : "…") },
   ]);
 
   if (loading) {
@@ -72,8 +75,8 @@ export function DetailPage({
   if (notFound) {
     return (
       <Empty>
-        This item doesn't exist or was removed.{" "}
-        <Link to={section.to} className="underline">Back to {section.label.toLowerCase()}</Link>
+        {tr("feed.itemMissing")}{" "}
+        <Link to={section.to} className="underline">{tr("feed.backTo", { section: tr(section.label).toLowerCase() })}</Link>
       </Empty>
     );
   }
@@ -91,7 +94,7 @@ export function DetailPage({
               await navigate({ to: section.to });
             }}
           >
-            <Trash2 /> Delete
+            <Trash2 /> {tr("common.delete")}
           </Button>
         </div>
       )}

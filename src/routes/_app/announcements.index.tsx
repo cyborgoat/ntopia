@@ -16,12 +16,14 @@ import { feedQueries } from "@/lib/feeds";
 import { ANNOUNCEMENT_SORT } from "@/lib/sorting";
 import { useAuth } from "@/lib/auth";
 import { orbit, unwrap } from "@/lib/orbit";
+import { useT } from "@/i18n";
 
 export const Route = createFileRoute("/_app/announcements/")({
   component: Announcements,
 });
 
 function Announcements() {
+  const tr = useT();
   const { isAdmin } = useAuth();
   const qc = useQueryClient();
   const navigate = useNavigate();
@@ -36,35 +38,35 @@ function Announcements() {
   return (
     <>
       <PageHeader
-        title="Announcements"
-        crumbs={[{ label: "Home", to: "/" }, { label: "Announcements" }]}
+        title={tr("nav.announcements")}
+        crumbs={[{ label: tr("nav.home"), to: "/" }, { label: tr("nav.announcements") }]}
         actions={
           <>
           <SortMenu value={list.sort} options={list.options} onChange={list.setSort} />
           {isAdmin && (
             <FormDialog
-              title="New announcement"
-              triggerLabel="New"
+              title={tr("ann.new")}
+              triggerLabel={tr("common.new")}
               onSubmit={async () => {
                 await unwrap(orbit.POST("/api/announcements", { body: f }));
                 setF({ title: "", description: "" });
                 qc.invalidateQueries({ queryKey: ["announcements"] });
               }}
             >
-              <Field label="Title"><Input required value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} /></Field>
-              <Field label="Description"><Textarea required rows={5} value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} /></Field>
+              <Field label={tr("ann.titleField")}><Input required value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} /></Field>
+              <Field label={tr("ann.description")}><Textarea required rows={5} value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} /></Field>
             </FormDialog>
           )}
           </>
         }
       />
       <div className="space-y-2">
-        {list.total === 0 && <Empty>No announcements yet.</Empty>}
+        {list.total === 0 && <Empty>{tr("ann.empty")}</Empty>}
         {list.pageItems?.map((a) => (
           <FeedItemMenu
             key={a.id}
             onOpen={() => void navigate({ to: "/announcements/$id", params: { id: a.id } })}
-            copy={{ text: a.title, label: "Title" }}
+            copy={{ text: a.title, label: tr("feed.title") }}
             onDelete={isAdmin ? () => del.mutate(a.id) : undefined}
           >
               <FeedCard
@@ -75,7 +77,7 @@ function Announcements() {
                 createdAt={a.createdAt}
                 content={a.description}
                 action={isAdmin ? (
-                  <Button variant="ghost" size="icon-xs" onClick={() => del.mutate(a.id)} aria-label="Delete">
+                  <Button variant="ghost" size="icon-xs" onClick={() => del.mutate(a.id)} aria-label={tr("common.delete")}>
                     <Trash2 />
                   </Button>
                 ) : undefined}

@@ -11,6 +11,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { cn, toMessage } from "@/lib/utils";
 import { localImageRefs } from "./image-refs";
 import * as mm from "./mdmailer";
+import { t, useT } from "@/i18n";
 
 const IMAGE_EXTS = ["png", "jpg", "jpeg", "gif", "webp", "svg"];
 const fileLabel = (path: string) => path.replace(/^assets\//, "");
@@ -42,6 +43,7 @@ export function ImageLibrary({
   /** Documents of the saved templates, so deleting an image they use can be flagged. */
   savedDocs: string[];
 }) {
+  const tr = useT();
   const [isOpen, setIsOpen] = useState(false);
   const [images, setImages] = useState<mm.LibraryImage[] | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
@@ -93,7 +95,7 @@ export function ImageLibrary({
       setCopied(path);
       setTimeout(() => setCopied((c) => (c === path ? null : c)), 1800);
     } catch {
-      toast.error("Could not copy to the clipboard.");
+      toast.error(t("email.images.copyFailed"));
     }
   }
 
@@ -110,10 +112,10 @@ export function ImageLibrary({
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <Tooltip>
-        <TooltipTrigger render={<DialogTrigger render={<Button variant="ghost" size="icon-sm" aria-label="Images" />} />}>
+        <TooltipTrigger render={<DialogTrigger render={<Button variant="ghost" size="icon-sm" aria-label={tr("email.images.title")} />} />}>
           <Images />
         </TooltipTrigger>
-        <TooltipContent>Images</TooltipContent>
+        <TooltipContent>{tr("email.images.title")}</TooltipContent>
       </Tooltip>
       <DialogContent
         className={cn("flex max-h-[85vh] flex-col gap-4 sm:max-w-2xl", dragging && "ring-2 ring-ring")}
@@ -126,25 +128,25 @@ export function ImageLibrary({
         }}
       >
         <DialogHeader>
-          <DialogTitle>Images</DialogTitle>
+          <DialogTitle>{tr("email.images.title")}</DialogTitle>
           <DialogDescription>
-            One library shared by every email. Drop images here or import them, then click one to copy its path and paste it after
-            <code className="mx-1">photo:</code> in the frontmatter or into an image in the message.
+            {tr("email.images.desc")}
+            <code className="mx-1">photo:</code> {tr("email.images.desc2")}
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => void importPicked()}><ImagePlus /> Import…</Button>
+          <Button variant="outline" size="sm" onClick={() => void importPicked()}><ImagePlus /> {tr("email.images.import")}</Button>
         </div>
 
         <div className="min-h-0 flex-1 overflow-auto">
           {images === null ? (
             <div className="flex items-center justify-center gap-2 p-10 text-sm text-muted-foreground" role="status">
-              <Loader2 className="size-4 animate-spin" /> Loading…
+              <Loader2 className="size-4 animate-spin" /> {tr("common.loading")}
             </div>
           ) : images.length === 0 ? (
             <p className="rounded-lg border border-dashed p-10 text-center text-sm text-muted-foreground">
-              No images yet. Drop files here or choose Import.
+              {tr("email.images.empty")}
             </p>
           ) : (
             <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -157,11 +159,11 @@ export function ImageLibrary({
                     <button
                       type="button"
                       className="relative aspect-square bg-muted/60 outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                      title="Click to copy path"
+                      title={tr("email.images.clickCopy")}
                       onClick={() => void copyPath(img.path)}
                     >
                       <Thumb path={img.path} name={img.name} />
-                      {here && <Badge className="absolute left-1.5 top-1.5" variant="secondary"><Check /> In this email</Badge>}
+                      {here && <Badge className="absolute left-1.5 top-1.5" variant="secondary"><Check /> {tr("email.images.inThis")}</Badge>}
                     </button>
                     <div className="flex flex-col gap-1.5 p-2">
                       <p className="truncate text-xs font-medium" title={img.path}>{img.name}</p>
@@ -169,21 +171,19 @@ export function ImageLibrary({
                       {confirming ? (
                         <div className="space-y-1.5">
                           <p className="text-[11px] text-amber-600 dark:text-amber-400">
-                            {here || elsewhere
-                              ? `Used by ${here ? "this email" : "a saved template"}${here && elsewhere ? " and a saved template" : ""}; it will show as missing.`
-                              : "Delete this image?"}
+                            {here && elsewhere ? tr("email.images.usedBoth") : here ? tr("email.images.usedHere") : elsewhere ? tr("email.images.usedTpl") : tr("email.images.deleteQ")}
                           </p>
                           <div className="flex gap-1.5">
-                            <Button size="xs" variant="destructive" className="flex-1" onClick={() => void remove(img)}>Delete</Button>
-                            <Button size="icon-xs" variant="ghost" aria-label="Cancel" onClick={() => setConfirmDelete(null)}><X /></Button>
+                            <Button size="xs" variant="destructive" className="flex-1" onClick={() => void remove(img)}>{tr("common.delete")}</Button>
+                            <Button size="icon-xs" variant="ghost" aria-label={tr("common.cancel")} onClick={() => setConfirmDelete(null)}><X /></Button>
                           </div>
                         </div>
                       ) : (
                         <div className="flex gap-1.5">
                           <Button size="xs" variant="outline" className="flex-1" onClick={() => void copyPath(img.path)}>
-                            {copied === img.path ? <><Check /> Copied</> : <><Copy /> Copy path</>}
+                            {copied === img.path ? <><Check /> {tr("email.images.copied")}</> : <><Copy /> {tr("email.images.copyPath")}</>}
                           </Button>
-                          <Button size="icon-xs" variant="ghost" aria-label={`Delete ${img.name}`} title="Delete" onClick={() => setConfirmDelete(img.path)}>
+                          <Button size="icon-xs" variant="ghost" aria-label={tr("email.images.deleteAria", { name: img.name })} title={tr("common.delete")} onClick={() => setConfirmDelete(img.path)}>
                             <Trash2 />
                           </Button>
                         </div>

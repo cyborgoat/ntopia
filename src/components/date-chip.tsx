@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { dateLocale } from "@/i18n";
 
 /**
  * Calendar-leaf style chip: short month over the day number.
@@ -7,7 +8,7 @@ import { cn } from "@/lib/utils";
 export function DateChip({ iso, muted, className }: { iso: string; muted?: boolean; className?: string }) {
   const d = new Date(iso);
   const today = d.toDateString() === new Date().toDateString();
-  const month = d.toLocaleDateString([], { month: "short" });
+  const month = d.toLocaleDateString(dateLocale(), { month: "short" });
   return (
     <span
       className={cn(

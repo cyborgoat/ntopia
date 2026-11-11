@@ -1,13 +1,14 @@
+import type { MessageKey } from "@/i18n";
 /** Which frontmatter keys mdmailer reads for each email `type` (see mdmailer's dist/cli.js). */
 
-export const EMAIL_TYPES = [
-  { value: "news", label: "News update", description: "Newsletter-style update with a date" },
-  { value: "notification", label: "Notification", description: "Short announcement with a banner and headline" },
-  { value: "event", label: "Event", description: "Date, location, hosts and agenda" },
-  { value: "meeting", label: "Meeting", description: "Meeting invite with a join link" },
-  { value: "webinar", label: "Webinar", description: "Online session with hosts and a join link" },
-  { value: "invitation", label: "Invitation", description: "Formal invitation with an RSVP link" },
-] as const;
+export const EMAIL_TYPES: readonly { value: string; label: MessageKey; description: MessageKey }[] = [
+  { value: "news", label: "email.type.news.label", description: "email.type.news.desc" },
+  { value: "notification", label: "email.type.notification.label", description: "email.type.notification.desc" },
+  { value: "event", label: "email.type.event.label", description: "email.type.event.desc" },
+  { value: "meeting", label: "email.type.meeting.label", description: "email.type.meeting.desc" },
+  { value: "webinar", label: "email.type.webinar.label", description: "email.type.webinar.desc" },
+  { value: "invitation", label: "email.type.invitation.label", description: "email.type.invitation.desc" },
+];
 export const EMAIL_LANGS = [
   { value: "en", label: "English" },
   { value: "zh", label: "中文" },
@@ -50,7 +51,7 @@ export function parseTemplate(file: string): { base: string; lang: string } {
   return m ? { base: m[1], lang: m[2] } : { base: file, lang: "en" };
 }
 
-export type FieldDef = { key: string; label: string };
+export type FieldDef = { key: string; label: MessageKey };
 
 const EVENT_TYPES = new Set(["event", "meeting", "webinar", "invitation"]);
 export const isEventType = (type: string) => EVENT_TYPES.has(type);
@@ -59,20 +60,20 @@ export const isEventType = (type: string) => EVENT_TYPES.has(type);
 export function typeFields(type: string): FieldDef[] {
   if (type === "notification") {
     return [
-      { key: "headline", label: "Headline" },
-      { key: "banner", label: "Banner" },
-      { key: "date", label: "Date" },
+      { key: "headline", label: "email.field.headline" },
+      { key: "banner", label: "email.field.banner" },
+      { key: "date", label: "email.field.date" },
     ];
   }
   if (isEventType(type)) {
     return [
-      { key: "eventName", label: "Event name" },
-      { key: "startsAt", label: "Date" },
-      { key: "time", label: "Time" },
-      { key: "location", label: "Location" },
-      type === "invitation" ? { key: "rsvpUrl", label: "RSVP link" } : { key: "joinUrl", label: "Join link" },
-      { key: "kicker", label: "Header label" },
+      { key: "eventName", label: "email.field.eventName" },
+      { key: "startsAt", label: "email.field.date" },
+      { key: "time", label: "email.field.time" },
+      { key: "location", label: "email.field.location" },
+      type === "invitation" ? { key: "rsvpUrl", label: "email.field.rsvpUrl" } : { key: "joinUrl", label: "email.field.joinUrl" },
+      { key: "kicker", label: "email.field.kicker" },
     ];
   }
-  return [{ key: "date", label: "Date" }];
+  return [{ key: "date", label: "email.field.date" }];
 }

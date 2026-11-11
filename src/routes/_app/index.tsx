@@ -7,14 +7,16 @@ import { TodayPanel } from "@/features/todo/today-panel";
 import { useNow } from "@/features/todo/use-now";
 import { useAuth } from "@/lib/auth";
 import { orbit } from "@/lib/orbit";
+import { dateLocale, getLang, t, useT } from "@/i18n";
 
 export const Route = createFileRoute("/_app/")({ component: Home });
 
 function greeting(hour: number) {
-  return hour < 5 ? "Good evening" : hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+  return hour < 5 ? t("home.greeting.evening") : hour < 12 ? t("home.greeting.morning") : hour < 18 ? t("home.greeting.afternoon") : t("home.greeting.evening");
 }
 
 function Home() {
+  const tr = useT();
   const { token, user } = useAuth();
   const now = useNow();
   const unread = useQuery({
@@ -28,20 +30,20 @@ function Home() {
 
   return (
     <>
-      <PageHeader title="Home" />
+      <PageHeader title={tr("nav.home")} />
       <div className="space-y-10 pb-6">
         <div>
-          <h2 className="text-2xl font-semibold tracking-tight">{greeting(now.getHours())}{first ? `, ${first}` : ""}</h2>
+          <h2 className="text-2xl font-semibold tracking-tight">{greeting(now.getHours())}{first ? (getLang() === "zh" ? `，${first}` : `, ${first}`) : ""}</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            {now.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
-            {token && unreadCount > 0 && ` · ${unreadCount} unread`}
+            {now.toLocaleDateString(dateLocale(), { weekday: "long", month: "long", day: "numeric" })}
+            {token && unreadCount > 0 && ` · ${tr("home.unreadSuffix", { n: unreadCount })}`}
           </p>
         </div>
         <TodayPanel />
         {token ? (
           <HomeDigest />
         ) : (
-          <SignInNotice>Local tools work offline. Sign in to see announcements, events, news and discussions from Team Orbit.</SignInNotice>
+          <SignInNotice>{tr("home.signInNotice")}</SignInNotice>
         )}
       </div>
     </>

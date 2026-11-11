@@ -29,10 +29,12 @@ import {
 } from "@/features/todo/store";
 import { useNow } from "@/features/todo/use-now";
 import { TodoDialog } from "@/features/todo/todo-dialog";
+import { useT } from "@/i18n";
 
 export const Route = createFileRoute("/_app/todo")({ component: TodoPage });
 
 function TodoPage() {
+  const tr = useT();
   const [items, setItems] = useState<TodoItem[]>(() => listTodos());
   const [title, setTitle] = useState("");
   const [dueDate, setDueDate] = useState(() => toDateKey(new Date()));
@@ -74,9 +76,9 @@ function TodoPage() {
 
   const listMenu = (
     <ContextMenuContent>
-      <ContextMenuItem onClick={focusAdd}>Focus add field</ContextMenuItem>
+      <ContextMenuItem onClick={focusAdd}>{tr("todo.focusAdd")}</ContextMenuItem>
       <ContextMenuItem disabled={doneCount === 0} onClick={() => setItems(clearCompleted())}>
-        Clear completed
+        {tr("todo.clearCompleted")}
       </ContextMenuItem>
     </ContextMenuContent>
   );
@@ -90,7 +92,7 @@ function TodoPage() {
             checked={t.done}
             onChange={() => setItems(toggleTodo(t.id))}
             className="size-3.5 shrink-0 accent-foreground"
-            aria-label={t.done ? "Mark incomplete" : "Mark complete"}
+            aria-label={t.done ? tr("todo.markIncomplete") : tr("todo.markComplete")}
           />
           <button
             type="button"
@@ -98,7 +100,7 @@ function TodoPage() {
             onClick={() => setEditingId(t.id)}
           >
             {t.flagged && (
-              <Flag className="size-3 shrink-0 fill-amber-500 text-amber-500" aria-label="Flagged" />
+              <Flag className="size-3 shrink-0 fill-amber-500 text-amber-500" aria-label={tr("todo.flagged")} />
             )}
             <span className={`min-w-0 flex-1 truncate text-sm ${t.done ? "text-muted-foreground line-through" : ""}`}>
               {t.title}
@@ -122,8 +124,8 @@ function TodoPage() {
               {t.location && (
                 <span className="flex max-w-32 items-center gap-1 truncate"><MapPin className="size-3 shrink-0" /><span className="truncate">{t.location}</span></span>
               )}
-              {t.notes && <StickyNote className="size-3" aria-label="Has notes" />}
-              {t.remind && <Bell className="size-3" aria-label="Reminder set" />}
+              {t.notes && <StickyNote className="size-3" aria-label={tr("todo.hasNotes")} />}
+              {t.remind && <Bell className="size-3" aria-label={tr("todo.reminderSet")} />}
               {t.dueDate && (
                 <span className={`tabular-nums ${tone === "overdue" && !t.done ? "text-destructive" : ""}`}>
                   {dueLabel(t.dueDate, t.dueTime, now)}
@@ -137,16 +139,16 @@ function TodoPage() {
             size="icon-xs"
             className="shrink-0 opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
             onClick={() => setItems(deleteTodo(t.id))}
-            aria-label="Delete"
+            aria-label={tr("common.delete")}
           >
             <Trash2 />
           </Button>
         </ContextMenuTrigger>
         <ContextMenuContent>
-          <ContextMenuItem onClick={() => setEditingId(t.id)}><Pencil /> Edit</ContextMenuItem>
+          <ContextMenuItem onClick={() => setEditingId(t.id)}><Pencil /> {tr("common.edit")}</ContextMenuItem>
           <ContextMenuItem onClick={() => setItems(toggleTodo(t.id))}>
             {t.done ? <Circle /> : <Check />}
-            {t.done ? "Mark incomplete" : "Mark complete"}
+            {t.done ? tr("todo.markIncomplete") : tr("todo.markComplete")}
           </ContextMenuItem>
           <ContextMenuItem
             onClick={() => {
@@ -155,11 +157,11 @@ function TodoPage() {
             }}
           >
             <Flag className={t.flagged ? "fill-current" : undefined} />
-            {t.flagged ? "Unflag" : "Flag"}
+            {t.flagged ? tr("todo.unflag") : tr("todo.flag")}
           </ContextMenuItem>
           <ContextMenuSeparator />
           <ContextMenuItem variant="destructive" onClick={() => setItems(deleteTodo(t.id))}>
-            <Trash2 /> Delete
+            <Trash2 /> {tr("common.delete")}
           </ContextMenuItem>
         </ContextMenuContent>
       </ContextMenu>
@@ -169,11 +171,11 @@ function TodoPage() {
   return (
     <div className="mx-auto flex h-full min-h-0 w-full max-w-4xl flex-col px-8 pt-4 pb-4">
       <PageHeader
-        title="Todo"
+        title={tr("todo.title")}
         actions={
           doneCount > 0 ? (
             <Button size="sm" variant="outline" onClick={() => setItems(clearCompleted())}>
-              Clear completed
+              {tr("todo.clearCompleted")}
             </Button>
           ) : undefined
         }
@@ -183,7 +185,7 @@ function TodoPage() {
         {items.length === 0 ? (
           <ContextMenu>
             <ContextMenuTrigger className="block">
-              <Empty>No tasks yet. Add one below.</Empty>
+              <Empty>{tr("todo.empty")}</Empty>
             </ContextMenuTrigger>
             {listMenu}
           </ContextMenu>
@@ -191,7 +193,7 @@ function TodoPage() {
           <ContextMenu>
             <ContextMenuTrigger className="block">
               {!sections.some((s) => s.id === "today") && (
-                <p className="px-2 text-xs text-muted-foreground">Nothing due today.</p>
+                <p className="px-2 text-xs text-muted-foreground">{tr("todo.nothingDueToday")}</p>
               )}
               {sections.map((s, i) => {
                 const collapsed = isCollapsed(s.id);
@@ -226,13 +228,13 @@ function TodoPage() {
           ref={inputRef}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="Add a task…"
+          placeholder={tr("todo.add")}
           className="h-8"
           autoFocus
         />
         <DatePicker value={dueDate} onChange={setDueDate} className="w-44 shrink-0" />
         <Button type="submit" size="sm" className="h-8" disabled={!title.trim()}>
-          Add
+          {tr("common.add")}
         </Button>
       </form>
 

@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { toast } from "sonner";
 import { isPermissionGranted, requestPermission, sendNotification } from "@tauri-apps/plugin-notification";
 import { notifyEnabled } from "@/features/settings/prefs";
+import { t as tr } from "@/i18n";
 import { isTauri } from "@/lib/storage";
 import { dueAt } from "./dates";
 import { listTodos, REMIND_OPTIONS, updateTodoSilently } from "./store";
@@ -28,7 +29,7 @@ function checkReminders() {
     const lead = REMIND_OPTIONS.find((o) => o.value === t.remind)?.ms ?? 0;
     if (dueAt(t.dueDate, t.dueTime).getTime() - lead > now) continue;
     updateTodoSilently(t.id, { remindedAt: new Date().toISOString() });
-    const when = t.dueTime ? `Due ${t.dueTime}` : "Due today";
+    const when = t.dueTime ? tr("todo.dueAt", { time: t.dueTime }) : tr("todo.dueToday");
     void notify(t.title, [when, t.location].filter(Boolean).join(" · "));
     window.dispatchEvent(new Event(TODO_REMINDER_EVENT));
   }

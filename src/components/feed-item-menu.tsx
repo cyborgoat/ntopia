@@ -9,12 +9,13 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import { copyText } from "@/lib/utils";
+import { useT } from "@/i18n";
 
 /** Right-click menu shared by feed rows: Open, Copy, and (when `onDelete` is given) Delete. */
 export function FeedItemMenu({
   children,
   onOpen,
-  openLabel = "Open",
+  openLabel,
   copy,
   onDelete,
 }: {
@@ -25,21 +26,22 @@ export function FeedItemMenu({
   copy: { text: string; label: string };
   onDelete?: () => void;
 }) {
+  const tr = useT();
   return (
     <ContextMenu>
       <ContextMenuTrigger className="block w-full">{children}</ContextMenuTrigger>
       <ContextMenuContent>
         <ContextMenuItem onClick={onOpen}>
-          <ExternalLink /> {openLabel}
+          <ExternalLink /> {openLabel ?? tr("feed.open")}
         </ContextMenuItem>
         <ContextMenuItem onClick={() => copyText(copy.text, copy.label)}>
-          <Copy /> Copy {copy.label.toLowerCase()}
+          <Copy /> {tr("feed.copy", { what: copy.label.toLowerCase() })}
         </ContextMenuItem>
         {onDelete && (
           <>
             <ContextMenuSeparator />
             <ContextMenuItem variant="destructive" onClick={onDelete}>
-              <Trash2 /> Delete
+              <Trash2 /> {tr("common.delete")}
             </ContextMenuItem>
           </>
         )}

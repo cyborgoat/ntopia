@@ -20,7 +20,7 @@ function AnnouncementDetail() {
 
   return (
     <DetailPage
-      section={{ label: "Announcements", to: "/announcements" }}
+      section={{ label: "nav.announcements", to: "/announcements" }}
       itemTitle={data?.title}
       loading={isPending}
       notFound={!data}

@@ -12,6 +12,7 @@ import { orbit } from "@/lib/orbit";
 import { newest } from "@/lib/sorting";
 import { getItem, setItem } from "@/lib/storage";
 import { excerpt, timeAgo } from "@/lib/utils";
+import { dateLocale, t, useT } from "@/i18n";
 
 export const HOME_SEEN_KEY = "homeLastSeen";
 
@@ -23,7 +24,7 @@ function useLastSeen() {
 }
 
 function NewDot({ at, seen }: { at: string; seen: number }) {
-  return new Date(at).getTime() > seen ? <span className="size-1.5 shrink-0 rounded-full bg-primary" aria-label="New" /> : null;
+  return new Date(at).getTime() > seen ? <span className="size-1.5 shrink-0 rounded-full bg-primary" aria-label={t("home.new")} /> : null;
 }
 
 type Q = { isPending: boolean; isError: boolean; data?: { items: unknown[] } };
@@ -32,7 +33,7 @@ function Card({ title, to, q, empty, children }: { title: string; to: string; q:
   const body = q.isPending ? (
     <div className="space-y-2"><Skeleton className="h-4 w-4/5" /><Skeleton className="h-4 w-3/5" /><Skeleton className="h-4 w-2/3" /></div>
   ) : q.isError ? (
-    <p className="text-muted-foreground">Couldn't load.</p>
+    <p className="text-muted-foreground">{t("common.couldntLoad")}</p>
   ) : q.data?.items.length ? (
     children
   ) : (
@@ -42,7 +43,7 @@ function Card({ title, to, q, empty, children }: { title: string; to: string; q:
     <section className="rounded-xl border p-5">
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-sm font-medium">{title}</h2>
-        <Link to={to} className="text-xs text-muted-foreground hover:text-foreground">View all</Link>
+        <Link to={to} className="text-xs text-muted-foreground hover:text-foreground">{t("common.viewAll")}</Link>
       </div>
       <div className="space-y-1 text-sm">{body}</div>
     </section>
@@ -52,6 +53,7 @@ function Card({ title, to, q, empty, children }: { title: string; to: string; q:
 const rowCls = "flex min-w-0 items-center gap-3 rounded-md px-2 py-1.5 hover:bg-muted/60";
 
 function Notifications() {
+  const tr = useT();
   const qc = useQueryClient();
   const { data } = useQuery({
     queryKey: ["notifications", "unread", "digest"],
@@ -69,8 +71,8 @@ function Notifications() {
   return (
     <section className="rounded-xl border border-primary/20 bg-primary/5 p-5">
       <div className="mb-2 flex items-center justify-between">
-        <h2 className="text-sm font-medium">{total} unread {total === 1 ? "notification" : "notifications"}</h2>
-        <Button variant="ghost" size="xs" disabled={markAll.isPending} onClick={() => markAll.mutate()}><CheckCheck /> Mark all read</Button>
+        <h2 className="text-sm font-medium">{tr(total === 1 ? "home.unread1" : "home.unreadN", { n: total })}</h2>
+        <Button variant="ghost" size="xs" disabled={markAll.isPending} onClick={() => markAll.mutate()}><CheckCheck /> {tr("home.markAllRead")}</Button>
       </div>
       <ul className="space-y-0.5 text-sm">
         {unread.map((n) => {
@@ -91,6 +93,7 @@ function Notifications() {
 
 /** "What's new" from Team Orbit: unread notifications plus recent announcements, events, posts and discussions. */
 export function HomeDigest() {
+  const tr = useT();
   const seen = useLastSeen();
   // Same cached lists as the sections themselves (the API can't sort), cut down to the newest few.
   const ann = useQuery({ ...feedQueries.announcements, select: (all) => ({ items: [...all].sort(newest).slice(0, 3) }) });
@@ -115,7 +118,7 @@ export function HomeDigest() {
     <div className="space-y-6">
       <Notifications />
       <div className="grid gap-6 md:grid-cols-2">
-        <Card title="Announcements" to="/announcements" q={ann} empty="No announcements yet.">
+        <Card title={tr("home.announcements")} to="/announcements" q={ann} empty={tr("home.noAnnouncements")}>
           {ann.data?.items.map((a) => (
             <Link key={a.id} to="/announcements/$id" params={{ id: a.id }} className={rowCls}>
               <NewDot at={a.createdAt} seen={seen} />
@@ -124,7 +127,7 @@ export function HomeDigest() {
             </Link>
           ))}
         </Card>
-        <Card title="Upcoming events" to="/events" q={ev} empty="No upcoming events.">
+        <Card title={tr("home.upcomingEvents")} to="/events" q={ev} empty={tr("home.noEvents")}>
           {ev.data?.items.map((e) => {
             const d = new Date(e.startAt);
             return (
@@ -133,7 +136,7 @@ export function HomeDigest() {
                 <span className="min-w-0 flex-1">
                   <span className="block truncate">{e.title}</span>
                   <span className="flex items-center gap-1 truncate text-xs text-muted-foreground">
-                    {d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false })}
+                    {d.toLocaleTimeString(dateLocale(), { hour: "2-digit", minute: "2-digit", hour12: false })}
                     {e.location && <><MapPin className="size-3 shrink-0" />{e.location}</>}
                   </span>
                 </span>
@@ -142,7 +145,7 @@ export function HomeDigest() {
             );
           })}
         </Card>
-        <Card title="Latest posts" to="/news" q={postsQ} empty="No posts yet.">
+        <Card title={tr("home.latestPosts")} to="/news" q={postsQ} empty={tr("home.noPosts")}>
           {posts.map((p) => (
             <Link key={`${p.kind}-${p.id}`} to={p.kind === "News" ? "/news/$id" : "/blog/$id"} params={{ id: p.id }} className={`${rowCls} items-start`}>
               <span className="min-w-0 flex-1">
@@ -152,11 +155,11 @@ export function HomeDigest() {
                 </span>
                 <span className="block truncate text-xs text-muted-foreground">{excerpt(p.content, 80)}</span>
               </span>
-              <Badge variant="secondary" className="shrink-0">{p.kind}</Badge>
+              <Badge variant="secondary" className="shrink-0">{p.kind === "News" ? tr("home.kind.news") : tr("home.kind.blog")}</Badge>
             </Link>
           ))}
         </Card>
-        <Card title="Discussions" to="/discussions" q={forum} empty="No discussions yet.">
+        <Card title={tr("home.discussions")} to="/discussions" q={forum} empty={tr("home.noDiscussions")}>
           {forum.data?.items.map((p) => (
             <Link key={p.id} to="/discussions/$postId" params={{ postId: p.id }} className={rowCls}>
               <NewDot at={p.createdAt} seen={seen} />

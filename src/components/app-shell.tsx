@@ -52,19 +52,20 @@ import { useAuth } from "@/lib/auth";
 import { isPrivileged } from "@/lib/roles";
 import { orbit } from "@/lib/orbit";
 import { useNotificationsSocket } from "@/lib/realtime";
+import { useT, type MessageKey } from "@/i18n";
 
 const localNav = [
-  { to: "/", label: "Home", icon: Home },
-  { to: "/todo", label: "Todo", icon: ListTodo },
-  { to: "/notebook", label: "Notebook", icon: NotebookText },
+  { to: "/", label: "nav.home", icon: Home },
+  { to: "/todo", label: "nav.todo", icon: ListTodo },
+  { to: "/notebook", label: "nav.notebook", icon: NotebookText },
 ] as const;
 
 const orbitNav = [
-  { to: "/announcements", label: "Announcements", icon: Megaphone },
-  { to: "/events", label: "Events", icon: CalendarDays },
-  { to: "/news", label: "News", icon: Newspaper },
-  { to: "/blog", label: "Blog", icon: BookOpen },
-  { to: "/discussions", label: "Discussions", icon: MessagesSquare },
+  { to: "/announcements", label: "nav.announcements", icon: Megaphone },
+  { to: "/events", label: "nav.events", icon: CalendarDays },
+  { to: "/news", label: "nav.news", icon: Newspaper },
+  { to: "/blog", label: "nav.blog", icon: BookOpen },
+  { to: "/discussions", label: "nav.discussions", icon: MessagesSquare },
 ] as const;
 
 /** Team Orbit areas: guests see a sign-in prompt here instead of failing API calls. */
@@ -86,9 +87,10 @@ function NavItems({
   items,
   pathname,
 }: {
-  items: readonly { to: string; label: string; icon: typeof Home }[];
+  items: readonly { to: string; label: MessageKey; icon: typeof Home }[];
   pathname: string;
 }) {
+  const tr = useT();
   const expandIfCollapsed = useExpandWhenCollapsed();
   return (
     <SidebarMenu>
@@ -100,10 +102,10 @@ function NavItems({
               render={<Link to={to} />}
               onClick={expandIfCollapsed}
               isActive={active}
-              tooltip={label}
+              tooltip={tr(label)}
             >
               <Icon />
-              <span>{label}</span>
+              <span>{tr(label)}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         );
@@ -114,6 +116,7 @@ function NavItems({
 
 /** "Gadgets" parent item that expands in place to list each gadget; each entry opens the gadget directly. */
 function GadgetsMenu({ pathname }: { pathname: string }) {
+  const tr = useT();
   const { state, setOpen } = useSidebar();
   const { user } = useAuth();
   const visible = gadgets.filter((g) => !g.privileged || isPrivileged(user));
@@ -141,9 +144,9 @@ function GadgetsMenu({ pathname }: { pathname: string }) {
         }}
         className="group/collapsible"
       >
-        <CollapsibleTrigger render={<SidebarMenuButton tooltip="Gadgets" isActive={inGadget && !open} />}>
+        <CollapsibleTrigger render={<SidebarMenuButton tooltip={tr("nav.gadgets")} isActive={inGadget && !open} />}>
           <Toolbox />
-          <span>Gadgets</span>
+          <span>{tr("nav.gadgets")}</span>
           <ChevronRight className="ml-auto transition-transform group-data-[open]/collapsible:rotate-90" />
         </CollapsibleTrigger>
         <CollapsibleContent>
@@ -152,7 +155,7 @@ function GadgetsMenu({ pathname }: { pathname: string }) {
               <SidebarMenuSubItem key={g.id}>
                 <SidebarMenuSubButton render={<Link to={g.to} />} isActive={pathname === g.to || pathname.startsWith(`${g.to}/`)}>
                   <g.icon />
-                  <span>{g.name}</span>
+                  <span>{tr(g.name)}</span>
                 </SidebarMenuSubButton>
               </SidebarMenuSubItem>
             ))}
@@ -164,6 +167,7 @@ function GadgetsMenu({ pathname }: { pathname: string }) {
 }
 
 function NotificationsItem({ pathname, unread }: { pathname: string; unread: number }) {
+  const tr = useT();
   const expandIfCollapsed = useExpandWhenCollapsed();
   return (
     <SidebarMenuItem>
@@ -171,10 +175,10 @@ function NotificationsItem({ pathname, unread }: { pathname: string; unread: num
         render={<Link to="/notifications" />}
         onClick={expandIfCollapsed}
         isActive={pathname.startsWith("/notifications")}
-        tooltip="Notifications"
+        tooltip={tr("nav.notifications")}
       >
         <Bell />
-        <span>Notifications</span>
+        <span>{tr("nav.notifications")}</span>
       </SidebarMenuButton>
       {unread > 0 && <SidebarMenuBadge>{unread}</SidebarMenuBadge>}
     </SidebarMenuItem>
@@ -182,12 +186,13 @@ function NotificationsItem({ pathname, unread }: { pathname: string; unread: num
 }
 
 function BrandToggle() {
+  const tr = useT();
   const { toggleSidebar, state } = useSidebar();
   return (
     <SidebarMenuButton
       size="lg"
       onClick={toggleSidebar}
-      tooltip={state === "collapsed" ? "Expand sidebar" : "Collapse sidebar"}
+      tooltip={state === "collapsed" ? tr("nav.expandSidebar") : tr("nav.collapseSidebar")}
       className="text-sidebar-foreground hover:text-sidebar-foreground"
     >
       <span className="hidden size-8 items-center justify-center text-lg font-semibold tracking-tight group-data-[collapsible=icon]:flex">
@@ -204,8 +209,9 @@ function BrandToggle() {
 const CONTENT_COL = "mx-auto w-full max-w-4xl px-8";
 
 function InsetHeader({ fullBleed }: { fullBleed: boolean }) {
+  const tr = useT();
   const { title, crumbs, setSlot } = usePageChrome();
-  const label = title ?? (fullBleed ? "Email composer" : null);
+  const label = title ?? (fullBleed ? tr("gadget.email.name") : null);
   const col = fullBleed ? "w-full px-4" : CONTENT_COL;
 
   return (
@@ -240,6 +246,7 @@ function InsetHeader({ fullBleed }: { fullBleed: boolean }) {
 }
 
 export function AppShell() {
+  const tr = useT();
   const { user, token, logout, loading, unreachable } = useAuth();
   const openAuth = useAuthDialog();
   const navigate = useNavigate();
@@ -281,7 +288,7 @@ export function AppShell() {
               <>
                 <SidebarSeparator />
                 <SidebarGroup>
-                  <SidebarGroupLabel>Team Orbit</SidebarGroupLabel>
+                  <SidebarGroupLabel>{tr("nav.teamOrbit")}</SidebarGroupLabel>
                   <SidebarGroupContent>
                     <NavItems items={orbitNav} pathname={pathname} />
                   </SidebarGroupContent>
@@ -300,10 +307,10 @@ export function AppShell() {
                 <SidebarMenuButton
                   render={<Link to="/settings" search={{ section: "appearance" }} />}
                   isActive={pathname === "/settings"}
-                  tooltip="Settings"
+                  tooltip={tr("nav.settings")}
                 >
                   <Settings />
-                  <span>Settings</span>
+                  <span>{tr("nav.settings")}</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               {token ? (
@@ -336,11 +343,11 @@ export function AppShell() {
                         </DropdownMenuGroup>
                         <DropdownMenuSeparator />
                         <DropdownMenuGroup>
-                          <DropdownMenuItem onClick={() => void navigate({ to: "/settings", search: { section: "account" } })}><UserRound /> Account</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => void navigate({ to: "/settings", search: { section: "appearance" } })}><Settings /> Settings</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => void navigate({ to: "/settings", search: { section: "account" } })}><UserRound /> {tr("nav.account")}</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => void navigate({ to: "/settings", search: { section: "appearance" } })}><Settings /> {tr("nav.settings")}</DropdownMenuItem>
                         </DropdownMenuGroup>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem variant="destructive" onClick={logout}><LogOut /> Sign out</DropdownMenuItem>
+                        <DropdownMenuItem variant="destructive" onClick={logout}><LogOut /> {tr("nav.signOut")}</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </SidebarMenuItem>
@@ -350,16 +357,16 @@ export function AppShell() {
                     <>
                       {unreachable && (
                         <SidebarMenuItem>
-                          <SidebarMenuButton className="pointer-events-none text-muted-foreground" tooltip="Can't reach the server">
+                          <SidebarMenuButton className="pointer-events-none text-muted-foreground" tooltip={tr("nav.cantReach")}>
                             <Server />
-                            <span>Can't reach server</span>
+                            <span>{tr("nav.cantReach")}</span>
                           </SidebarMenuButton>
                         </SidebarMenuItem>
                       )}
                       <SidebarMenuItem>
-                        <SidebarMenuButton onClick={logout} tooltip="Sign out">
+                        <SidebarMenuButton onClick={logout} tooltip={tr("nav.signOut")}>
                           <LogOut />
-                          <span>Sign out</span>
+                          <span>{tr("nav.signOut")}</span>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
                     </>
@@ -368,9 +375,9 @@ export function AppShell() {
               ) : (
                 <>
                   <SidebarMenuItem>
-                    <SidebarMenuButton onClick={() => openAuth("login")} tooltip="Sign in">
+                    <SidebarMenuButton onClick={() => openAuth("login")} tooltip={tr("nav.signIn")}>
                       <LogIn />
-                      <span>Sign in</span>
+                      <span>{tr("nav.signIn")}</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 </>

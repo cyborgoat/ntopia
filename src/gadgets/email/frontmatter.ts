@@ -1,5 +1,6 @@
 import YAML from "yaml";
 import { EMAIL_LANGS, EMAIL_TYPES, THEME_PRESETS } from "./fields";
+import { t, type MessageKey } from "@/i18n";
 
 export type Frontmatter = Record<string, unknown>;
 
@@ -125,7 +126,7 @@ type FieldSpec = {
   /** Normalize a raw value to an allowed one, or undefined if it isn't allowed. */
   resolve: (raw: string) => string | undefined;
   allowed: string[];
-  noun: string;
+  noun: MessageKey;
 };
 
 const SPECS: Record<"type" | "lang", FieldSpec> = {
@@ -133,13 +134,13 @@ const SPECS: Record<"type" | "lang", FieldSpec> = {
     keys: ["type"],
     resolve: (raw) => (TYPES.includes(raw.toLowerCase().trim()) ? raw.toLowerCase().trim() : undefined),
     allowed: TYPES,
-    noun: "type",
+    noun: "email.noun.type",
   },
   lang: {
     keys: ["lang", "locale", "language"],
     resolve: (raw) => LANG_ALIASES[raw.toLowerCase().trim()],
     allowed: LANGS,
-    noun: "language",
+    noun: "email.noun.lang",
   },
 };
 
@@ -151,10 +152,10 @@ export function checkDoc(doc: string): Issue[] {
   if (!fm) {
     return [{
       severity: "warning",
-      message: `No frontmatter — the email needs a type and a language. Using ${DEFAULT_TYPE} / ${lang}.`,
+      message: t("email.lint.noFrontmatter", { type: DEFAULT_TYPE, lang }),
       from: 0,
       to: Math.min(doc.length, doc.indexOf("\n") < 0 ? doc.length : doc.indexOf("\n")),
-      fix: { label: "Add frontmatter", from: 0, to: 0, insert: `---\ntype: ${DEFAULT_TYPE}\nlang: ${lang}\n---\n\n` },
+      fix: { label: t("email.lint.addFrontmatter"), from: 0, to: 0, insert: `---\ntype: ${DEFAULT_TYPE}\nlang: ${lang}\n---\n\n` },
       defaulted: true,
     }];
   }
@@ -171,24 +172,24 @@ export function checkDoc(doc: string): Issue[] {
   }
   const data = asRecord(ydoc.toJS()) ?? (fm.text.trim() === "" ? {} : null);
   if (!data) {
-    return [{ severity: "error", message: "Frontmatter must be `key: value` lines.", ...openLine }];
+    return [{ severity: "error", message: t("email.lint.keyValue"), ...openLine }];
   }
 
   const issues: Issue[] = [];
   const field = (name: "type" | "lang", suggestedMissing: string) => {
     const spec = SPECS[name];
     const key = spec.keys.find((k) => data[k] != null && String(data[k]).trim() !== "");
-    const insertFix = (value: string): Fix => ({ label: `Set ${name}: ${value}`, from: fm.innerFrom, to: fm.innerFrom, insert: `${name}: ${value}\n` });
+    const insertFix = (value: string): Fix => ({ label: t("email.lint.setField", { name, value }), from: fm.innerFrom, to: fm.innerFrom, insert: `${name}: ${value}\n` });
 
     if (!key) {
       // Present-but-empty (`type:`) must be replaced, not duplicated.
       const empty = keyLine(fm.text, name);
       const fix: Fix = empty
-        ? { label: `Set ${name}: ${suggestedMissing}`, from: fm.innerFrom + empty.from, to: fm.innerFrom + empty.to, insert: `${name}: ${suggestedMissing}` }
+        ? { label: t("email.lint.setField", { name, value: suggestedMissing }), from: fm.innerFrom + empty.from, to: fm.innerFrom + empty.to, insert: `${name}: ${suggestedMissing}` }
         : insertFix(suggestedMissing);
       issues.push({
         severity: "warning",
-        message: `No ${spec.noun} set — using ${suggestedMissing}.`,
+        message: t("email.lint.noField", { noun: t(spec.noun), value: suggestedMissing }),
         ...(empty ? { from: fm.innerFrom + empty.from, to: fm.innerFrom + empty.to } : openLine),
         fix,
         defaulted: true,
@@ -199,13 +200,13 @@ export function checkDoc(doc: string): Issue[] {
     if (spec.resolve(raw)) return;
     const guess = closest(raw, spec.allowed) ?? suggestedMissing;
     const line = keyLine(fm.text, key);
-    const hint = closest(raw, spec.allowed) ? ` Did you mean "${guess}"?` : ` Use ${spec.allowed.join(", ")}.`;
+    const hint = closest(raw, spec.allowed) ? t("email.lint.didYouMean", { guess }) : t("email.lint.useOne", { list: spec.allowed.join(", ") });
     issues.push({
       severity: "warning",
-      message: `Unknown ${spec.noun} "${raw}".${hint} Using ${guess} for now.`,
+      message: t("email.lint.unknownField", { noun: t(spec.noun), raw, hint, guess }),
       ...(line ? { from: fm.innerFrom + line.from, to: fm.innerFrom + line.to } : openLine),
       fix: line
-        ? { label: `Change to ${key}: ${guess}`, from: fm.innerFrom + line.from, to: fm.innerFrom + line.to, insert: `${key}: ${guess}` }
+        ? { label: t("email.lint.changeTo", { key, value: guess }), from: fm.innerFrom + line.from, to: fm.innerFrom + line.to, insert: `${key}: ${guess}` }
         : insertFix(guess),
       defaulted: Boolean(line),
     });
@@ -219,9 +220,9 @@ export function checkDoc(doc: string): Issue[] {
     const guess = closest(data.theme, THEMES);
     issues.push({
       severity: "warning",
-      message: `Unknown theme "${data.theme}".${guess ? ` Did you mean "${guess}"?` : ` Use ${THEMES.join(", ")}.`}`,
+      message: t("email.lint.unknownTheme", { theme: data.theme, hint: guess ? t("email.lint.didYouMean", { guess }) : t("email.lint.useOne", { list: THEMES.join(", ") }) }),
       ...(line ? { from: fm.innerFrom + line.from, to: fm.innerFrom + line.to } : openLine),
-      fix: guess && line ? { label: `Change to theme: ${guess}`, from: fm.innerFrom + line.from, to: fm.innerFrom + line.to, insert: `theme: ${guess}` } : undefined,
+      fix: guess && line ? { label: t("email.lint.changeTo", { key: "theme", value: guess }), from: fm.innerFrom + line.from, to: fm.innerFrom + line.to, insert: `theme: ${guess}` } : undefined,
     });
   }
 
@@ -235,10 +236,10 @@ export function checkDoc(doc: string): Issue[] {
       const from = fm.innerFrom + node.range[0];
       issues.push({
         severity: "warning",
-        message: `Unquoted ${raw} is read as a number. Wrap it in quotes.`,
+        message: t("email.lint.unquoted", { raw }),
         from,
         to: fm.innerFrom + node.range[1],
-        fix: { label: `Quote "${raw}"`, from, to: fm.innerFrom + node.range[1], insert: `"${raw}"` },
+        fix: { label: t("email.lint.quote", { raw }), from, to: fm.innerFrom + node.range[1], insert: `"${raw}"` },
       });
     }
   }

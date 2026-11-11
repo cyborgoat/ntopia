@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { t } from "@/i18n";
 
 export /** Text input that replaces a label in place. Enter/blur commit, Escape cancels. */
 function InlineRename({
@@ -37,7 +38,7 @@ function InlineRename({
     <Input
       ref={ref}
       defaultValue={value}
-      aria-label="Rename"
+      aria-label={t("notebook.rename")}
       className={cn("h-6 min-w-0 flex-1 px-1.5 text-sm", className)}
       onBlur={(e) => finish(true, e.target.value)}
       onClick={(e) => e.stopPropagation()}

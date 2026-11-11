@@ -165,3 +165,13 @@ When adding a new list surface, wrap rows with `ContextMenu` / `ContextMenuTrigg
 
 - [Gadgets](./gadgets.md) — how to add a gadget
 - Root [README](../README.md) — run instructions and overview
+
+## Internationalization
+
+The UI is available in English and 中文 (Settings → Appearance → Language; the default follows the system language).
+
+- `src/i18n/index.ts` — language state (persisted in localStorage), `useT()` for components, `t()` for plain modules and event handlers, `dateLocale()` for `toLocale*String`.
+- `src/i18n/messages/<area>.ts` — one file per area, each exporting `en` and `zh`. `zh` is typed `Record<keyof typeof en, string>`, so a missing translation fails `tsc`.
+- Add a string: put the English text in `en`, the Chinese in `zh`, then use `tr("area.key")` (components, `const tr = useT()`) or `t("area.key")`. Interpolate with `{name}` placeholders: `tr("key", { name })`.
+- The Markdown editor's own toolbar is translated in `src/i18n/editor.ts`.
+- Text that comes from the Team Orbit server (API error messages, post content) is shown as received.

@@ -27,7 +27,7 @@ function Thread() {
 
   return (
     <DetailPage
-      section={{ label: "Discussions", to: "/discussions" }}
+      section={{ label: "nav.discussions", to: "/discussions" }}
       itemTitle={post?.title}
       loading={isPending}
       notFound={!post}

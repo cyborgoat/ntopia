@@ -7,26 +7,29 @@ import { Button } from "@/components/ui/button";
 import { MarkdownEditor } from "@/components/markdown-editor";
 import { cn, toMessage } from "@/lib/utils";
 import { fileSize, formatBytes, imageBlobUrl, kindOf, readText, writeText } from "./fs";
+import { t, useT } from "@/i18n";
 
 const AUTOSAVE_MS = 500;
 type SaveStatus = "saved" | "saving" | "unsaved";
 
 function SaveIndicator({ status }: { status: SaveStatus }) {
+  const tr = useT();
   return (
     <span className={cn("flex shrink-0 items-center gap-1 text-xs text-muted-foreground tabular-nums", status === "unsaved" && "text-amber-700 dark:text-amber-400")} aria-live="polite">
-      {status === "saving" && <><Loader2 className="size-3 animate-spin" /> Saving…</>}
-      {status === "saved" && <><Check className="size-3" /> Saved</>}
-      {status === "unsaved" && "Unsaved"}
+      {status === "saving" && <><Loader2 className="size-3 animate-spin" /> {tr("notebook.saving")}</>}
+      {status === "saved" && <><Check className="size-3" /> {tr("notebook.saved")}</>}
+      {status === "unsaved" && tr("notebook.unsaved")}
     </span>
   );
 }
 
 function Header({ name, path, status, onDelete }: { name: string; path: string; status?: SaveStatus; onDelete: () => void }) {
+  const tr = useT();
   return (
     <div className="flex items-center gap-2 border-b px-3 py-2">
       <p className="min-w-0 flex-1 truncate text-sm font-medium" title={path}>{name}</p>
       {status && <SaveIndicator status={status} />}
-      <Button type="button" variant="ghost" size="icon-sm" aria-label="Delete file" title="Delete file" onClick={onDelete}><Trash2 /></Button>
+      <Button type="button" variant="ghost" size="icon-sm" aria-label={tr("notebook.deleteFile")} title={tr("notebook.deleteFile")} onClick={onDelete}><Trash2 /></Button>
     </div>
   );
 }
@@ -37,6 +40,7 @@ function Notice({ children }: { children: React.ReactNode }) {
 
 /** Loads a text file and writes edits back 500 ms after typing stops (and when the file is closed). */
 function TextFile({ path, name, markdown, onDelete }: { path: string; name: string; markdown: boolean; onDelete: () => void }) {
+  useT();
   const [content, setContent] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<SaveStatus>("saved");
@@ -59,7 +63,7 @@ function TextFile({ path, name, markdown, onDelete }: { path: string; name: stri
     } catch (e) {
       if (token !== gen.current) return;
       setStatus("unsaved");
-      toast.error(`Could not save ${name}: ${toMessage(e)}`);
+      toast.error(t("notebook.saveFailed", { name, reason: toMessage(e) }));
     }
   });
 
@@ -77,7 +81,7 @@ function TextFile({ path, name, markdown, onDelete }: { path: string; name: stri
       clearTimeout(timer.current);
       const text = latest.current;
       // A file deleted or renamed in the meantime must not be recreated.
-      void exists(path).then(async (there) => { if (there) await writeText(path, text); }).catch(() => toast.error(`Could not save ${name}`));
+      void exists(path).then(async (there) => { if (there) await writeText(path, text); }).catch(() => toast.error(t("notebook.saveFailedShort", { name })));
     }
   }, [path, name]);
 
@@ -96,7 +100,7 @@ function TextFile({ path, name, markdown, onDelete }: { path: string; name: stri
         <Notice><Loader2 className="size-4 animate-spin" /></Notice>
       ) : markdown ? (
         <div className="min-h-0 flex-1">
-          <MarkdownEditor fillHeight variant="full" value={content} onChange={change} placeholder="Write something…" className="h-full rounded-none border-0" imagePreviewHandler={previewImage} />
+          <MarkdownEditor fillHeight variant="full" value={content} onChange={change} placeholder={t("notebook.writePlaceholder")} className="h-full rounded-none border-0" imagePreviewHandler={previewImage} />
         </div>
       ) : (
         <textarea
@@ -138,6 +142,7 @@ function ImageFile({ path, name, onDelete }: { path: string; name: string; onDel
 }
 
 function OtherFile({ path, name, onDelete }: { path: string; name: string; onDelete: () => void }) {
+  const tr = useT();
   const [size, setSize] = useState<number>();
   useEffect(() => {
     let live = true;
@@ -150,7 +155,7 @@ function OtherFile({ path, name, onDelete }: { path: string; name: string; onDel
       <Notice>
         <div className="flex flex-col items-center gap-2 text-center">
           <FileQuestion className="size-8" />
-          <p>No preview for this type of file.</p>
+          <p>{tr("notebook.noPreview")}</p>
           {size != null && <p className="text-xs">{formatBytes(size)}</p>}
         </div>
       </Notice>

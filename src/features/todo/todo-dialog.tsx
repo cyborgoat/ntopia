@@ -16,6 +16,7 @@ import {
   type TodoItem,
   type Urgency,
 } from "./store";
+import { useT, type MessageKey } from "@/i18n";
 
 type Patch = Partial<Omit<TodoItem, "id" | "createdAt">>;
 
@@ -30,6 +31,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 /** Edits every field of a todo; remount per item (`key`) so the form starts from its values. */
 export function TodoDialog({ todo, onSave, onClose }: { todo: TodoItem; onSave: (patch: Patch) => void; onClose: () => void }) {
+  const tr = useT();
   const [title, setTitle] = useState(todo.title);
   const [dueDate, setDueDate] = useState(todo.dueDate ?? "");
   const [dueTime, setDueTime] = useState(todo.dueTime ?? "");
@@ -63,12 +65,12 @@ export function TodoDialog({ todo, onSave, onClose }: { todo: TodoItem; onSave: 
   return (
     <Dialog open disablePointerDismissal onOpenChange={(open) => !open && onClose()}>
       <DialogContent>
-        <DialogHeader><DialogTitle>Edit task</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{tr("todo.edit")}</DialogTitle></DialogHeader>
         <form noValidate onSubmit={save} className="space-y-3">
-          <Field label="Title"><Input value={title} onChange={(e) => setTitle(e.target.value)} autoFocus /></Field>
+          <Field label={tr("todo.field.title")}><Input value={title} onChange={(e) => setTitle(e.target.value)} autoFocus /></Field>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Due date"><DatePicker value={dueDate} onChange={setDueDate} /></Field>
-            <Field label="Time (24-hour)">
+            <Field label={tr("todo.field.dueDate")}><DatePicker value={dueDate} onChange={setDueDate} /></Field>
+            <Field label={tr("todo.field.time")}>
               <Input
                 value={dueTime}
                 disabled={!dueDate}
@@ -78,19 +80,19 @@ export function TodoDialog({ todo, onSave, onClose }: { todo: TodoItem; onSave: 
                 onChange={(e) => setDueTime(e.target.value)}
                 onBlur={() => parsedTime && setDueTime(parsedTime)}
               />
-              {timeInvalid && <p className="text-xs text-destructive">Enter a valid time (HH:mm).</p>}
+              {timeInvalid && <p className="text-xs text-destructive">{tr("todo.timeInvalid")}</p>}
             </Field>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Urgency">
+            <Field label={tr("todo.field.urgency")}>
               <NativeSelect
                 value={urgency}
                 onChange={(e) => setUrgency(e.target.value as Urgency)}
               >
-                {URGENCY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                {URGENCY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label.includes(".") ? tr(o.label as MessageKey) : o.label}</option>)}
               </NativeSelect>
             </Field>
-            <Field label="Flag">
+            <Field label={tr("todo.field.flag")}>
               <button
                 type="button"
                 onClick={() => setFlagged((f) => !f)}
@@ -102,32 +104,32 @@ export function TodoDialog({ todo, onSave, onClose }: { todo: TodoItem; onSave: 
                 }`}
               >
                 <Flag className={`size-3.5 ${flagged ? "fill-current" : ""}`} />
-                {flagged ? "Flagged" : "Not flagged"}
+                {flagged ? tr("todo.flagged") : tr("todo.notFlagged")}
               </button>
             </Field>
           </div>
-          <Field label="Tags">
+          <Field label={tr("todo.field.tags")}>
             <Input
               value={tags}
-              placeholder="Tags (comma-separated)"
+              placeholder={tr("todo.tagsPlaceholder")}
               onChange={(e) => setTags(e.target.value)}
             />
           </Field>
-          <Field label="Reminder">
+          <Field label={tr("todo.field.reminder")}>
             <NativeSelect
               value={remind}
               disabled={!dueDate}
               onChange={(e) => setRemind(e.target.value as Remind)}
             >
-              {REMIND_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              {REMIND_OPTIONS.map((o) => <option key={o.value} value={o.value}>{tr(o.label)}</option>)}
             </NativeSelect>
-            {remind !== "none" && !parsedTime && <p className="text-xs text-muted-foreground">Reminders use 09:00 when no time is set.</p>}
+            {remind !== "none" && !parsedTime && <p className="text-xs text-muted-foreground">{tr("todo.reminderDefaultTime")}</p>}
           </Field>
-          <Field label="Location"><Input value={location} onChange={(e) => setLocation(e.target.value)} /></Field>
-          <Field label="Notes"><Textarea value={notes} rows={4} placeholder="Additional details" onChange={(e) => setNotes(e.target.value)} /></Field>
+          <Field label={tr("todo.field.location")}><Input value={location} onChange={(e) => setLocation(e.target.value)} /></Field>
+          <Field label={tr("todo.field.notes")}><Textarea value={notes} rows={4} placeholder={tr("todo.notesPlaceholder")} onChange={(e) => setNotes(e.target.value)} /></Field>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={!title.trim() || timeInvalid}>Save</Button>
+            <Button type="button" variant="outline" onClick={onClose}>{tr("common.cancel")}</Button>
+            <Button type="submit" disabled={!title.trim() || timeInvalid}>{tr("common.save")}</Button>
           </DialogFooter>
         </form>
       </DialogContent>

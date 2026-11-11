@@ -16,6 +16,7 @@ import { FileTree } from "@/gadgets/notebook/file-tree";
 import { FileViewer } from "@/gadgets/notebook/file-viewer";
 import { removeEntry } from "@/gadgets/notebook/fs";
 import { getWorkDir, setWorkDir } from "@/gadgets/notebook/workdir";
+import { useT } from "@/i18n";
 
 export const Route = createFileRoute("/_app/notebook")({ component: NotebookPage });
 
@@ -28,6 +29,7 @@ const baseName = (p: string) => p.split(/[\\/]/).filter(Boolean).pop() ?? p;
 const within = (path: string, dir: string) => path === dir || path.startsWith(dir + "/") || path.startsWith(dir + "\\");
 
 function NotebookPage() {
+  const tr = useT();
   const [root, setRoot] = useState(() => getWorkDir());
   // Null while the saved folder is being checked; false when it can't be opened any more.
   const [rootOk, setRootOk] = useState<boolean | null>(root ? null : false);
@@ -47,7 +49,7 @@ function NotebookPage() {
 
   async function chooseFolder() {
     try {
-      const picked = await open({ directory: true, multiple: false, defaultPath: root || undefined, title: "Choose the notebook working folder" });
+      const picked = await open({ directory: true, multiple: false, defaultPath: root || undefined, title: tr("notebook.pickerTitle") });
       if (typeof picked !== "string") return;
       await setWorkDir(picked);
       setSelected(null);
@@ -74,21 +76,21 @@ function NotebookPage() {
   if (!isTauri() || !root || rootOk === false) {
     return (
       <div className="flex h-full min-h-0 flex-col">
-        <PageHeader title="Notebook" />
+        <PageHeader title={tr("notebook.title")} />
         <div className="flex flex-1 items-center justify-center border-t p-8">
           <div className="flex max-w-sm flex-col items-center gap-3 text-center">
             <FolderOpen className="size-10 text-muted-foreground" />
             {!isTauri() ? (
-              <p className="text-sm text-muted-foreground">Choosing a working folder needs the desktop app.</p>
+              <p className="text-sm text-muted-foreground">{tr("notebook.desktopOnly")}</p>
             ) : (
               <>
-                <h2 className="text-lg font-semibold">Choose a working folder</h2>
+                <h2 className="text-lg font-semibold">{tr("notebook.chooseFolder")}</h2>
                 <p className="text-sm text-muted-foreground">
                   {root
-                    ? `Can't open “${root}”. It may have been moved or deleted.`
-                    : "Notebook shows the files in a folder on this computer. Text and Markdown files can be edited, and images are previewed."}
+                    ? tr("notebook.cantOpen", { root })
+                    : tr("notebook.intro")}
                 </p>
-                <Button onClick={() => void chooseFolder()}><FolderOpen /> Choose folder</Button>
+                <Button onClick={() => void chooseFolder()}><FolderOpen /> {tr("notebook.chooseFolderBtn")}</Button>
               </>
             )}
           </div>
@@ -122,14 +124,14 @@ function NotebookPage() {
       {selected ? (
         <FileViewer path={selected} onDelete={() => setConfirm({ path: selected, name: baseName(selected), isDir: false })} />
       ) : (
-        <div className="flex flex-1 items-center justify-center p-8 text-sm text-muted-foreground">Select a file to view it.</div>
+        <div className="flex flex-1 items-center justify-center p-8 text-sm text-muted-foreground">{tr("notebook.selectFile")}</div>
       )}
     </div>
   );
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <PageHeader title="Notebook" />
+      <PageHeader title={tr("notebook.title")} />
       <div className="relative flex min-h-0 flex-1 border-t">
         {collapsed ? (
           <>

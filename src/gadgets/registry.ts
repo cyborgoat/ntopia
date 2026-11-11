@@ -1,10 +1,11 @@
 import type { LucideIcon } from "lucide-react";
 import { Mail } from "lucide-react";
+import type { MessageKey } from "@/i18n";
 
 export type Gadget = {
   id: string;
-  name: string;
-  description: string;
+  name: MessageKey;
+  description: MessageKey;
   icon: LucideIcon;
   to: string;
   /** Only admins and superusers see and can open this gadget. */
@@ -15,8 +16,8 @@ export type Gadget = {
 export const gadgets: Gadget[] = [
   {
     id: "email",
-    name: "Email composer",
-    description: "Write Markdown and turn it into a branded HTML / EML / PNG email.",
+    name: "gadget.email.name",
+    description: "gadget.email.description",
     icon: Mail,
     to: "/gadgets/email",
     privileged: true,

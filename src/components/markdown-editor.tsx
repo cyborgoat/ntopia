@@ -15,6 +15,8 @@ import { readFile } from "@tauri-apps/plugin-fs";
 import { Button } from "@/components/ui/button";
 import { isTauri } from "@/lib/storage";
 import { cn } from "@/lib/utils";
+import { editorTranslation } from "@/i18n/editor";
+import { t, useLang } from "@/i18n";
 
 const IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "gif", "webp", "svg", "bmp", "avif"];
 const MIME: Record<string, string> = { svg: "image/svg+xml", jpg: "image/jpeg" };
@@ -24,7 +26,7 @@ async function pickImages(): Promise<File[]> {
   if (isTauri()) {
     const picked = await open({
       multiple: true,
-      filters: [{ name: "Images", extensions: IMAGE_EXTENSIONS }],
+      filters: [{ name: t("editor.images"), extensions: IMAGE_EXTENSIONS }],
     });
     const paths = picked ? (Array.isArray(picked) ? picked : [picked]) : [];
     return Promise.all(
@@ -48,7 +50,7 @@ async function pickImages(): Promise<File[]> {
 
 function ImageButton({ onPick }: { onPick: () => void }) {
   return (
-    <Button type="button" variant="ghost" size="icon-sm" title="Insert image from files" aria-label="Insert image" onClick={onPick}>
+    <Button type="button" variant="ghost" size="icon-sm" title={t("editor.insertImageFiles")} aria-label={t("editor.insertImage")} onClick={onPick}>
       <ImagePlus />
     </Button>
   );
@@ -153,11 +155,12 @@ function CompactToolbar({ onPickImage }: { onPickImage?: () => void }) {
 /** WYSIWYG Markdown editor (MDXEditor) with a rich-text / source toggle. */
 export const MarkdownEditor = forwardRef<MarkdownEditorHandle, Props>(function MarkdownEditor(
   {
-    value, onChange, placeholder = "Start writing…", fillHeight, variant = "full", className, autoFocus,
+    value, onChange, placeholder, fillHeight, variant = "full", className, autoFocus,
     imageUploadHandler, imagePreviewHandler, onSubmit,
   },
   ref,
 ) {
+  const [lang] = useLang();
   const editorRef = useRef<MDXEditorMethods>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const lastEmitted = useRef(value);
@@ -272,7 +275,9 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, Props>(function M
           lastEmitted.current = md;
           onChange(md);
         }}
-        placeholder={placeholder}
+        key={lang}
+        translation={editorTranslation}
+        placeholder={placeholder ?? t("editor.startWriting")}
         autoFocus={autoFocus}
         className={cn("md-editor-root", dark && "dark-theme")}
         contentEditableClassName="prose-ntopia md-editor-content"

@@ -11,6 +11,7 @@ import { useIsDark } from "@/hooks/use-is-dark";
 import { frontmatterExtensions, hasFrontmatter, isFrontmatterOpen } from "./frontmatter-extensions";
 import { insertImageRef } from "./image-refs";
 import * as mm from "./mdmailer";
+import { t } from "@/i18n";
 
 const IMAGE_EXTS = ["png", "jpg", "jpeg", "gif", "webp", "svg"];
 const Sep = () => <span className="mx-1 h-4 w-px bg-border" />;
@@ -167,21 +168,21 @@ export function SourceEditor({
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex flex-wrap items-center gap-x-0.5 gap-y-1 border-b bg-muted/40 px-4 py-1">
-        <ToolButton label="Heading" onClick={run((v) => prefixLines(v, "## "))}><Heading2 /></ToolButton>
-        <ToolButton label="Bold (⌘B)" onClick={run((v) => wrap(v, "**"))}><Bold /></ToolButton>
-        <ToolButton label="Italic (⌘I)" onClick={run((v) => wrap(v, "*"))}><Italic /></ToolButton>
-        <ToolButton label="Strikethrough" onClick={run((v) => wrap(v, "~~"))}><Strikethrough /></ToolButton>
-        <ToolButton label="Inline code" onClick={run((v) => wrap(v, "`", "`", "code"))}><Code /></ToolButton>
+        <ToolButton label={t("email.tool.heading")} onClick={run((v) => prefixLines(v, "## "))}><Heading2 /></ToolButton>
+        <ToolButton label={t("email.tool.bold")} onClick={run((v) => wrap(v, "**"))}><Bold /></ToolButton>
+        <ToolButton label={t("email.tool.italic")} onClick={run((v) => wrap(v, "*"))}><Italic /></ToolButton>
+        <ToolButton label={t("email.tool.strike")} onClick={run((v) => wrap(v, "~~"))}><Strikethrough /></ToolButton>
+        <ToolButton label={t("email.tool.code")} onClick={run((v) => wrap(v, "`", "`", "code"))}><Code /></ToolButton>
         <Sep />
-        <ToolButton label="Bulleted list" onClick={run((v) => prefixLines(v, "- "))}><List /></ToolButton>
-        <ToolButton label="Numbered list" onClick={run((v) => prefixLines(v, "1. ", true))}><ListOrdered /></ToolButton>
-        <ToolButton label="Quote" onClick={run((v) => prefixLines(v, "> "))}><Quote /></ToolButton>
+        <ToolButton label={t("email.tool.bullets")} onClick={run((v) => prefixLines(v, "- "))}><List /></ToolButton>
+        <ToolButton label={t("email.tool.numbers")} onClick={run((v) => prefixLines(v, "1. ", true))}><ListOrdered /></ToolButton>
+        <ToolButton label={t("email.tool.quote")} onClick={run((v) => prefixLines(v, "> "))}><Quote /></ToolButton>
         <Sep />
-        <ToolButton label="Link (⌘K)" onClick={run(link)}><Link2 /></ToolButton>
-        <ToolButton label="Code block" onClick={run((v) => insertBlock(v, "```\n\n```\n", 4))}><Code2 /></ToolButton>
-        <ToolButton label="Divider" onClick={run((v) => insertBlock(v, "---\n"))}><Minus /></ToolButton>
+        <ToolButton label={t("email.tool.link")} onClick={run(link)}><Link2 /></ToolButton>
+        <ToolButton label={t("email.tool.codeBlock")} onClick={run((v) => insertBlock(v, "```\n\n```\n", 4))}><Code2 /></ToolButton>
+        <ToolButton label={t("email.tool.divider")} onClick={run((v) => insertBlock(v, "---\n"))}><Minus /></ToolButton>
         <Sep />
-        <ToolButton label="Import image to the library" onClick={() => void pickImage()}><ImagePlus /></ToolButton>
+        <ToolButton label={t("email.tool.importImage")} onClick={() => void pickImage()}><ImagePlus /></ToolButton>
       </div>
       <div className="min-h-0 flex-1 overflow-auto text-sm">
         <CodeMirror

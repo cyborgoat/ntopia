@@ -2,6 +2,7 @@ import { useRef } from "react";
 import { X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { useT } from "@/i18n";
 
 /** Add `text` (one tag, or several separated by commas) to `tags`, trimmed and without duplicates. */
 export function addTags(tags: string[], text: string): string[] {
@@ -23,7 +24,7 @@ export function TagInput({
   onChange,
   draft,
   onDraftChange,
-  placeholder = "Add a tag and press Enter",
+  placeholder,
   className,
 }: {
   id?: string;
@@ -34,6 +35,7 @@ export function TagInput({
   placeholder?: string;
   className?: string;
 }) {
+  const tr = useT();
   const input = useRef<HTMLInputElement>(null);
 
   function commit(text = draft) {
@@ -54,7 +56,7 @@ export function TagInput({
           {tag}
           <button
             type="button"
-            aria-label={`Remove tag ${tag}`}
+            aria-label={tr("tag.remove", { tag })}
             className="grid size-4 place-items-center rounded-full text-muted-foreground outline-none hover:bg-foreground/10 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
             onClick={(e) => {
               e.stopPropagation();
@@ -69,7 +71,7 @@ export function TagInput({
         ref={input}
         id={id}
         value={draft}
-        placeholder={value.length ? "" : placeholder}
+        placeholder={value.length ? "" : (placeholder ?? tr("tag.placeholder"))}
         className="min-w-24 flex-1 bg-transparent px-1 py-0.5 text-sm outline-none placeholder:text-muted-foreground"
         onChange={(e) => {
           const text = e.target.value;

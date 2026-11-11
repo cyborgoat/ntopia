@@ -10,9 +10,11 @@ import { TodoDialog } from "./todo-dialog";
 import { addTodo, listTodos, toggleTodo, updateTodo, URGENCY_CLASS, URGENCY_LABEL, type TodoItem } from "./store";
 import { toDateKey } from "./dates";
 import { useNow } from "./use-now";
+import { useT } from "@/i18n";
 
 /** Overdue and due-today tasks with tick-off and quick add; shared data with the Todo page. */
 export function TodayPanel() {
+  const tr = useT();
   const [items, setItems] = useState<TodoItem[]>(() => listTodos());
   const [title, setTitle] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -44,21 +46,21 @@ export function TodayPanel() {
     <section className="flex flex-col rounded-2xl border bg-card p-4 shadow-xs sm:p-5">
       <div className="mb-3 flex items-end justify-between gap-4">
         <div>
-          <h2 className="text-lg font-semibold tracking-tight">Today</h2>
+          <h2 className="text-lg font-semibold tracking-tight">{tr("todo.today")}</h2>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            {openToday === 0 ? "Nothing on your plate." : `${openToday} ${openToday === 1 ? "task" : "tasks"} to do${overdueCount ? `, ${overdueCount} overdue` : ""}`}
+            {openToday === 0 ? tr("todo.nothingOnPlate") : overdueCount ? tr("todo.tasksToDoOverdue", { n: openToday, o: overdueCount }) : tr("todo.tasksToDo", { n: openToday })}
           </p>
         </div>
         <Link to="/todo" className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
-          Open Todo <ArrowRight className="size-3.5" />
+          {tr("todo.openTodo")} <ArrowRight className="size-3.5" />
         </Link>
       </div>
 
       <div className="min-h-12 flex-1">
         {focus.map((s, i) => (
           <div key={s.id} className={i > 0 ? "mt-2 border-t border-border/40 pt-2" : undefined}>
-            {s.id === "overdue" && <p className="mb-1 px-2 text-xs font-medium uppercase tracking-wide text-destructive">Overdue</p>}
-            {s.id === "today" && focus.length > 1 && <p className="mb-1 px-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Today</p>}
+            {s.id === "overdue" && <p className="mb-1 px-2 text-xs font-medium uppercase tracking-wide text-destructive">{tr("todo.overdue")}</p>}
+            {s.id === "today" && focus.length > 1 && <p className="mb-1 px-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">{tr("todo.today")}</p>}
             <ul>
               {s.items.map((t) => (
                 <li key={t.id} className="flex h-8 items-center gap-2.5 rounded-lg px-2 hover:bg-muted/60">
@@ -67,10 +69,10 @@ export function TodayPanel() {
                     checked={t.done}
                     onChange={() => setItems(toggleTodo(t.id))}
                     className="size-3.5 shrink-0 accent-foreground"
-                    aria-label="Mark complete"
+                    aria-label={tr("todo.markComplete")}
                   />
                   <button type="button" onClick={() => setEditingId(t.id)} className="flex min-w-0 flex-1 items-center gap-2.5 self-stretch text-left">
-                    {t.flagged && <Flag className="size-3 shrink-0 fill-amber-500 text-amber-500" aria-label="Flagged" />}
+                    {t.flagged && <Flag className="size-3 shrink-0 fill-amber-500 text-amber-500" aria-label={tr("todo.flagged")} />}
                     <span className="min-w-0 flex-1 truncate text-sm">{t.title}</span>
                   </button>
                   <span className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
@@ -93,13 +95,13 @@ export function TodayPanel() {
         ))}
         {focus.length === 0 && (
           <p className="px-2 py-1 text-sm text-muted-foreground">
-            You're clear for today.
-            {next?.dueDate && <> Next up: <span className="text-foreground">{next.title}</span> · {dueLabel(next.dueDate, next.dueTime, now)}</>}
+            {tr("todo.clearToday")}
+            {next?.dueDate && <> {tr("todo.nextUp")} <span className="text-foreground">{next.title}</span> · {dueLabel(next.dueDate, next.dueTime, now)}</>}
           </p>
         )}
         {coming.length > 0 && focus.length > 0 && (
           <div className="mt-2 border-t border-border/40 pt-2">
-            <p className="mb-1 px-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Coming up</p>
+            <p className="mb-1 px-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">{tr("todo.comingUp")}</p>
             <ul>
               {coming.map((t) => (
                 <li key={t.id} className="flex h-7 items-center gap-2.5 rounded-lg px-2 text-xs text-muted-foreground hover:bg-muted/60">
@@ -113,8 +115,8 @@ export function TodayPanel() {
       </div>
 
       <form onSubmit={add} className="mt-3 flex items-center gap-2">
-        <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Add a task for today…" className="h-8 text-sm" />
-        <Button type="submit" size="icon" className="size-8" disabled={!title.trim()} aria-label="Add task"><Plus /></Button>
+        <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={tr("todo.addForToday")} className="h-8 text-sm" />
+        <Button type="submit" size="icon" className="size-8" disabled={!title.trim()} aria-label={tr("todo.addTask")}><Plus /></Button>
       </form>
 
       {editing && (

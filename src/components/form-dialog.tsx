@@ -4,6 +4,7 @@ import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useT } from "@/i18n";
 
 export function FormDialog({
   title,
@@ -17,6 +18,7 @@ export function FormDialog({
   onSubmit: () => Promise<void>;
   children: React.ReactNode;
 }) {
+  const tr = useT();
   const [open, setOpen] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -47,7 +49,7 @@ export function FormDialog({
         <form onSubmit={submit} className="space-y-4">
           {children}
           {error && <p className="text-sm text-destructive">{error}</p>}
-          <Button type="submit" disabled={busy} className="w-full">{busy ? "Saving…" : "Save"}</Button>
+          <Button type="submit" disabled={busy} className="w-full">{busy ? tr("feed.saving") : tr("common.save")}</Button>
         </form>
       </DialogContent>
     </Dialog>

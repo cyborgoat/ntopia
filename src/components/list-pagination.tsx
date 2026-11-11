@@ -7,6 +7,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { useT } from "@/i18n";
 
 export const PAGE_SIZE = 5;
 
@@ -32,6 +33,7 @@ export function ListPagination({
   limit?: number;
   onPageChange: (page: number) => void;
 }) {
+  useT();
   const pages = Math.max(1, Math.ceil((total ?? 0) / limit));
   if (pages <= 1) return null;
 

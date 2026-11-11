@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
+import { useT } from "@/i18n";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
@@ -54,8 +55,6 @@ export function parseDate(text: string, now = new Date()): string | null {
   return null;
 }
 
-const DATE_HINT = "Enter a date like 2026-10-23 or 10/23/2026";
-const TIME_HINT = "Enter a time like 15:30 or 3:30 PM";
 
 /**
  * Typed date plus typed time, with a calendar popover for picking the date. Reports `YYYY-MM-DDTHH:mm`
@@ -63,6 +62,7 @@ const TIME_HINT = "Enter a time like 15:30 or 3:30 PM";
  * the component keeps its own state, so remount it (e.g. via `key`) to reset it.
  */
 export function DateTimeInput({ value, onChange, required, id }: { value: string; onChange: (value: string) => void; required?: boolean; id?: string }) {
+  const tr = useT();
   const [initialDate = "", initialTime = ""] = value.split("T");
   const [date, setDate] = useState(initialDate);
   const [time, setTime] = useState(initialTime);
@@ -81,10 +81,10 @@ export function DateTimeInput({ value, onChange, required, id }: { value: string
   }, [combined, onChange]);
 
   useEffect(() => {
-    dateRef.current?.setCustomValidity(date.trim() && !parsedDate ? DATE_HINT : "");
+    dateRef.current?.setCustomValidity(date.trim() && !parsedDate ? tr("date.dateHint") : "");
   }, [date, parsedDate]);
   useEffect(() => {
-    timeRef.current?.setCustomValidity(time.trim() && !parsedTime ? TIME_HINT : "");
+    timeRef.current?.setCustomValidity(time.trim() && !parsedTime ? tr("date.timeHint") : "");
   }, [time, parsedTime]);
 
   return (
@@ -95,7 +95,7 @@ export function DateTimeInput({ value, onChange, required, id }: { value: string
           id={id}
           required={required}
           placeholder="2026-10-23"
-          aria-label="Date"
+          aria-label={tr("date.date")}
           value={date}
           onChange={(e) => setDate(e.target.value)}
           onBlur={() => parsedDate && setDate(parsedDate)}
@@ -103,7 +103,7 @@ export function DateTimeInput({ value, onChange, required, id }: { value: string
         />
         <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
           <PopoverTrigger
-            render={<Button type="button" variant="ghost" size="icon-xs" className="absolute top-1/2 right-1 -translate-y-1/2" aria-label="Pick a date" />}
+            render={<Button type="button" variant="ghost" size="icon-xs" className="absolute top-1/2 right-1 -translate-y-1/2" aria-label={tr("date.pick")} />}
           >
             <CalendarDays />
           </PopoverTrigger>
@@ -122,7 +122,7 @@ export function DateTimeInput({ value, onChange, required, id }: { value: string
         ref={timeRef}
         required={required}
         placeholder="12:00"
-        aria-label="Time"
+        aria-label={tr("date.time")}
         value={time}
         onChange={(e) => setTime(e.target.value)}
         onBlur={() => parsedTime && setTime(parsedTime)}

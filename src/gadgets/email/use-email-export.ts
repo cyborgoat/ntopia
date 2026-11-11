@@ -7,6 +7,7 @@ import type { Frontmatter } from "@/gadgets/email/frontmatter";
 import { localImageRefs } from "@/gadgets/email/image-refs";
 import * as mm from "@/gadgets/email/mdmailer";
 import { toMessage } from "@/lib/utils";
+import { t } from "@/i18n";
 
 function exportBasename(meta: Frontmatter) {
   const title = meta.title;
@@ -49,8 +50,8 @@ async function writeMarkdownWithAssets(target: string, doc: string) {
 }
 
 function reportMarkdown({ copied, missing }: { copied: number; missing: string[] }, what = "Markdown") {
-  toast.success(copied ? `Saved ${what} and ${copied} image${copied === 1 ? "" : "s"} in assets/` : `Saved ${what}`);
-  if (missing.length) toast.warning(`Not in the image library, so not copied: ${missing.join(", ")}`);
+  toast.success(copied ? t("email.export.savedMdImages", { what, n: copied }) : t("email.export.savedMd", { what }));
+  if (missing.length) toast.warning(t("email.export.missing", { list: missing.join(", ") }));
 }
 
 /** Save / export actions for the current document; every action reports its own errors with a toast. */
@@ -71,14 +72,14 @@ export function useEmailExport(meta: Frontmatter, doc: string) {
       const target = await save({ defaultPath: `${base}.${format}`, filters: [{ name: format.toUpperCase(), extensions: [format] }] });
       if (target) {
         await writeOutput(target, format, r);
-        toast.success(`Saved ${format.toUpperCase()}`);
+        toast.success(t("email.export.saved", { format: format.toUpperCase() }));
       }
     } catch (e) { toast.error(toMessage(e)); }
   }
 
   async function exportAll() {
     try {
-      const dir = await open({ directory: true, title: "Export to folder" });
+      const dir = await open({ directory: true, title: t("email.export.folder") });
       if (!dir || Array.isArray(dir)) return;
       const md = await writeMarkdownWithAssets(await join(dir, `${base}.md`), doc);
       const r = await mm.render(doc, ["html", "eml", "png"]);
@@ -86,8 +87,8 @@ export function useEmailExport(meta: Frontmatter, doc: string) {
       for (const f of ["html", "eml", "png"] as const) {
         await writeOutput(await join(dir, `${base}.${f}`), f, r);
       }
-      toast.success("Exported Markdown, HTML, EML and PNG");
-      if (md.missing.length) toast.warning(`Not in the image library, so not copied: ${md.missing.join(", ")}`);
+      toast.success(t("email.export.all"));
+      if (md.missing.length) toast.warning(t("email.export.missing", { list: md.missing.join(", ") }));
     } catch (e) { toast.error(toMessage(e)); }
   }
 

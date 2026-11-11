@@ -17,6 +17,7 @@ import { Empty, PageHeader } from "@/components/page-header";
 import { notificationTarget } from "@/lib/notification-link";
 import { orbit, unwrap } from "@/lib/orbit";
 import { cn, formatDateTime } from "@/lib/utils";
+import { useT, type MessageKey } from "@/i18n";
 
 export const Route = createFileRoute("/_app/notifications")({
   component: Notifications,
@@ -24,12 +25,13 @@ export const Route = createFileRoute("/_app/notifications")({
 
 type Status = "unread" | "read";
 
-const TABS: { value: Status; label: string }[] = [
-  { value: "unread", label: "Unread" },
-  { value: "read", label: "Read" },
+const TABS: { value: Status; label: MessageKey }[] = [
+  { value: "unread", label: "notif.unread" },
+  { value: "read", label: "notif.read" },
 ];
 
 function Notifications() {
+  const tr = useT();
   const qc = useQueryClient();
   const navigate = useNavigate();
   const [status, setStatus] = useState<Status>("unread");
@@ -59,7 +61,7 @@ function Notifications() {
   });
   const markAll = useMutation({
     mutationFn: () => unwrap(orbit.POST("/api/notifications/read-all")),
-    onSuccess: (d) => { toast.success(d?.marked ? `Marked ${d.marked} as read` : "Nothing to mark"); void refresh(); },
+    onSuccess: (d) => { toast.success(d?.marked ? tr("notif.markedN", { n: d.marked }) : tr("notif.nothingToMark")); void refresh(); },
     onError: (e) => toast.error(e.message),
   });
   const remove = useMutation({
@@ -79,16 +81,16 @@ function Notifications() {
   };
 
   const items = data?.items ?? [];
-  const emptyCopy = status === "unread" ? "You're all caught up." : "No read notifications.";
+  const emptyCopy = status === "unread" ? tr("notif.caughtUp") : tr("notif.noRead");
 
   return (
     <>
       <PageHeader
-        title="Notifications"
+        title={tr("notif.title")}
         actions={
           status === "unread" ? (
             <Button size="sm" variant="outline" disabled={markAll.isPending} onClick={() => markAll.mutate()}>
-              <CheckCheck /> Mark all as read
+              <CheckCheck /> {tr("notif.markAll")}
             </Button>
           ) : undefined
         }
@@ -104,7 +106,7 @@ function Notifications() {
               status === t.value ? "bg-muted font-medium text-foreground" : "text-muted-foreground hover:text-foreground",
             )}
           >
-            {t.label}
+            {tr(t.label)}
           </button>
         ))}
       </div>
@@ -133,31 +135,31 @@ function Notifications() {
                       <div className="text-sm text-muted-foreground">{n.body}</div>
                       <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
                         {formatDateTime(n.createdAt)}
-                        {n.audience === "DIRECTED" && <Badge variant="secondary">For you</Badge>}
+                        {n.audience === "DIRECTED" && <Badge variant="secondary">{tr("notif.forYou")}</Badge>}
                       </div>
                     </div>
                   </button>
                   <div className="absolute top-3 right-3 flex gap-1 opacity-0 transition-opacity group-hover/row:opacity-100 group-focus-within/row:opacity-100">
                     {status === "unread" && (
-                      <Button variant="ghost" size="icon-sm" aria-label="Mark as read" onClick={() => markRead.mutate(n.id)}><Check /></Button>
+                      <Button variant="ghost" size="icon-sm" aria-label={tr("notif.markRead")} onClick={() => markRead.mutate(n.id)}><Check /></Button>
                     )}
                     {status === "read" && (
-                      <Button variant="ghost" size="icon-sm" aria-label="Mark as unread" onClick={() => markUnread.mutate(n.id)}><Mail /></Button>
+                      <Button variant="ghost" size="icon-sm" aria-label={tr("notif.markUnread")} onClick={() => markUnread.mutate(n.id)}><Mail /></Button>
                     )}
-                    <Button variant="ghost" size="icon-sm" aria-label="Dismiss" onClick={() => remove.mutate(n.id)}><Trash2 /></Button>
+                    <Button variant="ghost" size="icon-sm" aria-label={tr("notif.dismiss")} onClick={() => remove.mutate(n.id)}><Trash2 /></Button>
                   </div>
                 </div>
               </ContextMenuTrigger>
               <ContextMenuContent>
-                <ContextMenuItem disabled={!link} onClick={() => open(n)}><ExternalLink /> Open</ContextMenuItem>
+                <ContextMenuItem disabled={!link} onClick={() => open(n)}><ExternalLink /> {tr("feed.open")}</ContextMenuItem>
                 {status === "unread" && (
-                  <ContextMenuItem onClick={() => markRead.mutate(n.id)}><Check /> Mark as read</ContextMenuItem>
+                  <ContextMenuItem onClick={() => markRead.mutate(n.id)}><Check /> {tr("notif.markRead")}</ContextMenuItem>
                 )}
                 {status === "read" && (
-                  <ContextMenuItem onClick={() => markUnread.mutate(n.id)}><MailOpen /> Mark as unread</ContextMenuItem>
+                  <ContextMenuItem onClick={() => markUnread.mutate(n.id)}><MailOpen /> {tr("notif.markUnread")}</ContextMenuItem>
                 )}
                 <ContextMenuSeparator />
-                <ContextMenuItem variant="destructive" onClick={() => remove.mutate(n.id)}><Trash2 /> Dismiss</ContextMenuItem>
+                <ContextMenuItem variant="destructive" onClick={() => remove.mutate(n.id)}><Trash2 /> {tr("notif.dismiss")}</ContextMenuItem>
               </ContextMenuContent>
             </ContextMenu>
           );
