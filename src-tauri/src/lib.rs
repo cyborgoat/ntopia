@@ -9,13 +9,48 @@ pub fn run() {
         .plugin(tauri_plugin_persisted_scope::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
-        .setup(|_app| {
+        .setup(|app| {
             #[cfg(all(target_os = "macos", dev))]
-            watch_dev_runner(_app.handle());
+            watch_dev_runner(app.handle());
+            build_tray(app)?;
             Ok(())
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+/// Adds the menu bar (macOS) / system tray (Windows) icon with a native menu.
+fn build_tray(app: &tauri::App) -> tauri::Result<()> {
+    use tauri::{
+        Manager,
+        menu::{Menu, MenuItem, PredefinedMenuItem},
+        tray::TrayIconBuilder,
+    };
+
+    let show = MenuItem::with_id(app, "show", "Open NTOPIA", true, None::<&str>)?;
+    let separator = PredefinedMenuItem::separator(app)?;
+    let quit = MenuItem::with_id(app, "quit", "Quit NTOPIA", true, None::<&str>)?;
+    let menu = Menu::with_items(app, &[&show, &separator, &quit])?;
+
+    let mut tray = TrayIconBuilder::new()
+        .menu(&menu)
+        .tooltip("NTOPIA")
+        .on_menu_event(|app, event| match event.id.as_ref() {
+            "show" => {
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = window.unminimize();
+                    let _ = window.show();
+                    let _ = window.set_focus();
+                }
+            }
+            "quit" => app.exit(0),
+            _ => {}
+        });
+    if let Some(icon) = app.default_window_icon() {
+        tray = tray.icon(icon.clone());
+    }
+    tray.build(app)?;
+    Ok(())
 }
 
 #[cfg(all(target_os = "macos", dev))]
