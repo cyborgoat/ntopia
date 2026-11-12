@@ -15,8 +15,27 @@ pub fn run() {
             build_tray(app)?;
             Ok(())
         })
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        // Closing the window hides it to the tray so reminders and live notifications keep arriving
+        // as system notifications. Quit from the tray menu to exit.
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                api.prevent_close();
+                let _ = window.hide();
+            }
+        })
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|_app, _event| {
+            // Clicking the Dock icon while hidden brings the window back.
+            #[cfg(target_os = "macos")]
+            if let tauri::RunEvent::Reopen { .. } = _event {
+                use tauri::Manager;
+                if let Some(window) = _app.get_webview_window("main") {
+                    let _ = window.show();
+                    let _ = window.set_focus();
+                }
+            }
+        });
 }
 
 /// Adds the menu bar (macOS) / system tray (Windows) icon with a native menu.

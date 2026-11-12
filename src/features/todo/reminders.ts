@@ -1,26 +1,11 @@
 import { useEffect } from "react";
-import { toast } from "sonner";
-import { isPermissionGranted, requestPermission, sendNotification } from "@tauri-apps/plugin-notification";
-import { notifyEnabled } from "@/features/settings/prefs";
 import { t as tr } from "@/i18n";
-import { isTauri } from "@/lib/storage";
+import { notifyUser } from "@/lib/notify";
 import { dueAt } from "./dates";
 import { listTodos, REMIND_OPTIONS, updateTodoSilently } from "./store";
 
 const CHECK_MS = 30_000;
 export const TODO_REMINDER_EVENT = "todos:changed";
-
-async function notify(title: string, body?: string) {
-  if (!notifyEnabled("todo")) return;
-  toast.message(title, { description: body });
-  if (!isTauri() || !notifyEnabled("native")) return;
-  try {
-    const granted = (await isPermissionGranted()) || (await requestPermission()) === "granted";
-    if (granted) sendNotification({ title, body });
-  } catch {
-    /* notifications unavailable; the toast still shows */
-  }
-}
 
 function checkReminders() {
   const now = Date.now();
@@ -30,7 +15,7 @@ function checkReminders() {
     if (dueAt(t.dueDate, t.dueTime).getTime() - lead > now) continue;
     updateTodoSilently(t.id, { remindedAt: new Date().toISOString() });
     const when = t.dueTime ? tr("todo.dueAt", { time: t.dueTime }) : tr("todo.dueToday");
-    void notify(t.title, [when, t.location].filter(Boolean).join(" · "));
+    void notifyUser({ title: t.title, body: [when, t.location].filter(Boolean).join(" · "), prefKey: "todo" });
     window.dispatchEvent(new Event(TODO_REMINDER_EVENT));
   }
 }

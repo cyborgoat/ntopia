@@ -1,15 +1,12 @@
 import { useEffect } from "react";
 import { io } from "socket.io-client";
-import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
-import { isPermissionGranted, sendNotification } from "@tauri-apps/plugin-notification";
-import { notifyEnabled } from "@/features/settings/prefs";
 import { useAuth } from "./auth";
 import { getServerUrl } from "./orbit";
-import { isTauri } from "./storage";
+import { notifyUser } from "./notify";
 import { t } from "@/i18n";
 
-/** Live notifications from team-orbit: toast, refresh queries, native alert when unfocused. */
+/** Live notifications from team-orbit: refresh queries, toast when focused, native alert when hidden/unfocused. */
 export function useNotificationsSocket() {
   const { token } = useAuth();
   const qc = useQueryClient();
@@ -17,13 +14,9 @@ export function useNotificationsSocket() {
   useEffect(() => {
     if (!token) return;
     const socket = io(getServerUrl(), { auth: { token }, transports: ["websocket"] });
-    socket.on("notification:new", async (p: { title?: string; body?: string }) => {
+    socket.on("notification:new", (p: { title?: string; body?: string }) => {
       qc.invalidateQueries();
-      if (!notifyEnabled("orbit")) return;
-      toast.message(p.title ?? t("notif.fallbackTitle"), { description: p.body });
-      if (isTauri() && notifyEnabled("native") && !document.hasFocus() && (await isPermissionGranted())) {
-        sendNotification({ title: p.title ?? "NTOPIA", body: p.body });
-      }
+      void notifyUser({ title: p.title ?? t("notif.fallbackTitle"), body: p.body, prefKey: "orbit" });
     });
     return () => {
       socket.removeAllListeners();
