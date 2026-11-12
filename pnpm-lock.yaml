@@ -36,8 +36,8 @@ importers:
         specifier: ^0.1.0
         version: 0.1.0
       '@goatcheese/teamorbit-client':
-        specifier: ^0.2.3
-        version: 0.2.3
+        specifier: ^0.3.0
+        version: 0.3.0
       '@mdxeditor/editor':
         specifier: ^4.3.3
         version: 4.3.3(@codemirror/language@6.13.1)(@lezer/highlight@1.2.5)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(typescript@6.0.3)(yjs@13.6.33)
@@ -629,8 +629,8 @@ packages:
   '@goatcheese/mdmailer-core@0.1.0':
     resolution: {integrity: sha512-ncrSn+XCCmWjfdwQHXMwtQT0rfa2R74gZcox9HpHdlRI299fPc/RR2YPe2kGTG3iC6O1MddgdGsGqL6+6jliEg==, tarball: https://registry.npmjs.org/@goatcheese/mdmailer-core/-/mdmailer-core-0.1.0.tgz}
 
-  '@goatcheese/teamorbit-client@0.2.3':
-    resolution: {integrity: sha512-uz3IvP1YPLBL08jpdxZU2Bba3geh+3Il0mTKawwSRN2/LmZVP99V8lVDG9SzN3bQhQ5Q8svHd70Yg7WHqzzYNA==}
+  '@goatcheese/teamorbit-client@0.3.0':
+    resolution: {integrity: sha512-R5y5Ex5qsdyTCGreUOV2pcs2pcSkmneUAsK73XqhswAf1/T25qlh4qyO/SD82qw4L9ajSVllLLNSNqE8Eun0Ig==}
     engines: {node: '>=18'}
 
   '@hono/node-server@2.1.5':
@@ -4762,7 +4762,7 @@ snapshots:
       - utf-8-validate
       - vue
 
-  '@goatcheese/teamorbit-client@0.2.3':
+  '@goatcheese/teamorbit-client@0.3.0':
     dependencies:
       openapi-fetch: 0.13.8
 
