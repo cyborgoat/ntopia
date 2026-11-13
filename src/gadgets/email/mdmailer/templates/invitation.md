@@ -2,7 +2,6 @@
 title: "You're invited: Annual leadership dinner"
 type: invitation
 lang: en
-theme: navy-gold
 eventName: "Annual leadership dinner"
 startsAt: 2026-11-12
 time: "18:30–21:00"

@@ -3,7 +3,6 @@ title: "Example Update"
 date: 2026-01-01
 type: news
 lang: en
-theme: classic
 ---
 
 # Headline

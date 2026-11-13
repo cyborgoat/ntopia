@@ -2,7 +2,6 @@
 title: "You're invited: Intro to the Design System"
 type: meeting
 lang: en
-theme: navy-gold
 eventName: "Intro to the Design System"
 startsAt: 2026-02-18
 time: "15:00–16:00 UTC"

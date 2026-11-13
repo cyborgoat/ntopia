@@ -3,7 +3,6 @@ title: "示例更新"
 date: 2026-01-01
 type: news
 lang: zh
-theme: classic
 ---
 
 # 本周进展

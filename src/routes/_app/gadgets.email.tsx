@@ -3,7 +3,7 @@ import type { EditorView } from "@codemirror/view";
 import { cn, toMessage } from "@/lib/utils";
 import { usePanelLayout, usePersistedFlag } from "@/lib/prefs";
 import { createFileRoute } from "@tanstack/react-router";
-import { Download, Eye, EyeOff, FileCode, FileImage, FileText, FolderOpen, Loader2, Mail, Mailbox, PanelTop } from "lucide-react";
+import { Download, Eye, EyeOff, FileCode, FileImage, FileText, FolderOpen, Loader2, Mail, Mailbox } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -20,7 +20,6 @@ import { useAuth } from "@/lib/auth";
 import { isPrivileged } from "@/lib/roles";
 import { isTauri } from "@/lib/storage";
 import { SourceEditor } from "@/gadgets/email/source-editor";
-import { toggleFrontmatter } from "@/gadgets/email/frontmatter-extensions";
 import { Branding } from "@/gadgets/email/branding-dialog";
 import { ImageLibrary } from "@/gadgets/email/image-library";
 import { useEmailExport } from "@/gadgets/email/use-email-export";
@@ -87,8 +86,6 @@ function Composer() {
 
   // The editor owns the frontmatter fold; the header button mirrors it.
   const editorRef = useRef<EditorView | null>(null);
-  const [fmOpen, setFmOpen] = useState(false);
-  const [fmAvailable, setFmAvailable] = useState(true);
 
   // Keep the draft across navigation and restarts; the cleanup flushes the pending write on unmount.
   useEffect(() => {
@@ -178,24 +175,6 @@ function Composer() {
                 <Button
                   variant="ghost"
                   size="icon-sm"
-                  className={cn(fmOpen && PRESSED)}
-                  aria-pressed={fmOpen}
-                  disabled={!started || !fmAvailable}
-                  aria-label={fmOpen ? tr("email.hideDetails") : tr("email.showDetails")}
-                  onClick={() => editorRef.current && toggleFrontmatter(editorRef.current)}
-                />
-              }
-            >
-              <PanelTop />
-            </TooltipTrigger>
-            <TooltipContent>{fmOpen ? tr("email.hideDetailsTip") : tr("email.editDetailsTip")}</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger
-              render={
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
                   className={cn(showPreview && PRESSED)}
                   aria-pressed={showPreview}
                   disabled={!started}
@@ -276,7 +255,6 @@ function Composer() {
                   value={doc}
                   onChange={setDoc}
                   editorRef={editorRef}
-                  onFrontmatterChange={(open, available) => { setFmOpen(open); setFmAvailable(available); }}
                 />
               </ContextMenuTrigger>
               <ContextMenuContent>{exportMenuItems}</ContextMenuContent>

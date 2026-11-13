@@ -8,7 +8,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input";
 import { Field } from "@/components/form-dialog";
 import * as mm from "@/gadgets/email/mdmailer";
+import { THEME_PRESETS } from "@/gadgets/email/fields";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useT } from "@/i18n";
+
+const themeItems = THEME_PRESETS.map((p) => ({ value: p, label: p }));
 
 function LogoPicker({ name, onPick, onReset }: { name: string; onPick: () => void; onReset?: () => void }) {
   const tr = useT();
@@ -75,6 +79,17 @@ export function Branding() {
               }}
               onReset={b.logo.startsWith("logo-custom") ? () => setB({ ...b, logo: mm.DEFAULT_BRANDING.logo }) : undefined}
             />
+          </Field>
+          <Field label={tr("email.branding.theme")}>
+            <div className="space-y-1.5">
+              <Select items={themeItems} value={b.theme} onValueChange={(v) => v && setB({ ...b, theme: v as mm.ThemePreset })}>
+                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                <SelectContent alignItemWithTrigger={false}>
+                  {themeItems.map((i) => <SelectItem key={i.value} value={i.value}>{i.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">{tr("email.branding.themeHint")}</p>
+            </div>
           </Field>
           <Button className="w-full" onClick={async () => { await mm.saveBranding(b); toast.success(tr("email.branding.saved")); setOpenDlg(false); }}>{tr("common.save")}</Button>
         </div>

@@ -2,7 +2,6 @@
 title: "邀请：设计系统入门"
 type: meeting
 lang: zh
-theme: navy-gold
 eventName: "设计系统入门"
 startsAt: 2026-02-18
 time: "15:00–16:00 UTC"

@@ -2,7 +2,6 @@
 title: "邀请：在 2026 年构建可靠的 API"
 type: webinar
 lang: zh
-theme: forest-cream
 eventName: "在 2026 年构建可靠的 API"
 startsAt: 2026-10-15
 time: "16:00–17:00 UTC"

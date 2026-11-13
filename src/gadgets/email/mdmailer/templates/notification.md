@@ -2,7 +2,6 @@
 title: "All-hands moves to Thursdays"
 type: notification
 lang: en
-theme: classic
 headline: "All-hands moves to Thursdays, starting March"
 banner: "Schedule change"
 date: 2026-02-24

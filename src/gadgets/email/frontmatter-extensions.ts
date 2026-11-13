@@ -60,8 +60,8 @@ function build(doc: string, folded: boolean): FoldState {
 }
 
 const foldField = StateField.define<FoldState>({
-  // A document opened with frontmatter starts collapsed.
-  create: (state) => build(state.doc.toString(), true),
+  // A document opened with frontmatter starts expanded.
+  create: (state) => build(state.doc.toString(), false),
   update(value, tr) {
     let folded = value.folded;
     for (const e of tr.effects) if (e.is(setFolded)) folded = e.value;

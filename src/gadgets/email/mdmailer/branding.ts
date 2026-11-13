@@ -1,5 +1,6 @@
 import { join } from "@tauri-apps/api/path";
 import { copyFile, exists, readTextFile, writeTextFile } from "@tauri-apps/plugin-fs";
+import { THEME_PRESETS } from "../fields";
 import { blobUrlFor } from "./assets";
 import { brandingPath, ensureWorkspace, root } from "./paths";
 
@@ -9,13 +10,18 @@ export type Branding = {
   footerText: string;
   /** File name of a logo inside the branding folder. */
   logo: string;
+  /** Color theme for emails whose frontmatter has no `theme:`. */
+  theme: ThemePreset;
 };
+
+export type ThemePreset = (typeof THEME_PRESETS)[number];
 
 export const DEFAULT_BRANDING: Branding = {
   organization: "My Team",
   tagline: "",
   footerText: "© {{organization}}",
   logo: "logo.svg",
+  theme: "classic",
 };
 
 /** mdmailer requires a primary color; the visible look comes from the theme preset chosen per email. */
@@ -32,6 +38,7 @@ export async function loadBranding(): Promise<Branding> {
     tagline: saved.tagline ?? DEFAULT_BRANDING.tagline,
     footerText: saved.footerText ?? DEFAULT_BRANDING.footerText,
     logo: saved.logo ?? DEFAULT_BRANDING.logo,
+    theme: THEME_PRESETS.find((t) => t === saved.theme) ?? DEFAULT_BRANDING.theme,
   };
 }
 
@@ -62,6 +69,7 @@ export async function buildConfig() {
       primaryColor: PRIMARY_COLOR,
       ...(b.tagline && { tagline: b.tagline }),
       footerText: b.footerText,
+      preset: b.theme,
     },
   };
 }

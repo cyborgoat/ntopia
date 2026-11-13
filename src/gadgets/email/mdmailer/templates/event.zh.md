@@ -2,7 +2,6 @@
 title: "邀请：社区开放日"
 type: event
 lang: zh
-theme: forest-cream
 eventName: "社区开放日"
 startsAt: 2026-10-22
 time: "17:00–19:00 UTC"

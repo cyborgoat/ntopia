@@ -2,7 +2,6 @@
 title: "You're invited: Community open house"
 type: event
 lang: en
-theme: forest-cream
 eventName: "Community open house"
 startsAt: 2026-10-22
 time: "17:00–19:00 UTC"

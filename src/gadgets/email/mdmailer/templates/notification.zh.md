@@ -2,7 +2,6 @@
 title: "全员会议调整至周四"
 type: notification
 lang: zh
-theme: classic
 headline: "自三月起，全员会议调整至每周四"
 banner: "日程变更"
 date: 2026-02-24

@@ -2,7 +2,6 @@
 title: "诚邀出席：年度领导晚宴"
 type: invitation
 lang: zh
-theme: navy-gold
 eventName: "年度领导晚宴"
 startsAt: 2026-11-12
 time: "18:30–21:00"
