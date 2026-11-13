@@ -53,6 +53,7 @@ import { isPrivileged } from "@/lib/roles";
 import { orbit } from "@/lib/orbit";
 import { useNotificationsSocket } from "@/lib/realtime";
 import { useTraySync } from "@/lib/tray";
+import { useUpdater } from "@/lib/updater";
 import { useT, type MessageKey } from "@/i18n";
 
 const localNav = [
@@ -253,6 +254,7 @@ export function AppShell() {
   const navigate = useNavigate();
   useNotificationsSocket();
   useTraySync();
+  useUpdater();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const needsAuth = ORBIT_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
   const fullBleed = FULL_BLEED.some((p) => pathname === p || pathname.startsWith(`${p}/`));

@@ -22,6 +22,7 @@ export function useTraySync() {
       notifications: t("nav.notifications"),
       settings: t("nav.settings"),
       mute: t("tray.mute"),
+      update: t("tray.update"),
       quit: t("tray.quit"),
       tooltip: t("tray.tooltip"),
     };

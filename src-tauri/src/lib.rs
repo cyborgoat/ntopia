@@ -11,6 +11,11 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         .invoke_handler(tauri::generate_handler![set_tray_labels, set_tray_mute_checked])
         .setup(|app| {
+            #[cfg(desktop)]
+            {
+                app.handle().plugin(tauri_plugin_updater::Builder::new().build())?;
+                app.handle().plugin(tauri_plugin_process::init())?;
+            }
             #[cfg(all(target_os = "macos", dev))]
             watch_dev_runner(app.handle());
             build_tray(app)?;
@@ -55,7 +60,7 @@ fn show_main_window(app: &tauri::AppHandle) {
     }
 }
 
-/// Updates tray labels. Keys: open, home, todo, notebook, notifications, settings, mute, quit, tooltip.
+/// Updates tray labels. Keys: open, home, todo, notebook, notifications, settings, mute, update, quit, tooltip.
 #[tauri::command]
 fn set_tray_labels(state: tauri::State<'_, TrayState>, labels: std::collections::HashMap<String, String>) {
     for (key, item) in &state.items {
@@ -91,13 +96,14 @@ fn build_tray(app: &tauri::App) -> tauri::Result<()> {
     let notebook = item("nav:/notebook", "Notebook")?;
     let notifications = item("nav:/notifications", "Notifications")?;
     let settings = item("nav:/settings", "Settings")?;
+    let update = item("update", "Check for Updates…")?;
     let mute = CheckMenuItem::with_id(app, "mute", "Mute notifications", true, false, None::<&str>)?;
     let quit = item("quit", "Quit NTOPIA")?;
     let sep = || PredefinedMenuItem::separator(app);
     let (s1, s2, s3) = (sep()?, sep()?, sep()?);
     let menu = Menu::with_items(
         app,
-        &[&open, &s1, &home, &todo, &notebook, &notifications, &settings, &s2, &mute, &s3, &quit],
+        &[&open, &s1, &home, &todo, &notebook, &notifications, &settings, &s2, &mute, &update, &s3, &quit],
     )?;
 
     let mut tray = TrayIconBuilder::new()
@@ -112,6 +118,10 @@ fn build_tray(app: &tauri::App) -> tauri::Result<()> {
             }
             match id {
                 "show" => show_main_window(app),
+                "update" => {
+                    show_main_window(app);
+                    let _ = app.emit("tray-check-updates", ());
+                }
                 "mute" => {
                     let _ = app.emit("tray-toggle-mute", ());
                 }
@@ -132,6 +142,7 @@ fn build_tray(app: &tauri::App) -> tauri::Result<()> {
             ("notebook", notebook),
             ("notifications", notifications),
             ("settings", settings),
+            ("update", update),
             ("quit", quit),
         ],
         mute,

@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Bell, Palette, UserRound } from "lucide-react";
+import { Bell, Info, Palette, UserRound } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
+import { AboutSettings } from "@/features/settings/about";
 import { AccountSettings } from "@/features/settings/account";
 import { AppearanceSettings } from "@/features/settings/appearance";
 import { NotificationSettings } from "@/features/settings/notifications";
@@ -11,6 +12,7 @@ const SECTIONS = [
   { id: "appearance", label: "settings.appearance" as MessageKey, icon: Palette, component: AppearanceSettings },
   { id: "account", label: "settings.account" as MessageKey, icon: UserRound, component: AccountSettings },
   { id: "notifications", label: "settings.notifications" as MessageKey, icon: Bell, component: NotificationSettings },
+  { id: "about", label: "settings.about" as MessageKey, icon: Info, component: AboutSettings },
 ] as const;
 type SectionId = (typeof SECTIONS)[number]["id"];
 

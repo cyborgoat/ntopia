@@ -33,6 +33,18 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "createUpdaterArtifacts": true
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDI0NDFEODc3Q0QxRkYyMjYKUldRbThoL05kOWhCSkRZVXdBa1JEeGxHM0RVUHo5VkpKb2wwNEpnNHYybzF0NkFDRGlhaW5Pb0EK",
+      "endpoints": [
+        "https://github.com/cyborgoat/ntopia/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
   }
 }
