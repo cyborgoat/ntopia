@@ -1,6 +1,6 @@
 [package]
 name = "ntopia"
-version = "0.0.2"
+version = "0.0.3"
 description = "NTOPIA desktop app"
 authors = ["cyborgoat"]
 edition = "2024"
