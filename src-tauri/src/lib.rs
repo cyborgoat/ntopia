@@ -9,6 +9,7 @@ pub fn run() {
         .plugin(tauri_plugin_persisted_scope::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
+        .invoke_handler(tauri::generate_handler![set_tray_labels, set_tray_mute_checked])
         .setup(|app| {
             #[cfg(all(target_os = "macos", dev))]
             watch_dev_runner(app.handle());
@@ -38,37 +39,103 @@ pub fn run() {
         });
 }
 
+/// Tray handles kept so the webview can relabel items and sync the mute check mark.
+struct TrayState {
+    tray: tauri::tray::TrayIcon,
+    items: Vec<(&'static str, tauri::menu::MenuItem<tauri::Wry>)>,
+    mute: tauri::menu::CheckMenuItem<tauri::Wry>,
+}
+
+fn show_main_window(app: &tauri::AppHandle) {
+    use tauri::Manager;
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.unminimize();
+        let _ = window.show();
+        let _ = window.set_focus();
+    }
+}
+
+/// Updates tray labels. Keys: open, home, todo, notebook, notifications, settings, mute, quit, tooltip.
+#[tauri::command]
+fn set_tray_labels(state: tauri::State<'_, TrayState>, labels: std::collections::HashMap<String, String>) {
+    for (key, item) in &state.items {
+        if let Some(text) = labels.get(*key) {
+            let _ = item.set_text(text);
+        }
+    }
+    if let Some(text) = labels.get("mute") {
+        let _ = state.mute.set_text(text);
+    }
+    if let Some(text) = labels.get("tooltip") {
+        let _ = state.tray.set_tooltip(Some(text.as_str()));
+    }
+}
+
+#[tauri::command]
+fn set_tray_mute_checked(state: tauri::State<'_, TrayState>, checked: bool) {
+    let _ = state.mute.set_checked(checked);
+}
+
 /// Adds the menu bar (macOS) / system tray (Windows) icon with a native menu.
 fn build_tray(app: &tauri::App) -> tauri::Result<()> {
     use tauri::{
-        Manager,
-        menu::{Menu, MenuItem, PredefinedMenuItem},
+        Emitter, Manager,
+        menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem},
         tray::TrayIconBuilder,
     };
 
-    let show = MenuItem::with_id(app, "show", "Open NTOPIA", true, None::<&str>)?;
-    let separator = PredefinedMenuItem::separator(app)?;
-    let quit = MenuItem::with_id(app, "quit", "Quit NTOPIA", true, None::<&str>)?;
-    let menu = Menu::with_items(app, &[&show, &separator, &quit])?;
+    let item = |id: &'static str, text: &str| MenuItem::with_id(app, id, text, true, None::<&str>);
+    let open = item("show", "Open NTOPIA")?;
+    let home = item("nav:/", "Home")?;
+    let todo = item("nav:/todo", "Todo")?;
+    let notebook = item("nav:/notebook", "Notebook")?;
+    let notifications = item("nav:/notifications", "Notifications")?;
+    let settings = item("nav:/settings", "Settings")?;
+    let mute = CheckMenuItem::with_id(app, "mute", "Mute notifications", true, false, None::<&str>)?;
+    let quit = item("quit", "Quit NTOPIA")?;
+    let sep = || PredefinedMenuItem::separator(app);
+    let (s1, s2, s3) = (sep()?, sep()?, sep()?);
+    let menu = Menu::with_items(
+        app,
+        &[&open, &s1, &home, &todo, &notebook, &notifications, &settings, &s2, &mute, &s3, &quit],
+    )?;
 
     let mut tray = TrayIconBuilder::new()
         .menu(&menu)
         .tooltip("NTOPIA")
-        .on_menu_event(|app, event| match event.id.as_ref() {
-            "show" => {
-                if let Some(window) = app.get_webview_window("main") {
-                    let _ = window.unminimize();
-                    let _ = window.show();
-                    let _ = window.set_focus();
-                }
+        .on_menu_event(|app, event| {
+            let id = event.id.as_ref();
+            if let Some(path) = id.strip_prefix("nav:") {
+                show_main_window(app);
+                let _ = app.emit("tray-navigate", path);
+                return;
             }
-            "quit" => app.exit(0),
-            _ => {}
+            match id {
+                "show" => show_main_window(app),
+                "mute" => {
+                    let _ = app.emit("tray-toggle-mute", ());
+                }
+                "quit" => app.exit(0),
+                _ => {}
+            }
         });
     if let Some(icon) = app.default_window_icon() {
         tray = tray.icon(icon.clone());
     }
-    tray.build(app)?;
+    let tray = tray.build(app)?;
+    app.manage(TrayState {
+        tray,
+        items: vec![
+            ("open", open),
+            ("home", home),
+            ("todo", todo),
+            ("notebook", notebook),
+            ("notifications", notifications),
+            ("settings", settings),
+            ("quit", quit),
+        ],
+        mute,
+    });
     Ok(())
 }
 

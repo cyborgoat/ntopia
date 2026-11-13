@@ -42,3 +42,16 @@ export type NotifyKey = keyof typeof NOTIFY_KEYS;
 export function notifyEnabled(key: NotifyKey): boolean {
   return readPref(NOTIFY_KEYS[key]) !== "0";
 }
+
+const NOTIFY_EVENT = "ntopia:notify-pref";
+
+/** Writes a notification switch and tells listeners (settings UI, tray menu) it changed. */
+export function setNotifyEnabled(key: NotifyKey, on: boolean) {
+  writePref(NOTIFY_KEYS[key], on ? "1" : "0");
+  window.dispatchEvent(new Event(NOTIFY_EVENT));
+}
+
+export function onNotifyChange(cb: () => void) {
+  window.addEventListener(NOTIFY_EVENT, cb);
+  return () => window.removeEventListener(NOTIFY_EVENT, cb);
+}

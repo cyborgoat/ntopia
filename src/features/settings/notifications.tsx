@@ -1,13 +1,13 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useT } from "@/i18n";
-import { writePref } from "@/lib/prefs";
 import { isTauri } from "@/lib/storage";
 import { Group, Row, Toggle } from "./layout";
-import { notifyEnabled, NOTIFY_KEYS, type NotifyKey } from "./prefs";
+import { notifyEnabled, onNotifyChange, setNotifyEnabled, type NotifyKey } from "./prefs";
 
 function useNotifyPref(id: NotifyKey) {
   const [on, setOn] = useState(() => notifyEnabled(id));
-  return [on, (v: boolean) => { setOn(v); writePref(NOTIFY_KEYS[id], v ? "1" : "0"); }] as const;
+  useEffect(() => onNotifyChange(() => setOn(notifyEnabled(id))), [id]);
+  return [on, (v: boolean) => setNotifyEnabled(id, v)] as const;
 }
 
 function Switch({ id, label, hint }: { id: NotifyKey; label: string; hint: string }) {
